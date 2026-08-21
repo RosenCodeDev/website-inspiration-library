@@ -1,0 +1,55 @@
+I am following this youtube tutorial about how to design great website using ai: https://www.youtube.com/watch?v=7FU98O0JLHs
+
+
+Currently i am at step 1, curating a library of design inspiration. I want you to help me recreate this website library. copy the same design and layout of the website library in the video. I have saved screenshots of the website library in the folder "Website Library Example" (or if you can get that yourself form the youtube link without my images and that can get us even better result, do it). i want to create the same type of feel and exact same layout as his web library.
+
+
+
+For example, on the main page, he has a bunch of tabs, "All, Print-tech Paper, dither mono, vast quiet cinematic, data-as-texture, etc). and for each design, he has an image/screenshot of the website, with a name, then some tags/keywords that describe the design. on the lower left it has the category/tab name. on the upper right below the image, it also have some grey text. the lower right it has the numbering of the image. [refer to 1.png and 2.png]
+
+
+Then when you click on a design in the library, it will also pop up a new window showing more details about the design, such as the same tag/keywords, then an image prompt that user can use to recreate that design. there's button below such as "Copy Brief", "Copy Image Prompt" and "Close" [refer to 3.png]
+
+
+
+
+
+I want the exact same setup of website library. the only difference is that for websites that i provided you with a link, i also want there to be a link in that website design profile that we can copy the link or click the button (instead of copy it will take us to the website). for websites that we don't have the link, then no need for that part.
+
+
+
+
+here are websites that I have the links that I want you to saved in my library are in the txt file "Example Websites Links.txt" in the folder: "Example Websites Links"
+The websites that i don't have the links but have the images are in the folder: "Example Websites Images"
+
+
+
+However, I need you to help me think through how we are going to create this library. it looks to me in the tutorial video that the website library in the video only stored images of the website. 
+
+I know that for the ones that we have the links, we can definitely do more (get more information of the website, such as the html, etc). however, more is not always good. if getting more information doesn't provide a better eventual website design (it doesn't help ai with designing website, then it is useless that we have more information). another issue is that website changes, so link is not reliable, we need some form (imgaes, html) to store it. another issue is a lot of the links i provided to you, either there are many pages on that website, or say there are lots of animation, videos that you need to click through and it is dynamic, in that case, if we don't take an image/snapshot of the website, we don't know if there's certain page that we like, or the entire thing, and i don't know if there's a way to mimic their video/transition/animation.
+
+
+Another issue is that since i provided you with two sets of websites, ones with the links, and ones with the image, eventually when we create the library, things need to be uniform, meaning that it doesn't matter if it is the subset that have the links or the subset that only have the images, we need them to be uniformly presented visually to the user so i can use it in a uniform, easy to use manner.
+
+
+Task 1:
+please help me think of a way (the architecture/plan) of how we design the website library in a uniform way that maximize usability and the effectiveness of the our outcome - good website design by ai. or what's the best way to design the website library. the use of library is to 
+1. keep me the human in the loop of designing of websites. 
+2. inject taste into AI (give the reference of what good looks like)
+
+Task 2:
+currently in the images, they are also not uniform. i get them from different sources. most images are already in the same form as in the tutorial video, it is a image of the webpage. but there are one or two that are long images that contain different pages of the same website. how should we deal with it? should we crop it? or what's the best way to use it?
+
+Task 3:
+the current links are again hard to judge what pages we like (we might like all the pages or just some tabs of it), or that some pages have animation that you have to click through to even get to the page. when you come up with a plan, if it involves getting a snapshot of the website, i want you to give it a initial try for all the linked website for what portion of the website to use. it seems from the video that the video tutorial that the website library is just for the hero of the website (that's what we will do)
+
+
+Task 4:
+
+In the tutorial, it has at least the following categories of websites: PRINT-TECH PAPER, DITHER MONO, VAST QUIET CINEMATIC, DATA-AS-TEXTURE, CLASSICAL REMIX, GLITCHED ANTIQUITY, ILLUSTRATED STORYBOOK, REFERENCE STYLES.
+
+
+I want to cover at least these categories. if the examples we provided (Images & link) don't cover some of these categories, can you recommend some websites, or generate some images for me to pick from that satisfied that categories? do not automatically include them into the library, only after i approve them.
+
+
+Please find the best way to recreate the same website library as in the video tutorial, and the goal is to design the website library so that the ai designed website using the library will be the best.
