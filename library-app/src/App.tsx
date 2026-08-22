@@ -194,7 +194,10 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
             </section>
 
             <section className="extension-panel motion-panel" aria-labelledby="motion-heading">
-              <div className="extension-label"><span id="motion-heading">Motion behavior</span><span>{reference.media.motionClip ? 'Loop available' : 'Analysis notes'}</span></div>
+              <div className="extension-label">
+                <span id="motion-heading">Motion behavior</span>
+                {reference.media.motionClip && <span>Loop available</span>}
+              </div>
               <p>{reference.media.motionNotes ?? 'No defining motion was captured. Treat the composition as a still reference and keep any implementation motion restrained.'}</p>
             </section>
           </div>
