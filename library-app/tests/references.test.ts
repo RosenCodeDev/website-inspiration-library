@@ -23,6 +23,14 @@ const jpegDimensions = (path: string) => {
   throw new Error(`No JPEG dimensions found for ${path}`);
 };
 
+const rasterDimensions = (path: string) => {
+  const data = readFileSync(path);
+  if (data.subarray(1, 4).toString('ascii') === 'PNG') {
+    return { width: data.readUInt32BE(16), height: data.readUInt32BE(20) };
+  }
+  return jpegDimensions(path);
+};
+
 describe('reference manifest', () => {
   it('contains exactly 46 sequential, unique reference moments', () => {
     expect(references).toHaveLength(46);
@@ -30,9 +38,16 @@ describe('reference manifest', () => {
     expect(new Set(references.map((entry) => entry.id)).size).toBe(46);
   });
 
-  it('populates every requested filter', () => {
+  it('uses seven populated visual filters and categorizes every card', () => {
+    expect(categories).toHaveLength(8);
+    expect(categories).not.toContain('Reference Styles');
     for (const category of categories.slice(1)) {
       expect(references.some((entry) => entry.filters.includes(category))).toBe(true);
+    }
+    for (const entry of references) {
+      expect(entry.filters).toContain(entry.primaryCategory);
+      expect(entry.filters.length).toBeGreaterThan(0);
+      expect(entry.tags.length).toBeGreaterThanOrEqual(4);
     }
   });
 
@@ -42,6 +57,10 @@ describe('reference manifest', () => {
         expect(existsSync(publicPath(asset)), `${entry.id}: ${asset}`).toBe(true);
       }
       expect(jpegDimensions(publicPath(entry.media.poster)), entry.id).toEqual({ width: 1600, height: 1000 });
+      expect(rasterDimensions(publicPath(entry.media.detailImage)), `${entry.id} quality dimensions`).toEqual({
+        width: entry.quality.width,
+        height: entry.quality.height,
+      });
       if (entry.media.motionClip) expect(existsSync(publicPath(entry.media.motionClip))).toBe(true);
     }
   });

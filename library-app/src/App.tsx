@@ -13,15 +13,26 @@ type CopyTarget = 'brief' | 'prompt' | 'link' | null;
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
+const formatDescriptor = (descriptor: string) => descriptor
+  .split('/')
+  .map((part) => part.trim().split(/\s+/).slice(0, 2).join(' '))
+  .join(' x ');
+
+const formatSummary = (reference: ReferenceEntry) => {
+  const [first, second, third] = reference.tags;
+  return `${first.charAt(0).toUpperCase()}${first.slice(1)} with ${second} and ${third}.`;
+};
+
+const displayTitle = (reference: ReferenceEntry) => (
+  reference.source.siteName
+  ?? reference.title.split(' — ')[0].replace(/ Portal$/, '')
+);
+
 const qualityDefinitions = {
   canonical: 'Verified original, live capture, or high-resolution unaltered supplied source. Reliable for detailed design analysis.',
   usable: 'Reliable for composition, palette, imagery, and broad hierarchy, but not fine typography or texture.',
   limited: 'Useful for concept, rough composition, and broad color direction only; avoid exact UI or typography inference.',
 } as const;
-
-const filterHelp: Partial<Record<Filter, string>> = {
-  'Reference Styles': 'Transferable layout, hierarchy, navigation, interaction, and component-system patterns that work across aesthetics.',
-};
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -60,20 +71,27 @@ function QualityMarker({ reference }: { reference: ReferenceEntry }) {
   );
 }
 
+function CardQualityDot({ reference }: { reference: ReferenceEntry }) {
+  const label = `${reference.quality.tier} source. ${qualityDefinitions[reference.quality.tier]}`;
+  return (
+    <span className="card-quality-dot" title={label} aria-label={label}>
+      <span className={`quality-dot quality-${reference.quality.tier}`} aria-hidden="true" />
+    </span>
+  );
+}
+
 function ReferenceCard({ reference, onOpen }: { reference: ReferenceEntry; onOpen: (reference: ReferenceEntry, trigger: HTMLButtonElement) => void }) {
   return (
     <article className="reference-card">
       <button className="card-button" type="button" aria-haspopup="dialog" aria-label={`Open ${reference.title} reference details`} onClick={(event) => onOpen(reference, event.currentTarget)}>
         <div className="card-media">
           <ReferenceImage src={reference.media.poster} alt={`${reference.title} website reference`} />
+          <CardQualityDot reference={reference} />
         </div>
         <div className="card-copy">
           <div className="card-heading">
-            <h2>{reference.title}</h2>
-            <div className="card-meta">
-              <p className="descriptor">{reference.styleDescriptor}</p>
-              <QualityMarker reference={reference} />
-            </div>
+            <h2>{displayTitle(reference)}</h2>
+            <p className="descriptor" title={formatDescriptor(reference.styleDescriptor)}>{formatDescriptor(reference.styleDescriptor)}</p>
           </div>
           <div className="tags" aria-label="Visual tags">
             {reference.tags.slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}
@@ -94,7 +112,7 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
   const reducedMotion = useReducedMotion();
   const hasVerifiedWebsite = reference.source.kind === 'website' && Boolean(reference.source.url);
 
-  useEffect(() => { dialogRef.current?.focus(); }, []);
+  useEffect(() => { dialogRef.current?.focus({ preventScroll: true }); }, []);
 
   const copyText = async (text: string, target: Exclude<CopyTarget, null>) => {
     try {
@@ -145,12 +163,12 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
         <div className="detail-content">
           <div className="detail-heading">
             <div>
-              <p className="detail-index">Reference {pad(reference.order)} / {references.length}</p>
-              <h2 id="detail-title">{reference.title}</h2>
+              <p className="detail-index">Reference {pad(reference.order)} of {references.length}</p>
+              <h2 id="detail-title">{displayTitle(reference)}</h2>
             </div>
-            <p className="detail-kicker">{reference.styleDescriptor}</p>
+            <p className="detail-kicker">{formatDescriptor(reference.styleDescriptor)}</p>
           </div>
-          <p id="detail-description" className="detail-description">{reference.description}</p>
+          <p id="detail-description" className="detail-description">{formatSummary(reference)}</p>
           <div className="tags detail-tags" aria-label="Complete visual tags">
             {reference.tags.map((tag) => <span key={tag}>{tag}</span>)}
           </div>
@@ -244,11 +262,10 @@ export default function App() {
               type="button"
               className={activeFilter === category ? 'active' : ''}
               aria-pressed={activeFilter === category}
-              title={filterHelp[category]}
               onClick={() => setActiveFilter(category)}
             >
-              <span>{category === 'All' ? 'All references' : category}</span>
-              <sup>/{counts.get(category)}</sup>
+              <span>{category}</span>
+              <sup>{counts.get(category)}</sup>
             </button>
           ))}
         </nav>
@@ -258,7 +275,7 @@ export default function App() {
         </section>
 
         <footer className="site-footer">
-          <span>Local-first / browse-only</span>
+          <span>Haim&apos;s Inspiration Library</span>
           <span>Canonical › usable › limited</span>
           <span>{visibleReferences.length} shown / {references.length} moments</span>
         </footer>

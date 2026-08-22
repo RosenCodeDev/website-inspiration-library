@@ -8,7 +8,6 @@ export const categoryValues = [
   'Classical Remix',
   'Glitched Antiquity',
   'Illustrated Storybook',
-  'Reference Styles',
 ] as const;
 
 export const CategorySchema = z.enum(categoryValues);
