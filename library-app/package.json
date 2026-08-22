@@ -1,0 +1,25 @@
+{
+  "name": "website-inspiration-library",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "typescript": "5.9.3",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  }
+}
