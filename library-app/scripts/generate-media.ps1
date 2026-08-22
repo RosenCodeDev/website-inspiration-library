@@ -15,7 +15,9 @@ New-Item -ItemType Directory -Path $originalTarget -Force | Out-Null
 New-Item -ItemType Directory -Path $posterTarget -Force | Out-Null
 New-Item -ItemType Directory -Path $motionTarget -Force | Out-Null
 
-Get-ChildItem -LiteralPath $sourceImages -File | ForEach-Object {
+Get-ChildItem -LiteralPath $sourceImages -File |
+  Where-Object { $_.BaseName -match '^\d+$' } |
+  ForEach-Object {
   Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $originalTarget $_.Name) -Force
 }
 
@@ -71,7 +73,7 @@ function New-CroppedPoster {
   $image.Dispose()
 }
 
-for ($index = 1; $index -le 18; $index++) {
+for ($index = 1; $index -le 19; $index++) {
   $source = Get-ChildItem -LiteralPath $originalTarget -File |
     Where-Object { $_.BaseName -eq [string]$index } |
     Select-Object -First 1

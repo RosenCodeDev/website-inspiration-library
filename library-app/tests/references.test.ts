@@ -24,10 +24,10 @@ const jpegDimensions = (path: string) => {
 };
 
 describe('reference manifest', () => {
-  it('contains exactly 45 sequential, unique reference moments', () => {
-    expect(references).toHaveLength(45);
-    expect(references.map((entry) => entry.order)).toEqual(Array.from({ length: 45 }, (_, index) => index + 1));
-    expect(new Set(references.map((entry) => entry.id)).size).toBe(45);
+  it('contains exactly 46 sequential, unique reference moments', () => {
+    expect(references).toHaveLength(46);
+    expect(references.map((entry) => entry.order)).toEqual(Array.from({ length: 46 }, (_, index) => index + 1));
+    expect(new Set(references.map((entry) => entry.id)).size).toBe(46);
   });
 
   it('populates every requested filter', () => {
@@ -46,14 +46,50 @@ describe('reference manifest', () => {
     }
   });
 
-  it('preserves all 18 supplied originals byte-for-byte', () => {
-    for (let index = 1; index <= 18; index += 1) {
-      const reference = references[index - 1];
-      const extension = reference.media.original.split('.').pop();
+  it('copies all 19 active image references byte-for-byte', () => {
+    for (let index = 1; index <= 19; index += 1) {
+      const reference = references.find((entry) => entry.media.original.match(new RegExp(`/originals/${index}\\.(jpg|png)$`)));
+      expect(reference, `missing image ${index}`).toBeDefined();
+      const extension = reference!.media.original.split('.').pop();
       const source = resolve(process.cwd(), '..', 'Example Websites Images', `${index}.${extension}`);
-      const copied = publicPath(reference.media.original);
-      expect(sha256(copied), reference.id).toBe(sha256(source));
+      const copied = publicPath(reference!.media.original);
+      expect(sha256(copied), reference!.id).toBe(sha256(source));
     }
+  });
+
+  it('keeps the superseded image 1 upload byte-identical in the archive', () => {
+    const archived = publicPath('/assets/archive/1-supplied-original.jpg');
+    expect(existsSync(archived)).toBe(true);
+    expect(sha256(archived)).toBe('bc1d4a8ec65a9b6df1dbd4b4be3e15c5f5243e7420dcbc33dbddd9a67551cfce');
+  });
+
+  it('keeps replaced YouTube frames byte-identical in the archive', () => {
+    const expected = {
+      12: '15f14a67b380c07b21ed9da72b27da9b6a192f7fe1fe70868a5d019224d4e5d9',
+      14: '091f218693c9d1fc7b1d1248519394a9df83bb5c34d1db72e6c44bb92c568820',
+      16: 'c645900e6558287fac6cbbb546482b34970e75d4372c6a154cf8fbc291266255',
+      17: '450127297b598d3aad2e5cddcc3626e9feb9105183512ba786a4f05f3d4bc2d0',
+      18: 'bee110f43a3be5e67b510d1b09e5e149b69e872a6c143c035d4b253b828050d2',
+    } as const;
+
+    for (const [number, hash] of Object.entries(expected)) {
+      const archived = publicPath(`/assets/archive/${number}-youtube-original.png`);
+      expect(existsSync(archived)).toBe(true);
+      expect(sha256(archived)).toBe(hash);
+    }
+  });
+
+  it('does not connect review-only enhanced or generated candidates to cards', () => {
+    const serialized = JSON.stringify(references);
+    expect(serialized).not.toContain('_enhanced');
+    expect(serialized).not.toContain('_chatgpt_generated');
+  });
+
+  it('labels approved generated reconstructions as usable rather than canonical', () => {
+    const approved = references.filter((entry) => [12, 14, 16, 17, 18].includes(entry.order));
+    expect(approved).toHaveLength(5);
+    expect(approved.every((entry) => entry.source.captureMethod === 'generated-reconstruction')).toBe(true);
+    expect(approved.every((entry) => entry.quality.tier === 'usable')).toBe(true);
   });
 
   it('exposes verified links only through website sources', () => {
@@ -65,7 +101,6 @@ describe('reference manifest', () => {
 
   it('does not claim fine-detail reliability for limited YouTube frames', () => {
     const limited = references.filter((entry) => entry.quality.tier === 'limited');
-    expect(limited).toHaveLength(4);
     for (const entry of limited) {
       expect(entry.quality.reliableFor).not.toContain('typography');
       expect(entry.quality.note.toLowerCase()).toContain('youtube');

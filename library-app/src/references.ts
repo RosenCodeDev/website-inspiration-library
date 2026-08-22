@@ -88,7 +88,7 @@ const buildEntry = (seed: Seed): ReferenceEntry => {
     `Avoid: ${profile.avoid}`,
   ].join('\n');
   const imagePrompt = [
-    `Create a 16:10 website hero concept titled “${seed.title}”.`,
+    `Create a 16:10 website hero concept titled "${seed.title}".`,
     profile.composition,
     `Use ${profile.typography}.`,
     `Palette: ${profile.palette}.`,
@@ -107,15 +107,15 @@ const imageFile = (number: number, extension: 'jpg' | 'png') =>
 
 const imageSeeds: Seed[] = [
   {
-    id: 'image-astra-italy', order: 1, title: 'Astra — Italy Travel System',
-    styleDescriptor: 'Long-form editorial / modular itinerary',
-    description: 'A complete travel landing page arranged like a compact magazine: monochrome collage, itinerary modules, proof points, price cards, and a dark conversion footer.',
-    primaryCategory: 'Print-Tech Paper', extraFilters: ['Reference Styles'],
-    tags: ['editorial grid', 'paper white', 'photo collage', 'condensed labels', 'modular cards', 'black footer'],
-    source: { kind: 'image', captureMethod: 'original-upload', sourceGroupId: 'astra-travel', originalAsset: imageFile(1, 'jpg') },
+    id: 'image-astra-ai', order: 1, title: 'Astra — AI That Works the Way You Do',
+    styleDescriptor: 'AI systems hero / monochrome halftone',
+    description: 'A stark AI-workflow hero balances an oversized direct promise with a dense monochrome halftone form, using technical microcopy and hard black controls to make automation feel precise rather than abstract.',
+    primaryCategory: 'Dither Mono', extraFilters: ['Data-as-Texture', 'Reference Styles'],
+    tags: ['oversized sans type', 'halftone form', 'monochrome hero', 'technical microcopy', 'hard-edged CTA', 'asymmetric split'],
+    source: { kind: 'image', captureMethod: 'original-upload', sourceGroupId: 'astra-ai', originalAsset: imageFile(1, 'jpg') },
     media: { poster: '/assets/posters/image-01.jpg', detailImage: imageFile(1, 'jpg'), original: imageFile(1, 'jpg') },
-    quality: { tier: 'canonical', width: 4096, height: 3796, confidence: 0.96, reliableFor: ['layout', 'typography', 'component rhythm', 'palette'], note: 'High-resolution supplied composite; poster uses the upper hero while the full page remains available in detail view.' },
-    profile: { composition: 'Build a tall editorial system from a centered black-and-white hero collage followed by alternating evidence, itinerary, and pricing modules.', palette: 'warm paper white, ink black, and restrained grey', texture: 'subtle paper grain, halftone photography, thin black rules', motion: 'mostly static; use only quiet image reveals and small hover inversions', preserve: 'the publication rhythm, modular storytelling, and disciplined two-color system', avoid: 'generic SaaS gradients, floating glass cards, oversized rounded corners' },
+    quality: { tier: 'canonical', width: 1898, height: 1476, confidence: 0.97, reliableFor: ['hero layout', 'type scale', 'halftone treatment', 'palette', 'control styling'], note: 'High-resolution unaltered supplied replacement. The earlier long-form upload remains preserved in the archive and Git history.' },
+    profile: { composition: 'Split the hero between a large left-aligned workflow proposition and a dense abstract halftone form that occupies the right half, with compact utility controls held to the edges.', typography: 'oversized heavy grotesk display type paired with compact technical monospace labels', palette: 'paper white, pure black, and tightly controlled grey', texture: 'coarse black halftone dots, crisp rules, and flat interface surfaces', hierarchy: 'the direct promise leads, the halftone form creates tension, and one hard black action completes the frame', spacing: 'use a strict asymmetrical split with large clear margins and compact edge metadata', motion: 'let the halftone field shift slowly or respond to pointer movement while all copy and controls remain stable', preserve: 'the severe monochrome contrast, type-to-texture balance, and utilitarian controls', avoid: 'glossy gradients, friendly AI mascots, floating glass cards, rounded CTA pills' },
   },
   {
     id: 'image-dark-portal', order: 2, title: 'Nocturne Login Portal',
@@ -233,9 +233,9 @@ const imageSeeds: Seed[] = [
     description: 'A calm meditation proposition sits above a voxel-like mountain and river landscape, using pixel geometry to make wellness feel precise rather than mystical.',
     primaryCategory: 'Illustrated Storybook', extraFilters: ['Dither Mono'],
     tags: ['voxel landscape', 'wellness hero', 'serif headline', 'muted earth tones', 'wide scene'],
-    source: { kind: 'image', siteName: 'Stillness', captureMethod: 'youtube-frame', sourceGroupId: 'stillness', originalAsset: imageFile(12, 'png') },
+    source: { kind: 'image', siteName: 'Stillness', captureMethod: 'generated-reconstruction', capturedAt: '2026-08-22', sourceGroupId: 'stillness', originalAsset: imageFile(12, 'png') },
     media: { poster: '/assets/posters/image-12.jpg', detailImage: imageFile(12, 'png'), original: imageFile(12, 'png') },
-    quality: { tier: 'usable', width: 837, height: 495, confidence: 0.78, reliableFor: ['composition', 'palette', 'illustration direction'], note: 'YouTube-derived frame; reliable for broad composition but not fine typography or texture.' },
+    quality: { tier: 'usable', width: 1633, height: 963, confidence: 0.86, reliableFor: ['composition', 'palette', 'illustration direction', 'broad hierarchy'], note: 'User-approved, source-guided generated reconstruction. The YouTube frame is archived; do not treat reconstructed copy or fine detail as source truth.' },
     profile: { composition: 'Place a concise wellness proposition in the upper left and let a voxel mountain valley fill the lower two-thirds.', palette: 'warm white, deep teal, moss green, coral clay, and pale stone', texture: 'blocky voxel terrain softened by atmospheric haze', motion: 'very slow river shimmer and drifting mist between mountain layers', preserve: 'the grounded science tone and expansive geometric landscape', avoid: 'spiritual symbols, glowing auras, unreadable small text' },
   },
   {
@@ -255,9 +255,9 @@ const imageSeeds: Seed[] = [
     description: 'A classical winged figure cuts across a near-black financial interface scattered with planets and data, turning yield aggregation into a cosmic myth.',
     primaryCategory: 'Glitched Antiquity', extraFilters: ['Classical Remix', 'Data-as-Texture'],
     tags: ['celestial figure', 'financial data', 'orbital diagram', 'dark canvas', 'serif headline', 'scan artifacts'],
-    source: { kind: 'image', siteName: 'Yieldstream', captureMethod: 'youtube-frame', sourceGroupId: 'yieldstream', originalAsset: imageFile(14, 'png') },
+    source: { kind: 'image', siteName: 'Yieldstream', captureMethod: 'generated-reconstruction', capturedAt: '2026-08-22', sourceGroupId: 'yieldstream', originalAsset: imageFile(14, 'png') },
     media: { poster: '/assets/posters/image-14.jpg', detailImage: imageFile(14, 'png'), original: imageFile(14, 'png') },
-    quality: { tier: 'limited', width: 541, height: 334, confidence: 0.62, reliableFor: ['composition', 'broad palette', 'visual metaphor'], note: 'Low-resolution YouTube frame with playback contamination; do not infer fine type, spacing, or data labels.' },
+    quality: { tier: 'usable', width: 1597, height: 985, confidence: 0.85, reliableFor: ['composition', 'palette', 'visual metaphor', 'broad hierarchy'], note: 'User-approved, source-guided generated reconstruction. The YouTube frame is archived; do not treat reconstructed copy, data labels, or fine illustration detail as verified source truth.' },
     profile: { composition: 'Set a large serif financial proposition on the left and a monumental winged classical figure on the right, surrounded by orbital data fragments.', palette: 'near black, parchment cream, faded peach, and small spectral accents', texture: 'archival engraving, scan noise, pixel dust, and fine data ticks', motion: 'planets orbit slowly while fragments flicker around the figure', preserve: 'the mythic scale and fusion of finance, cosmos, and antiquity', avoid: 'copying unreadable labels, literal crypto coins, neon trading dashboards' },
   },
   {
@@ -277,9 +277,9 @@ const imageSeeds: Seed[] = [
     description: 'A coaching proposition overlays a blue-toned reinterpretation of two reaching hands, turning familiar Renaissance imagery into a contemporary transformation message.',
     primaryCategory: 'Classical Remix', extraFilters: ['Print-Tech Paper'],
     tags: ['reaching hands', 'renaissance crop', 'blue texture', 'centered serif', 'coaching CTA'],
-    source: { kind: 'image', captureMethod: 'youtube-frame', sourceGroupId: 'break-pattern', originalAsset: imageFile(16, 'png') },
+    source: { kind: 'image', captureMethod: 'generated-reconstruction', capturedAt: '2026-08-22', sourceGroupId: 'break-pattern', originalAsset: imageFile(16, 'png') },
     media: { poster: '/assets/posters/image-16.jpg', detailImage: imageFile(16, 'png'), original: imageFile(16, 'png') },
-    quality: { tier: 'limited', width: 540, height: 334, confidence: 0.68, reliableFor: ['composition', 'broad palette', 'classical reference'], note: 'Low-resolution YouTube frame; reliable for concept and hierarchy only.' },
+    quality: { tier: 'usable', width: 1594, height: 987, confidence: 0.85, reliableFor: ['composition', 'palette', 'visual metaphor', 'broad hierarchy'], note: 'User-approved, source-guided generated reconstruction. The YouTube frame is archived; do not treat reconstructed copy or fine artwork details as verified source truth.' },
     profile: { composition: 'Crop two reaching classical hands across the upper half and center a transformation headline and paired actions beneath their fingertips.', palette: 'dusty blue, warm skin, cloud white, and ink black', texture: 'aged fresco grain with faint diagram lines', motion: 'the hands remain still while fine circular guide lines rotate almost imperceptibly', preserve: 'the charged gap between hands and the centered promise', avoid: 'religious claims, literal reproduction of the artwork, fine text inferred from the frame' },
   },
   {
@@ -288,9 +288,9 @@ const imageSeeds: Seed[] = [
     description: 'A restrained analytics page turns a globe into a field of tiny marks, balancing editorial copy, tabbed sectors, and a highly technical visual center.',
     primaryCategory: 'Data-as-Texture', extraFilters: ['Print-Tech Paper'],
     tags: ['ASCII globe', 'market data', 'tabbed interface', 'micro typography', 'white canvas'],
-    source: { kind: 'image', captureMethod: 'youtube-frame', sourceGroupId: 'market-predictions', originalAsset: imageFile(17, 'png') },
+    source: { kind: 'image', captureMethod: 'generated-reconstruction', capturedAt: '2026-08-22', sourceGroupId: 'market-predictions', originalAsset: imageFile(17, 'png') },
     media: { poster: '/assets/posters/image-17.jpg', detailImage: imageFile(17, 'png'), original: imageFile(17, 'png') },
-    quality: { tier: 'limited', width: 542, height: 333, confidence: 0.64, reliableFor: ['composition', 'data visualization direction', 'broad hierarchy'], note: 'Low-resolution YouTube frame with a video label; do not infer small copy or exact plotting data.' },
+    quality: { tier: 'usable', width: 1602, height: 981, confidence: 0.84, reliableFor: ['composition', 'data visualization direction', 'palette', 'broad hierarchy'], note: 'User-approved, source-guided generated reconstruction. The YouTube frame is archived; do not infer exact plotting data, historical labels, or fine typography.' },
     profile: { composition: 'Use a wide bordered canvas with an ASCII globe occupying the left two-thirds, a compact explanation at upper right, and category tabs along the base.', palette: 'white, ink black, and faint lavender-grey', texture: 'microtype, dot fields, and sparse grid ticks', motion: 'data points sweep around the globe in slow vertical bands', preserve: 'the globe-as-texture idea and large quiet analytical canvas', avoid: 'fabricated readable data, conventional chart dashboards, bright chart palettes' },
   },
   {
@@ -299,9 +299,9 @@ const imageSeeds: Seed[] = [
     description: 'A legal assistant interface pairs a direct question box with a monumental allegorical justice figure, making an abstract service feel approachable and authoritative.',
     primaryCategory: 'Classical Remix', extraFilters: ['Illustrated Storybook', 'Reference Styles'],
     tags: ['justice figure', 'blue sky', 'AI input', 'classical allegory', 'split hero'],
-    source: { kind: 'image', siteName: 'Juris', captureMethod: 'youtube-frame', sourceGroupId: 'juris', originalAsset: imageFile(18, 'png') },
+    source: { kind: 'image', siteName: 'Juris', captureMethod: 'generated-reconstruction', capturedAt: '2026-08-22', sourceGroupId: 'juris', originalAsset: imageFile(18, 'png') },
     media: { poster: '/assets/posters/image-18.jpg', detailImage: imageFile(18, 'png'), original: imageFile(18, 'png') },
-    quality: { tier: 'limited', width: 541, height: 333, confidence: 0.66, reliableFor: ['composition', 'broad palette', 'visual metaphor'], note: 'Low-resolution YouTube frame; do not rely on small interface labels or exact sculpture detail.' },
+    quality: { tier: 'usable', width: 1598, height: 984, confidence: 0.86, reliableFor: ['composition', 'palette', 'visual metaphor', 'broad hierarchy'], note: 'User-approved, source-guided generated reconstruction. The YouTube frame is archived; do not treat reconstructed copy, branding, or sculpture detail as verified source truth.' },
     profile: { composition: 'Place a concise legal proposition and question composer on the left while an allegorical justice figure rises through clouds on the right.', palette: 'clear sky blue, cloud white, warm marble peach, and charcoal text', texture: 'soft painted clouds and sculptural fabric against crisp UI surfaces', motion: 'clouds drift and the figure enters with a slow vertical reveal', preserve: 'the accessible input, monumental allegory, and confident open sky', avoid: 'dense legal document UI, ornate courthouse motifs, copied brand marks' },
   },
 ];
@@ -552,8 +552,22 @@ const siteSeeds: Seed[] = [
   },
 ];
 
+const additionalImageSeeds: Seed[] = [
+  {
+    id: 'image-voidpixel', order: 46, title: 'Voidpixel — Everything Begins With One Pixel',
+    styleDescriptor: 'Pixel systems / monochrome product utility',
+    description: 'A black-and-white product hero treats the pixel as both message and system: oversized bitmap lettering, a sparse dot field, hard-edged controls, and a dashboard preview turn a technical premise into a complete visual language.',
+    primaryCategory: 'Dither Mono', extraFilters: ['Data-as-Texture', 'Reference Styles'],
+    tags: ['pixel display type', 'monochrome dashboard', 'dot-field texture', 'hard-edged CTA', 'black-and-white UI', 'modular utility'],
+    source: { kind: 'image', siteName: 'Voidpixel', captureMethod: 'original-upload', sourceGroupId: 'voidpixel', originalAsset: imageFile(19, 'jpg') },
+    media: { poster: '/assets/posters/image-19.jpg', detailImage: imageFile(19, 'jpg'), original: imageFile(19, 'jpg') },
+    quality: { tier: 'canonical', width: 2880, height: 2202, confidence: 0.98, reliableFor: ['hero layout', 'pixel typography', 'dashboard composition', 'palette', 'texture'], note: 'High-resolution unaltered supplied source. No verified public website URL is attached.' },
+    profile: { composition: 'Center a monumental bitmap proposition in the upper field, anchor one compact black action beneath it, and reveal a wide monochrome dashboard mockup across the lower half over a sparse pixel field.', typography: 'oversized custom pixel display lettering paired with clean compact sans-serif interface copy', palette: 'pure white, ink black, and a narrow range of cool greys', texture: 'single-pixel marks, ordered dot fields, bitmap letterforms, and crisp one-pixel interface rules', hierarchy: 'the pixel headline dominates, one dark action follows, and the detailed dashboard supplies proof below', spacing: 'use large white margins around the proposition and a tightly organized utility grid inside the product preview', motion: 'assemble the headline one pixel at a time, drift the dot field subtly, and reveal dashboard modules in a measured sequence', preserve: 'the literal pixel premise, uncompromising monochrome palette, and hard-edged product utility', avoid: 'rounded SaaS cards, colorful gradients, soft shadows, generic futuristic neon effects' },
+  },
+];
+
 export const references = ReferenceManifestSchema.parse(
-  [...imageSeeds, ...siteSeeds].map(buildEntry),
+  [...imageSeeds, ...siteSeeds, ...additionalImageSeeds].map(buildEntry),
 );
 
 export const categories: Array<'All' | Category> = [

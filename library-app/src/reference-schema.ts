@@ -34,6 +34,7 @@ export const ReferenceEntrySchema = z.object({
       'recovered-live',
       'youtube-frame',
       'enhanced-derivative',
+      'generated-reconstruction',
     ]),
     capturedAt: z.string().optional(),
     sourceGroupId: z.string().min(1),
@@ -56,7 +57,7 @@ export const ReferenceEntrySchema = z.object({
   }),
 });
 
-export const ReferenceManifestSchema = z.array(ReferenceEntrySchema).length(45);
+export const ReferenceManifestSchema = z.array(ReferenceEntrySchema).length(46);
 
 export type Category = z.infer<typeof CategorySchema>;
 export type ReferenceEntry = z.infer<typeof ReferenceEntrySchema>;
