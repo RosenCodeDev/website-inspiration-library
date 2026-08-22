@@ -26,6 +26,7 @@ Open `http://127.0.0.1:4173/`. The app has no login, database, tracking, or remo
 - The 19 active image files are copied byte-for-byte to `public/assets/originals`. Superseded source files are retained in `public/assets/archive` and Git history.
 - Current website captures live in `public/assets/site-captures`; accidental browser scrollbar tracks are cropped from the affected captures.
 - Uniform 1600×1000 derivatives live in `public/assets/posters` and are generated with a high-quality non-generative bicubic crop.
+- `scripts/remove-capture-scrollbars.ps1` contains dimension-guarded crops for the seven captures that originally included browser scrollbars; run it before regenerating posters if those source captures are restored.
 - Images 13 and 15 use recovered live captures from Linq and Marble in the UI while retaining their original video frames for provenance.
 - Images 12, 14, 16, 17, and 18 use user-approved, source-guided generated reconstructions and are marked `usable`, never `canonical`; their original YouTube frames remain archived.
 

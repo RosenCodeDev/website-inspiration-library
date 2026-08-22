@@ -241,7 +241,7 @@ const imageSeeds: Seed[] = [
     tags: ['cinematic landscape', 'floating message UI', 'developer product', 'dark overlay', 'bright CTA'],
     source: { kind: 'website', siteName: 'Linq', url: 'https://linqapp.com/', captureMethod: 'recovered-live', capturedAt: '2026-08-21', sourceGroupId: 'linq', originalAsset: imageFile(13, 'png') },
     media: { poster: '/assets/posters/image-13.jpg', detailImage: '/assets/site-captures/13-linq.png', original: imageFile(13, 'png'), motionNotes: 'The landscape and conversational elements introduce depth while the headline and conversion controls remain anchored.' },
-    quality: { tier: 'canonical', width: 1266, height: 713, confidence: 1, reliableFor: ['layout', 'typography', 'palette', 'UI layering'], note: 'Recovered as a current live browser capture; the original video frame remains archived.' },
+    quality: { tier: 'canonical', width: 1251, height: 713, confidence: 1, reliableFor: ['layout', 'typography', 'palette', 'UI layering'], note: 'Recovered as a current live browser capture with the browser scrollbar removed; the original video frame remains archived.' },
     profile: { composition: 'Layer a translucent messaging card over a full-width cinematic landscape, then anchor the headline and actions along the lower center.', palette: 'deep forest green, blue-grey sky, charcoal overlay, white, and an electric lime CTA', texture: 'soft atmospheric illustration behind crisp glass-like message surfaces', motion: 'message bubbles arrive sequentially while the landscape holds a slow ambient drift', preserve: 'the human message exchange and deep environmental staging', avoid: 'busy chat timelines, tiny code samples, excessive glass blur' },
   },
   {
@@ -263,7 +263,7 @@ const imageSeeds: Seed[] = [
     tags: ['ocean world', 'giant wordmark', 'child explorer', 'cloud typography', 'bright CTA'],
     source: { kind: 'website', siteName: 'Marble', url: 'https://withmarble.com/', captureMethod: 'recovered-live', capturedAt: '2026-08-21', sourceGroupId: 'marble', originalAsset: imageFile(15, 'png') },
     media: { poster: '/assets/posters/image-15.jpg', detailImage: '/assets/site-captures/15-marble.png', original: imageFile(15, 'png'), motionNotes: 'The scene behaves like a living title card: water, clouds, and the child’s approach imply continuous exploration.' },
-    quality: { tier: 'canonical', width: 1266, height: 713, confidence: 1, reliableFor: ['composition', 'typography scale', 'palette', 'illustration'], note: 'Recovered as a current live browser capture; the original video frame remains archived.' },
+    quality: { tier: 'canonical', width: 1251, height: 713, confidence: 1, reliableFor: ['composition', 'typography scale', 'palette', 'illustration'], note: 'Recovered as a current live browser capture with the browser scrollbar removed; the original video frame remains archived.' },
     profile: { composition: 'Fill the frame with open ocean, place an enormous rounded wordmark across the sky, and guide a small child toward a distant fantasy island.', palette: 'saturated ocean blue, cloud white, warm skin tones, and a single red action', texture: 'soft cinematic clouds, glossy water, and painterly island detail', motion: 'water ripples, clouds drift, and the kayak moves slowly toward the island', preserve: 'the dramatic scale contrast and optimistic sense of discovery', avoid: 'toy-like UI chrome, crowded educational badges, generic cartoon mascots' },
   },
   {
@@ -362,7 +362,7 @@ const siteSeeds: Seed[] = [
     primaryCategory: 'Vast Quiet Cinematic', extraFilters: ['Print-Tech Paper'], tags: ['editorial split', 'product close-ups', 'narrow copy', 'dark canvas', 'vertical sequence'],
     source: { kind: 'website', siteName: 'Opal', url: 'https://op.al/', captureMethod: 'live-browser-capture', capturedAt: '2026-08-21', sourceGroupId: 'opal', originalAsset: '/assets/site-captures/07-opal.png' },
     media: { poster: '/assets/posters/site-07.jpg', detailImage: '/assets/site-captures/07-opal.png', original: '/assets/site-captures/07-opal.png' },
-    quality: { tier: 'canonical', width: 1266, height: 713, confidence: 1, reliableFor: ['editorial layout', 'image sequencing', 'type scale'], note: 'Current live capture.' },
+    quality: { tier: 'canonical', width: 1251, height: 713, confidence: 1, reliableFor: ['editorial layout', 'image sequencing', 'type scale'], note: 'Current live capture with the browser scrollbar removed.' },
     profile: { composition: 'Dedicate most of the frame to a vertical mosaic of intimate product images and reserve a narrow column for title and essay text.', palette: 'black, warm cream, steel blue, and incidental product colors', texture: 'high-detail material photography against matte editorial surfaces', motion: 'scroll the image column at a distinct pace from the anchored text', preserve: 'the monograph density and confident asymmetry', avoid: 'equal-sized product cards, obvious ecommerce chrome, oversized CTA buttons' },
   },
   {
@@ -380,7 +380,7 @@ const siteSeeds: Seed[] = [
     primaryCategory: 'Illustrated Storybook', extraFilters: ['Print-Tech Paper'], tags: ['botanical collage', 'packaging hero', 'cut-paper shapes', 'lime green', 'playful lettering'],
     source: { kind: 'website', siteName: 'MANA Yerba Mate', url: 'https://en.manayerbamate.com/', captureMethod: 'live-browser-capture', capturedAt: '2026-08-21', sourceGroupId: 'mana', originalAsset: '/assets/site-captures/09-mana.png' },
     media: { poster: '/assets/posters/site-09.jpg', detailImage: '/assets/site-captures/09-mana.png', original: '/assets/site-captures/09-mana.png', motionNotes: 'Illustrated ingredients and packaging elements bounce, slide, and layer around the fixed product can.' },
-    quality: { tier: 'canonical', width: 1237, height: 705, confidence: 1, reliableFor: ['palette', 'collage composition', 'packaging staging', 'motion direction'], note: 'Current live capture with the browser scrollbar removed.' },
+    quality: { tier: 'canonical', width: 1237, height: 690, confidence: 1, reliableFor: ['palette', 'collage composition', 'packaging staging', 'motion direction'], note: 'Current live capture with the horizontal browser scrollbar removed.' },
     profile: { composition: 'Center a beverage can and surround it with oversized cut-paper fruit, leaves, flowers, and expressive lettering.', palette: 'lime green, coral red, cream, leaf green, orange, and black', texture: 'paper-cut illustration with chunky hand-drawn marks', motion: 'ingredients bounce and slide in layered loops around a stable can', preserve: 'the bold product focus and joyful botanical density', avoid: 'photo-real fruit splashes, glossy beverage clichés, tiny ingredient copy' },
   },
   {
@@ -479,7 +479,7 @@ const siteSeeds: Seed[] = [
     primaryCategory: 'Print-Tech Paper', extraFilters: ['Illustrated Storybook'], tags: ['matcha green', 'giant wordmark', 'packaging hero', 'nutrition callouts', 'handwritten notes'],
     source: { kind: 'website', siteName: 'More Nutrition', url: 'https://more-nutrition.webflow.io/', captureMethod: 'live-browser-capture', capturedAt: '2026-08-21', sourceGroupId: 'more-nutrition', originalAsset: '/assets/site-captures/20-more-nutrition.png' },
     media: { poster: '/assets/posters/site-20.jpg', detailImage: '/assets/site-captures/20-more-nutrition.png', original: '/assets/site-captures/20-more-nutrition.png', motionNotes: 'Packaging and nutrition marks animate into a tightly staged campaign frame after the loader.' },
-    quality: { tier: 'canonical', width: 1261, height: 710, confidence: 1, reliableFor: ['packaging staging', 'type scale', 'palette', 'callout rhythm'], note: 'Current post-loader live capture.' },
+    quality: { tier: 'canonical', width: 1251, height: 700, confidence: 1, reliableFor: ['packaging staging', 'type scale', 'palette', 'callout rhythm'], note: 'Current post-loader live capture with both browser scrollbars removed.' },
     profile: { composition: 'Place packaging in the lower center, crop a giant brand word across the top, and distribute short nutrition callouts around the product.', palette: 'multiple matcha greens, cream, white, and near black', texture: 'matte packaging with marker-like handwritten accents', motion: 'slide product pieces and callouts into place with buoyant timing', preserve: 'the controlled single-color world and product-first scale', avoid: 'smooth wellness gradients, ingredient photography, dense nutrition tables' },
   },
   {
@@ -524,7 +524,7 @@ const siteSeeds: Seed[] = [
     primaryCategory: 'Vast Quiet Cinematic', extraFilters: ['Classical Remix'], tags: ['fog landscape', 'fashion entrance', 'tiny declaration', 'muted grey', 'slow reveal'],
     source: { kind: 'website', siteName: 'Izanami', url: 'https://izanami-official.com/', captureMethod: 'live-browser-capture', capturedAt: '2026-08-21', sourceGroupId: 'izanami', originalAsset: '/assets/site-captures/25-izanami.png' },
     media: { poster: '/assets/posters/site-25.jpg', detailImage: '/assets/site-captures/25-izanami.png', original: '/assets/site-captures/25-izanami.png', motionNotes: 'A long loader gives way to an ambient fog scene and restrained philosophical text.' },
-    quality: { tier: 'canonical', width: 1266, height: 713, confidence: 0.94, reliableFor: ['atmosphere', 'scale', 'entrance pacing', 'palette'], note: 'Current atmospheric post-loader capture.' },
+    quality: { tier: 'canonical', width: 1251, height: 713, confidence: 0.94, reliableFor: ['atmosphere', 'scale', 'entrance pacing', 'palette'], note: 'Current atmospheric post-loader capture with the browser scrollbar removed.' },
     profile: { composition: 'Fill the frame with a vertically layered fog landscape and place one tiny declaration near the center or lower third.', palette: 'mist grey, desaturated sage, charcoal, and pale stone', texture: 'soft film grain, fog layers, and barely visible terrain', motion: 'use a patient loader followed by continuous slow fog drift', preserve: 'the mystery, tiny type scale, and refusal of conventional conversion', avoid: 'large fashion headlines, visible product grids, dramatic fast transitions' },
   },
   {
@@ -533,7 +533,7 @@ const siteSeeds: Seed[] = [
     primaryCategory: 'Vast Quiet Cinematic', extraFilters: ['Data-as-Texture'], tags: ['mountain hero', 'AI governance', 'editorial headline', 'dark overlay', 'edge controls'],
     source: { kind: 'website', siteName: 'CTGT', url: 'https://www.ctgt.ai/', captureMethod: 'live-browser-capture', capturedAt: '2026-08-21', sourceGroupId: 'ctgt', originalAsset: '/assets/site-captures/26-ctgt.png' },
     media: { poster: '/assets/posters/site-26.jpg', detailImage: '/assets/site-captures/26-ctgt.png', original: '/assets/site-captures/26-ctgt.png', motionNotes: 'The mountainous film and dark overlay create slow environmental depth behind stable product navigation.' },
-    quality: { tier: 'canonical', width: 1266, height: 713, confidence: 1, reliableFor: ['composition', 'landscape metaphor', 'headline scale', 'navigation'], note: 'Current live capture.' },
+    quality: { tier: 'canonical', width: 1251, height: 713, confidence: 1, reliableFor: ['composition', 'landscape metaphor', 'headline scale', 'navigation'], note: 'Current live capture with the browser scrollbar removed.' },
     profile: { composition: 'Place a large AI-governance proposition on the left over a full-bleed mountain basin and anchor small controls to the frame edges.', palette: 'charcoal, alpine green, fog white, and muted stone', texture: 'cinematic landscape photography with a deep translucent overlay', motion: 'use slow environmental film or parallax while interface controls remain fixed', preserve: 'the frontier metaphor and serious regulated-domain tone', avoid: 'robot imagery, abstract AI gradients, busy compliance diagrams in the hero' },
   },
   {

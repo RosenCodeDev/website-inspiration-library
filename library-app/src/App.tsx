@@ -62,15 +62,6 @@ function ReferenceImage({ src, alt, className }: { src: string; alt: string; cla
   return <img className={className} src={src} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
 }
 
-function QualityMarker({ reference }: { reference: ReferenceEntry }) {
-  return (
-    <span className="quality-marker" title={qualityDefinitions[reference.quality.tier]} aria-label={`${reference.quality.tier} source. ${qualityDefinitions[reference.quality.tier]}`}>
-      <span className={`quality-dot quality-${reference.quality.tier}`} aria-hidden="true" />
-      {reference.quality.tier} source
-    </span>
-  );
-}
-
 function CardQualityDot({ reference }: { reference: ReferenceEntry }) {
   const label = `${reference.quality.tier} source. ${qualityDefinitions[reference.quality.tier]}`;
   return (
@@ -179,21 +170,21 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
           </section>
 
           <section className="extension-panel brief-panel" aria-labelledby="brief-heading">
-            <div className="extension-label"><span id="brief-heading">Structured AI design brief</span><span>Reference extension</span></div>
+            <div className="extension-label"><span id="brief-heading">Structured AI design brief</span></div>
             <pre>{reference.brief}</pre>
           </section>
 
           <div className="extension-grid">
             <section className="extension-panel source-panel" aria-labelledby="source-heading">
-              <div className="extension-label"><span id="source-heading">Source &amp; quality</span><QualityMarker reference={reference} /></div>
+              <div className="extension-label"><span id="source-heading">Source &amp; quality</span></div>
               <dl>
                 <div><dt>Capture</dt><dd>{reference.source.captureMethod.replaceAll('-', ' ')}</dd></div>
+                <div><dt>Status</dt><dd title={qualityDefinitions[reference.quality.tier]}>{reference.quality.tier} source</dd></div>
                 <div><dt>Dimensions</dt><dd>{reference.quality.width} × {reference.quality.height}</dd></div>
                 <div><dt>Confidence</dt><dd>{Math.round(reference.quality.confidence * 100)}%</dd></div>
                 <div><dt>Reliable for</dt><dd>{reference.quality.reliableFor.join(', ')}</dd></div>
               </dl>
-              <p>{reference.quality.note}</p>
-              <p className="provenance">Source group: {reference.source.sourceGroupId}{reference.source.capturedAt ? ` · Captured ${reference.source.capturedAt}` : ''}<br />Original preserved at {reference.source.originalAsset}</p>
+              <p className="provenance">Source group: {reference.source.sourceGroupId}</p>
               {hasVerifiedWebsite && (
                 <div className="website-actions">
                   <a href={reference.source.url} target="_blank" rel="noreferrer">Open Website ↗</a>

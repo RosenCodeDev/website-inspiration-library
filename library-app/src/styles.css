@@ -11,7 +11,6 @@
   --rule: #211d18;
   --accent: #ad5d4d;
   --panel: #eee3d5;
-  --panel-rule: #d7c9b9;
   --mono: "Courier New", Courier, monospace;
 }
 
@@ -44,7 +43,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   align-items: baseline;
   gap: 12px;
   min-height: 36px;
-  border: 1px solid var(--rule);
+  border: 2px solid var(--rule);
   border-radius: 0;
   background: transparent;
   padding: 10px 14px 8px;
@@ -80,7 +79,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 
 .reference-card {
   min-width: 0;
-  border: 1px solid var(--rule);
+  border: 2px solid var(--rule);
   background: var(--surface);
 }
 
@@ -102,7 +101,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   position: relative;
   aspect-ratio: 8 / 5;
   overflow: hidden;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 2px solid var(--rule);
   background: #d9d2c6;
 }
 
@@ -155,7 +154,6 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 }
 
 .descriptor,
-.quality-marker,
 .card-footer,
 .tags,
 .site-footer,
@@ -186,18 +184,6 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   white-space: nowrap;
 }
 
-.quality-marker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-}
-
 .quality-dot {
   width: 7px;
   height: 7px;
@@ -212,7 +198,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tags span {
-  border: 1px solid #c7beb2;
+  border: 2px solid #c7beb2;
   border-radius: 0;
   background: var(--chip);
   padding: 6px 9px 5px;
@@ -281,7 +267,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .detail-modal {
   width: min(1280px, 100%);
   margin: 0 auto;
-  border: 1px solid var(--rule);
+  border: 2px solid var(--rule);
   border-radius: 0;
   background: var(--surface);
   box-shadow: 0 22px 70px rgba(0, 0, 0, .28);
@@ -293,7 +279,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   place-items: center;
   min-height: 290px;
   padding: 0 34px;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 2px solid var(--rule);
   background: #eadfce;
 }
 
@@ -356,9 +342,14 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .recipe-panel,
 .extension-panel {
   min-width: 0;
-  border: 1px solid var(--panel-rule);
-  background: var(--panel);
+  border: 2px solid var(--rule);
 }
+
+.recipe-panel,
+.brief-panel { background: var(--panel); }
+
+.source-panel,
+.motion-panel { background: var(--surface); }
 
 .recipe-panel { padding: 18px 19px 20px; }
 .recipe-label {
@@ -372,9 +363,9 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .recipe-panel p {
   margin: 13px 0 0;
   font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.55;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.58;
 }
 
 .extension-panel { padding: 18px 19px 20px; }
@@ -416,12 +407,12 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 }
 .source-panel dt { color: var(--muted); }
 .source-panel dd { margin: 0; text-transform: none; letter-spacing: .02em; }
-.source-panel > p,
 .motion-panel > p {
   margin: 13px 0 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 14px;
-  line-height: 1.45;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.58;
 }
 
 .provenance {
@@ -435,7 +426,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .website-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
 .website-actions a,
 .website-actions button {
-  border: 1px solid var(--rule);
+  border: 2px solid var(--rule);
   border-radius: 0;
   background: transparent;
   padding: 9px 11px 8px;
@@ -458,7 +449,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 }
 .modal-actions button {
   appearance: none;
-  border: 1px solid var(--rule);
+  border: 2px solid var(--rule);
   border-radius: 0;
   padding: 12px 17px 11px;
   font-size: 11px;
@@ -480,7 +471,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 }
 .image-fallback span {
   padding: 9px;
-  border: 1px solid var(--rule);
+  border: 2px solid var(--rule);
   background: var(--surface);
   font-family: var(--mono);
   font-size: 10px;
