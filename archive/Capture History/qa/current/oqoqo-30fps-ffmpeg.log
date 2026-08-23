@@ -1,0 +1,29 @@
+[gdigrab @ 00000269a8cdb540] Capturing whole desktop as 1440x900x32 at (8,87)
+[gdigrab @ 00000269a8cdb540] Stream #0: not enough frames to estimate rate; consider increasing probesize
+Input #0, gdigrab, from 'desktop':
+  Duration: N/A, start: 1787460316.649589, bitrate: 1244172 kb/s
+    Stream #0:0: Video: bmp, bgra, 1440x900, 1244172 kb/s, 30 fps, 1000k tbr, 1000k tbn, 1000k tbc
+Stream mapping:
+  Stream #0:0 -> #0:0 (bmp (native) -> h264 (libx264))
+Press [q] to stop, [?] for help
+[libx264 @ 00000269a8ce0f80] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+[libx264 @ 00000269a8ce0f80] profile Constrained Baseline, level 4.0, 4:2:0, 8-bit
+[libx264 @ 00000269a8ce0f80] 264 - core 157 r2935 545de2f - H.264/MPEG-4 AVC codec - Copyleft 2003-2018 - http://www.videolan.org/x264.html - options: cabac=0 ref=1 deblock=0:0:0 analyse=0:0 me=dia subme=0 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=1 8x8dct=0 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=15 lookahead_threads=2 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=0 weightp=0 keyint=250 keyint_min=25 scenecut=0 intra_refresh=0 rc=crf mbtree=0 crf=12.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=0
+Output #0, matroska, to 'C:\Users\hrose\Desktop\website-library\library-app\capture-work\smooth\masters\oqoqo-30fps.mkv':
+  Metadata:
+    encoder         : Lavf58.24.101
+    Stream #0:0: Video: h264 (libx264) (H264 / 0x34363248), yuv420p, 1440x900, q=-1--1, 30 fps, 1k tbn, 30 tbc
+    Metadata:
+      encoder         : Lavc58.42.102 libx264
+    Side data:
+      cpb: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: -1
+frame=   16 fps=0.0 q=0.0 size=       1kB time=00:00:00.00 bitrate=N/A speed=   0x    frame=   31 fps= 31 q=2.0 size=       1kB time=00:00:00.53 bitrate=  10.8kbits/s speed=0.532x    frame=   46 fps= 31 q=7.0 size=       1kB time=00:00:01.03 bitrate=   5.6kbits/s speed=0.688x    frame=   62 fps= 30 q=13.0 size=       1kB time=00:00:01.56 bitrate=   3.7kbits/s speed=0.77x    frame=   78 fps= 31 q=8.0 size=       1kB time=00:00:02.10 bitrate=   2.7kbits/s speed=0.823x    frame=   93 fps= 30 q=6.0 size=       1kB time=00:00:02.60 bitrate=   2.2kbits/s speed=0.851x    frame=  109 fps= 30 q=7.0 size=       1kB time=00:00:03.13 bitrate=   1.8kbits/s speed=0.873x    frame=  125 fps= 30 q=13.0 size=       1kB time=00:00:03.66 bitrate=   1.6kbits/s speed=0.89x    frame=  141 fps= 30 q=15.0 size=       1kB time=00:00:04.20 bitrate=   1.4kbits/s speed=0.903x    frame=  156 fps= 30 q=5.0 size=       1kB time=00:00:04.70 bitrate=   1.2kbits/s speed=0.912x    frame=  171 fps= 30 q=5.0 size=    4947kB time=00:00:05.20 bitrate=7791.6kbits/s speed=0.917x    frame=  186 fps= 30 q=12.0 size=    4947kB time=00:00:05.70 bitrate=7108.2kbits/s speed=0.923x    frame=  202 fps= 30 q=11.0 size=    4947kB time=00:00:06.23 bitrate=6500.5kbits/s speed=0.93x    frame=  218 fps= 30 q=7.0 size=    4947kB time=00:00:06.76 bitrate=5987.6kbits/s speed=0.935x    frame=  233 fps= 30 q=3.0 size=    4947kB time=00:00:07.26 bitrate=5575.7kbits/s speed=0.939x    frame=  249 fps= 30 q=8.0 size=    4947kB time=00:00:07.80 bitrate=5194.7kbits/s speed=0.943x    frame=  264 fps= 30 q=12.0 size=    4947kB time=00:00:08.30 bitrate=4881.8kbits/s speed=0.946x    frame=  279 fps= 30 q=8.0 size=    7138kB time=00:00:08.80 bitrate=6644.0kbits/s speed=0.949x    frame=  294 fps= 30 q=3.0 size=    7138kB time=00:00:09.30 bitrate=6286.8kbits/s speed=0.952x    frame=  310 fps= 30 q=4.0 size=    7138kB time=00:00:09.83 bitrate=5946.1kbits/s speed=0.954x    frame=  325 fps= 30 q=12.0 size=    7138kB time=00:00:10.33 bitrate=5658.4kbits/s speed=0.956x    frame=  341 fps= 30 q=9.0 size=    7138kB time=00:00:10.86 bitrate=5380.4kbits/s speed=0.958x    frame=  356 fps= 30 q=4.0 size=    7138kB time=00:00:11.36 bitrate=5143.7kbits/s speed=0.96x    frame=  372 fps= 30 q=4.0 size=    7138kB time=00:00:11.90 bitrate=4913.4kbits/s speed=0.962x    frame=  388 fps= 30 q=7.0 size=    7138kB time=00:00:12.43 bitrate=4702.7kbits/s speed=0.963x    frame=  404 fps= 30 q=11.0 size=    7138kB time=00:00:12.96 bitrate=4509.1kbits/s speed=0.965x    frame=  419 fps= 30 q=5.0 size=   10574kB time=00:00:13.46 bitrate=6431.9kbits/s speed=0.966x    frame=  435 fps= 30 q=3.0 size=   10574kB time=00:00:14.00 bitrate=6187.0kbits/s speed=0.967x    frame=  451 fps= 30 q=13.0 size=   10574kB time=00:00:14.53 bitrate=5960.1kbits/s speed=0.968x    frame=  467 fps= 30 q=12.0 size=   10574kB time=00:00:15.06 bitrate=5748.9kbits/s speed=0.97x    frame=  482 fps= 30 q=6.0 size=   10574kB time=00:00:15.56 bitrate=5564.3kbits/s speed=0.97x    frame=  497 fps= 30 q=2.0 size=   10574kB time=00:00:16.06 bitrate=5391.1kbits/s speed=0.971x    frame=  512 fps= 30 q=2.0 size=   10574kB time=00:00:16.56 bitrate=5228.4kbits/s speed=0.971x    frame=  528 fps= 30 q=2.0 size=   11848kB time=00:00:17.10 bitrate=5675.6kbits/s speed=0.972x    frame=  537 fps= 30 q=-1.0 Lsize=   11916kB time=00:00:17.93 bitrate=5443.1kbits/s speed=   1x    
+video:11911kB audio:0kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 0.039443%
+[libx264 @ 00000269a8ce0f80] frame I:3     Avg QP: 5.00  size:104801
+[libx264 @ 00000269a8ce0f80] frame P:534   Avg QP: 7.12  size: 22252
+[libx264 @ 00000269a8ce0f80] mb I  I16..4: 100.0%  0.0%  0.0%
+[libx264 @ 00000269a8ce0f80] mb P  I16..4: 14.4%  0.0%  0.0%  P16..4:  7.9%  0.0%  0.0%  0.0%  0.0%    skip:77.7%
+[libx264 @ 00000269a8ce0f80] coded y,uvDC,uvAC intra: 17.2% 14.4% 11.0% inter: 3.4% 4.0% 2.4%
+[libx264 @ 00000269a8ce0f80] i16 v,h,dc,p: 55% 44%  1%  1%
+[libx264 @ 00000269a8ce0f80] i8c dc,h,v,p: 61% 33%  5%  1%
+[libx264 @ 00000269a8ce0f80] kb/s:5430.84

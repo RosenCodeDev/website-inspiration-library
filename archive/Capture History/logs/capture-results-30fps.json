@@ -1,0 +1,21 @@
+[
+  {
+    "name": "oqoqo",
+    "fps": 30,
+    "metrics": {
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "outerWidth": 1456,
+      "outerHeight": 995,
+      "screenX": 0,
+      "screenY": 0,
+      "devicePixelRatio": 1,
+      "captureX": 8,
+      "captureY": 87
+    },
+    "master": "C:\\Users\\hrose\\Desktop\\website-library\\library-app\\capture-work\\smooth\\masters\\oqoqo-30fps.mkv",
+    "log": "C:\\Users\\hrose\\Desktop\\website-library\\library-app\\capture-work\\smooth\\qa\\oqoqo-30fps-ffmpeg.log",
+    "finalPath": "C:\\Users\\hrose\\Desktop\\website-library\\library-app\\capture-work\\smooth\\final\\oqoqo.mp4",
+    "contactPath": "C:\\Users\\hrose\\Desktop\\website-library\\library-app\\capture-work\\smooth\\qa\\oqoqo-contact.png"
+  }
+]

@@ -1,0 +1,36 @@
+[
+  {
+    "name": "lusion",
+    "fps": 60,
+    "metrics": {
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "outerWidth": 1456,
+      "outerHeight": 995,
+      "screenX": 0,
+      "screenY": 0,
+      "devicePixelRatio": 1,
+      "captureX": 8,
+      "captureY": 87
+    },
+    "master": "C:\\Users\\hrose\\Desktop\\website-library\\library-app\\capture-work\\smooth\\masters\\lusion-60fps.mkv",
+    "log": "C:\\Users\\hrose\\Desktop\\website-library\\library-app\\capture-work\\smooth\\qa\\lusion-60fps-ffmpeg.log"
+  },
+  {
+    "name": "system-patch",
+    "fps": 60,
+    "metrics": {
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "outerWidth": 1456,
+      "outerHeight": 995,
+      "screenX": 0,
+      "screenY": 0,
+      "devicePixelRatio": 1,
+      "captureX": 8,
+      "captureY": 87
+    },
+    "master": "C:\\Users\\hrose\\Desktop\\website-library\\library-app\\capture-work\\smooth\\masters\\system-patch-60fps.mkv",
+    "log": "C:\\Users\\hrose\\Desktop\\website-library\\library-app\\capture-work\\smooth\\qa\\system-patch-60fps-ffmpeg.log"
+  }
+]
