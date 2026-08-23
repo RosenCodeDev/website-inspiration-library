@@ -1,0 +1,78 @@
+1. https://www.notion.com/  - The current card is good. but can you add this notion page as a second card as well, just static image, not short clips needed: https://www.notion.com/releases (when added as new card, place it next to the original notion card.)
+
+2. https://spade.com/  - this card is good as it is. no action needed.
+
+3. https://sstr.tech/en/ - this card we need to add clips to it. the hero section has automatic short clip of video playing and then the rest of the page requires scrolling to trigger. The current static picture is good, no need to change the static picture.
+
+4. https://thewatch.60fps.fr/ - this card is good as it is. no action needed.
+
+
+5. https://www.igloo.inc/ - this card the current static picture is good, but we need to capture the short clip. the website initially starts with automatic playing clips. then it lands the page where we captured the current static image. no need to scroll for this page, but hover the mouse over the center piece of housing structure to trigger the animation/effect.
+
+6. https://dontboardme.com/ - for this page, no need to add short clips. but the current static images needs to be replaced. the way to do this is that when we first go to the landing page, we need to do a single mouse click, then wait for the transition to be done in a couple seconds, then it will take us to the page i want to use as the static image. i have stored the reference static as "www.igloo.inc.png" in the "Motion and New Static Images" folder 
+
+
+7. https://op.al/ - this card is good as it is. no action needed.
+
+
+
+8. https://lusion.co/ - this card the static image is good. but on the landing page, the middle part where there's some 3d object, moving the cursor slowly in that area and it will trigger the 3d objects to move so we can capture the short clip. need to add the short clip.
+
+
+9. https://en.manayerbamate.com/ - this card is good as it is. no action needed.
+
+10. https://www.orano.group/experience/innovation/en - the static picture on this page needs to be changed. to do this, once you are on the landing page, you need to click the "enter" button, or better, use this link directly "https://www.orano.group/experience/innovation/en".i have stored the reference static as "www.orano.group.png" in the "Motion and New Static Images" folder. no short clips needed for this site, only static image
+
+
+
+11. https://snows-winter.com/ - this card is good as it is. no action needed.
+
+
+12. https://business.x.com/en/advertising - The current card is good. but can you add this other pages as a new cards as well, just static image, not short clips needed (when added as new card, place it next to the original business.x.com card.):
+-https://business.x.com/en
+-https://business.x.com/en/basics
+-https://business.x.com/en/basics/intro-x-for-business
+-https://business.x.com/en/basics/get-your-business-started-with-x
+-https://business.x.com/en/basics/organic-best-practices
+-https://business.x.com/en/advertising/get-started-with-twitter-ads
+-https://business.x.com/en/advertising/formats
+
+
+
+
+
+13. https://schemasofuncertainty.com/ - the current static picture is good. we need to add short clips to it. it has automatic effects/animation that it plays, no action needed. the effects plays on for indefinite amount of time. so just record an appropriate time of clip that you determine is best for this page (shouldn't be super long, lean on the shorter side)
+
+
+14. https://www.apple.com/ - this card is good as it is. no action needed.
+
+15. https://www.clouarchitects.com/ - this card is good as it is. no action needed.
+
+16. https://system.studio/work/patch - this card's current static image is good, but we need to add the short clip. it is activated through scrolling and there's an end to it (there's a point where you keep scrolling and things stop changing. and that will be good enough as the place to end the clip)
+
+17. https://oqoqo.ai/ - this page don't need short clips. just static image. the previous static image needs to be replaced because last time you captured it, there's the "Optional analystics" pop up that were accidently included in the snapshot. as long as you get a snapshot without that popup (if it doesn't popup) or dismiss it if it popsup before taking the snapshot and that will be good. 
+
+18. https://humanmade.co.jp/ - this card is good as it is. no action needed.
+
+19. https://notom.co/ - remove this card from the web library entirely. this card is no longer needed. i don't like the design any more.
+
+20. https://more-nutrition.webflow.io/ - this card is good as it is. no action needed.
+
+21. https://aside.com/ - this card is good as it is. no action needed.
+
+22. https://madewithjitter.com/ - this card is good as it is. no action needed.
+
+23. https://www.pen.dev/ - this card is good as it is. no action needed.
+
+24. https://www.coda.co/ - this card the static image is good. but need to add the short clip. effect is triggered by scrolling. and it stops when you scroll the page to the bottom.
+
+25. https://izanami-official.com/ this card is good as it is. no action needed.
+
+26. https://www.ctgt.ai/ - this card is good as it is. no action needed.
+27. https://www.ctgt.ai/industries/finance - this card is good as it is. no action needed.
+
+
+28. https://paper.design/ - this is a new page to add to the library. take the static page of the landing page. then add the short clip (it is activated by scrolling and effect stops changing once you scroll to the bottom.)
+
+
+If you have updated the image or added clips, make sure you make the corresponding, appropriate changes to the card containers that are relevant such as the IMAGE RECIPE, Structured AI design brief, Source & quality, Motion behavior, or the tags, the A x B grey text on the upper right, etc. make sure you don't change the image or add clips only, but make any necessary changes that accompany the new images/short clips.

@@ -106,6 +106,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 }
 
 .card-media img,
+.motion-preview-video,
 .image-fallback {
   width: 100%;
   height: 100%;
@@ -114,7 +115,22 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   transition: transform .5s cubic-bezier(.2, .72, .18, 1), filter .2s ease;
 }
 
-.reference-card:hover .card-media img { transform: scale(1.012); filter: saturate(.95); }
+.motion-preview-video {
+  opacity: 0;
+  transition: opacity .12s ease, transform .5s cubic-bezier(.2, .72, .18, 1), filter .2s ease;
+}
+
+.card-media .motion-preview-video {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.is-playing.is-frame-ready .motion-preview-video { opacity: 1; }
+
+.card-media:hover img,
+.card-media:hover .motion-preview-video { transform: scale(1.012); filter: saturate(.95); }
 
 .card-quality-dot {
   position: absolute;
@@ -127,6 +143,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   border-radius: 50%;
   background: rgba(248, 244, 236, .82);
   box-shadow: 0 0 0 1px rgba(23, 20, 17, .28);
+  z-index: 2;
 }
 
 .card-copy {
@@ -285,6 +302,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 
 .detail-visual > img,
 .detail-visual > video {
+  grid-area: 1 / 1;
   width: auto;
   max-width: 100%;
   max-height: 55vh;
@@ -293,7 +311,12 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   background: #d8cfc2;
 }
 
-.detail-visual > video { width: min(100%, 1024px); aspect-ratio: 16 / 9; }
+.detail-visual > video {
+  width: min(100%, 1024px);
+  height: auto;
+  aspect-ratio: 8 / 5;
+  pointer-events: none;
+}
 
 .detail-content { padding: 27px 30px 29px; }
 .detail-heading {

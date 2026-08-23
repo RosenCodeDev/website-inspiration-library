@@ -71,14 +71,178 @@ function CardQualityDot({ reference }: { reference: ReferenceEntry }) {
   );
 }
 
-function ReferenceCard({ reference, onOpen }: { reference: ReferenceEntry; onOpen: (reference: ReferenceEntry, trigger: HTMLButtonElement) => void }) {
+function HoverMotionPreview({
+  reference,
+  imageSrc,
+  imageAlt,
+  className,
+  active,
+  reducedMotion,
+  onActivate,
+  onDeactivate,
+  showQuality = false,
+  deferInitialActivation = false,
+}: {
+  reference: ReferenceEntry;
+  imageSrc: string;
+  imageAlt: string;
+  className: string;
+  active: boolean;
+  reducedMotion: boolean;
+  onActivate: () => void;
+  onDeactivate: () => void;
+  showQuality?: boolean;
+  deferInitialActivation?: boolean;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const deactivateRef = useRef(onDeactivate);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [frameReady, setFrameReady] = useState(false);
+  const [mediaNearby, setMediaNearby] = useState(deferInitialActivation);
+  const [activationReady, setActivationReady] = useState(!deferInitialActivation);
+  const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const canPreview = Boolean(reference.media.motionClip) && hoverCapable && !reducedMotion && !videoFailed;
+
+  useEffect(() => { deactivateRef.current = onDeactivate; }, [onDeactivate]);
+
+  useEffect(() => {
+    if (!deferInitialActivation) return;
+    const timer = window.setTimeout(() => setActivationReady(true), 300);
+    return () => window.clearTimeout(timer);
+  }, [deferInitialActivation]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !canPreview) return;
+    if (deferInitialActivation) {
+      setMediaNearby(true);
+      return;
+    }
+    if (!('IntersectionObserver' in window)) {
+      setMediaNearby(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setMediaNearby(entry.isIntersecting),
+      { rootMargin: '240px 0px' },
+    );
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [canPreview, deferInitialActivation]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!active || !canPreview) {
+      video.pause();
+      video.currentTime = 0;
+      setFrameReady(false);
+      return;
+    }
+
+    video.currentTime = 0;
+    void video.play().catch(() => {
+      setVideoFailed(true);
+      deactivateRef.current();
+    });
+  }, [active, canPreview]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`${className}${active && canPreview ? ' is-playing' : ''}${frameReady ? ' is-frame-ready' : ''}`}
+      onMouseEnter={() => {
+        if (canPreview && activationReady) {
+          setMediaNearby(true);
+          onActivate();
+        }
+      }}
+      onMouseMove={() => {
+        if (canPreview && activationReady && !active) {
+          setMediaNearby(true);
+          onActivate();
+        }
+      }}
+      onMouseLeave={() => {
+        if (active) onDeactivate();
+      }}
+    >
+      <ReferenceImage src={imageSrc} alt={imageAlt} />
+      {canPreview && mediaNearby && (
+        <video
+          ref={videoRef}
+          className="motion-preview-video"
+          src={reference.media.motionClip}
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-label={`${reference.title} motion preview`}
+          onPlaying={() => setFrameReady(true)}
+          onError={() => {
+            setVideoFailed(true);
+            onDeactivate();
+          }}
+        />
+      )}
+      {showQuality && <CardQualityDot reference={reference} />}
+    </div>
+  );
+}
+
+function CardPreview({
+  reference,
+  active,
+  reducedMotion,
+  onActivate,
+  onDeactivate,
+}: {
+  reference: ReferenceEntry;
+  active: boolean;
+  reducedMotion: boolean;
+  onActivate: () => void;
+  onDeactivate: () => void;
+}) {
+  return (
+    <HoverMotionPreview
+      reference={reference}
+      imageSrc={reference.media.poster}
+      imageAlt={`${reference.title} website reference`}
+      className="card-media"
+      active={active}
+      reducedMotion={reducedMotion}
+      onActivate={onActivate}
+      onDeactivate={onDeactivate}
+      showQuality
+    />
+  );
+}
+
+function ReferenceCard({
+  reference,
+  onOpen,
+  activePreviewId,
+  reducedMotion,
+  onPreviewChange,
+}: {
+  reference: ReferenceEntry;
+  onOpen: (reference: ReferenceEntry, trigger: HTMLButtonElement) => void;
+  activePreviewId: string | null;
+  reducedMotion: boolean;
+  onPreviewChange: (id: string | null) => void;
+}) {
   return (
     <article className="reference-card">
       <button className="card-button" type="button" aria-haspopup="dialog" aria-label={`Open ${reference.title} reference details`} onClick={(event) => onOpen(reference, event.currentTarget)}>
-        <div className="card-media">
-          <ReferenceImage src={reference.media.poster} alt={`${reference.title} website reference`} />
-          <CardQualityDot reference={reference} />
-        </div>
+        <CardPreview
+          reference={reference}
+          active={activePreviewId === reference.id}
+          reducedMotion={reducedMotion}
+          onActivate={() => onPreviewChange(reference.id)}
+          onDeactivate={() => onPreviewChange(null)}
+        />
         <div className="card-copy">
           <div className="card-heading">
             <h2>{displayTitle(reference)}</h2>
@@ -100,6 +264,7 @@ function ReferenceCard({ reference, onOpen }: { reference: ReferenceEntry; onOpe
 function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [copyTarget, setCopyTarget] = useState<CopyTarget>(null);
+  const [motionActive, setMotionActive] = useState(false);
   const reducedMotion = useReducedMotion();
   const hasVerifiedWebsite = reference.source.kind === 'website' && Boolean(reference.source.url);
 
@@ -129,7 +294,7 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
       return;
     }
     if (event.key !== 'Tab' || !dialogRef.current) return;
-    const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], video[controls], [tabindex]:not([tabindex="-1"])'));
+    const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'));
     if (focusable.length === 0) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
@@ -145,11 +310,17 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
   return (
     <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <div ref={dialogRef} className="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title" aria-describedby="detail-description" tabIndex={-1} onKeyDown={handleKeys}>
-        <div className="detail-visual">
-          {reference.media.motionClip && !reducedMotion ? (
-            <video src={reference.media.motionClip} poster={reference.media.detailImage} autoPlay muted loop playsInline controls aria-label={`${reference.title} motion reference`} />
-          ) : <ReferenceImage src={reference.media.detailImage} alt={`${reference.title} full reference`} />}
-        </div>
+        <HoverMotionPreview
+          reference={reference}
+          imageSrc={reference.media.detailImage}
+          imageAlt={`${reference.title} full reference`}
+          className="detail-visual"
+          active={motionActive}
+          reducedMotion={reducedMotion}
+          onActivate={() => setMotionActive(true)}
+          onDeactivate={() => setMotionActive(false)}
+          deferInitialActivation
+        />
 
         <div className="detail-content">
           <div className="detail-heading">
@@ -216,6 +387,8 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
 export default function App() {
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
   const [selected, setSelected] = useState<ReferenceEntry | null>(null);
+  const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
+  const reducedMotion = useReducedMotion();
   const lastTrigger = useRef<HTMLButtonElement | null>(null);
   const counts = useMemo(() => {
     const result = new Map<Filter, number>();
@@ -238,6 +411,7 @@ export default function App() {
   }, [selected]);
 
   const openReference = (reference: ReferenceEntry, trigger: HTMLButtonElement) => {
+    setActivePreviewId(null);
     lastTrigger.current = trigger;
     setSelected(reference);
   };
@@ -265,7 +439,16 @@ export default function App() {
         </nav>
 
         <section className="reference-grid" aria-live="polite" aria-label={`${activeFilter} references`}>
-          {visibleReferences.map((reference) => <ReferenceCard key={reference.id} reference={reference} onOpen={openReference} />)}
+          {visibleReferences.map((reference) => (
+            <ReferenceCard
+              key={reference.id}
+              reference={reference}
+              onOpen={openReference}
+              activePreviewId={activePreviewId}
+              reducedMotion={reducedMotion}
+              onPreviewChange={setActivePreviewId}
+            />
+          ))}
         </section>
 
         <footer className="site-footer">

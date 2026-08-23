@@ -56,7 +56,7 @@ export const ReferenceEntrySchema = z.object({
   }),
 });
 
-export const ReferenceManifestSchema = z.array(ReferenceEntrySchema).length(46);
+export const ReferenceManifestSchema = z.array(ReferenceEntrySchema).length(54);
 
 export type Category = z.infer<typeof CategorySchema>;
 export type ReferenceEntry = z.infer<typeof ReferenceEntrySchema>;

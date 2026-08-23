@@ -101,9 +101,23 @@ foreach ($capture in $siteCaptures) {
   )
 }
 
-$notomMotion = 'C:\Users\hrose\AppData\Local\Temp\browser-use\assets\ff451c60-8613-426e-ad0b-df3165ce0c28\ada4251e95e91f71.mp4'
-if (Test-Path -LiteralPath $notomMotion) {
-  Copy-Item -LiteralPath $notomMotion -Destination (Join-Path $motionTarget 'notom-hero.mp4') -Force
+$namedCaptures = @(
+  'notion-releases',
+  'x-business',
+  'x-basics',
+  'x-intro',
+  'x-get-started',
+  'x-organic',
+  'x-ads-start',
+  'x-ad-formats',
+  'paper'
+)
+
+foreach ($name in $namedCaptures) {
+  $sourcePath = Join-Path $captureSource "$name.png"
+  if (Test-Path -LiteralPath $sourcePath) {
+    New-CroppedPoster -Source $sourcePath -Destination (Join-Path $posterTarget "$name.jpg")
+  }
 }
 
 Write-Output 'Media derivatives generated. Original source files were copied without modification.'

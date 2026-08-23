@@ -32,10 +32,10 @@ const rasterDimensions = (path: string) => {
 };
 
 describe('reference manifest', () => {
-  it('contains exactly 46 sequential, unique reference moments', () => {
-    expect(references).toHaveLength(46);
-    expect(references.map((entry) => entry.order)).toEqual(Array.from({ length: 46 }, (_, index) => index + 1));
-    expect(new Set(references.map((entry) => entry.id)).size).toBe(46);
+  it('contains exactly 54 sequential, unique reference moments', () => {
+    expect(references).toHaveLength(54);
+    expect(references.map((entry) => entry.order)).toEqual(Array.from({ length: 54 }, (_, index) => index + 1));
+    expect(new Set(references.map((entry) => entry.id)).size).toBe(54);
   });
 
   it('uses seven populated visual filters and categorizes every card', () => {
@@ -113,9 +113,56 @@ describe('reference manifest', () => {
 
   it('exposes verified links only through website sources', () => {
     const linked = references.filter((entry) => entry.source.url);
-    expect(linked).toHaveLength(29);
+    expect(linked).toHaveLength(37);
     expect(linked.every((entry) => entry.source.kind === 'website')).toBe(true);
     expect(linked.every((entry) => entry.source.url?.startsWith('https://'))).toBe(true);
+  });
+
+  it('uses the incorporated Don’t Board Me and Orano assets without the retired guide folder', () => {
+    const retiredGuideFolder = resolve(process.cwd(), '..', 'Motion and New Static Images');
+    const serialized = JSON.stringify(references);
+    expect(existsSync(retiredGuideFolder)).toBe(false);
+    expect(existsSync(publicPath('/assets/site-captures/06-dont-board-me.png'))).toBe(true);
+    expect(existsSync(publicPath('/assets/site-captures/10-orano.png'))).toBe(true);
+    expect(serialized).not.toContain('Motion and New Static Images');
+  });
+
+  it('keeps related Notion and X Business moments adjacent and grouped', () => {
+    const notionIds = references.filter((entry) => entry.source.sourceGroupId === 'notion').map((entry) => entry.id);
+    expect(notionIds).toEqual(['site-notion', 'site-notion-releases']);
+
+    const xIds = references.filter((entry) => entry.source.sourceGroupId === 'x-business').map((entry) => entry.id);
+    expect(xIds).toEqual([
+      'site-x-advertising',
+      'site-x-business',
+      'site-x-basics',
+      'site-x-intro',
+      'site-x-get-started',
+      'site-x-organic',
+      'site-x-ads-start',
+      'site-x-ad-formats',
+    ]);
+  });
+
+  it('uses motion only for the eight approved previews', () => {
+    const motionIds = references.filter((entry) => entry.media.motionClip).map((entry) => entry.id);
+    expect(motionIds).toEqual([
+      'site-spade',
+      'site-sstr',
+      'site-igloo',
+      'site-lusion',
+      'site-schemas',
+      'site-system-patch',
+      'site-coda',
+      'site-paper',
+    ]);
+    expect(new Set(references.filter((entry) => entry.media.motionClip).map((entry) => entry.media.motionClip)).size).toBe(8);
+  });
+
+  it('removes Notom and places Paper immediately before Voidpixel', () => {
+    expect(references.some((entry) => entry.id === 'site-notom')).toBe(false);
+    expect(references.at(-2)?.id).toBe('site-paper');
+    expect(references.at(-1)?.id).toBe('image-voidpixel');
   });
 
   it('does not claim fine-detail reliability for limited YouTube frames', () => {

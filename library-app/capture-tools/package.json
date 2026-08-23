@@ -1,0 +1,11 @@
+{
+  "name": "website-library-capture-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "capture": "node capture-motion.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.62.1"
+  }
+}
