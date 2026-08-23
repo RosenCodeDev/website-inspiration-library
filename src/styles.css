@@ -376,11 +376,19 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 
 .recipe-panel { padding: 18px 19px 20px; }
 .recipe-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
   padding-bottom: 10px;
   border-bottom: 1px dotted #c1ad99;
   color: var(--accent);
   font-size: 11px;
   font-weight: 700;
+}
+.recipe-label span:last-child {
+  flex: 0 0 auto;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .recipe-panel p {
@@ -528,6 +536,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   .detail-description { font-size: 16px; }
   .recipe-panel,
   .extension-panel { padding: 16px; }
+  .recipe-label { align-items: flex-start; flex-direction: column; }
   .extension-label { align-items: flex-start; flex-direction: column; }
   .source-panel dl div { grid-template-columns: 1fr; gap: 4px; }
   .modal-actions { display: grid; grid-template-columns: 1fr; }

@@ -18,10 +18,7 @@ const formatDescriptor = (descriptor: string) => descriptor
   .map((part) => part.trim().split(/\s+/).slice(0, 2).join(' '))
   .join(' x ');
 
-const formatSummary = (reference: ReferenceEntry) => {
-  const [first, second, third] = reference.tags;
-  return `${first.charAt(0).toUpperCase()}${first.slice(1)} with ${second} and ${third}.`;
-};
+const formatSummary = (reference: ReferenceEntry) => reference.description;
 
 const displayTitle = (reference: ReferenceEntry) => (
   reference.source.siteName
@@ -267,6 +264,16 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
   const [motionActive, setMotionActive] = useState(false);
   const reducedMotion = useReducedMotion();
   const hasVerifiedWebsite = reference.source.kind === 'website' && Boolean(reference.source.url);
+  const imagePrompt = reference.imageRecipe.kind === 'none' ? null : reference.imageRecipe.prompt;
+  const recipeText = imagePrompt ?? (reference.imageRecipe.kind === 'none' ? reference.imageRecipe.reason : '');
+  const recipeType = reference.imageRecipe.kind === 'primary'
+    ? 'Primary visual'
+    : reference.imageRecipe.kind === 'supporting'
+      ? 'Supporting visual'
+      : 'Build in code';
+  const recipeHeading = reference.imageRecipe.kind === 'none'
+    ? 'IMAGE RECIPE — generation not recommended'
+    : 'IMAGE RECIPE — fill [SUBJECT], send to Higgsfield gpt_image_2 @ 2K';
 
   useEffect(() => { dialogRef.current?.focus({ preventScroll: true }); }, []);
 
@@ -336,8 +343,11 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
           </div>
 
           <section className="recipe-panel" aria-label="Image recipe">
-            <div className="recipe-label">IMAGE RECIPE — fill [SUBJECT], send to Higgsfield gpt_image_2 @ 2K</div>
-            <p>{reference.imagePrompt}</p>
+            <div className="recipe-label">
+              <span>{recipeHeading}</span>
+              <span>{recipeType}</span>
+            </div>
+            <p>{recipeText}</p>
           </section>
 
           <section className="extension-panel brief-panel" aria-labelledby="brief-heading">
@@ -369,13 +379,15 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
                 <span id="motion-heading">Motion behavior</span>
                 {reference.media.motionClip && <span>Loop available</span>}
               </div>
-              <p>{reference.media.motionNotes ?? 'No defining motion was captured. Treat the composition as a still reference and keep any implementation motion restrained.'}</p>
+              <p>{reference.media.motionNotes}</p>
             </section>
           </div>
 
           <div className="modal-actions">
             <button type="button" className="action-primary" onClick={() => copyText(reference.brief, 'brief')}>{copyTarget === 'brief' ? 'Brief copied ✓' : 'Copy Brief'}</button>
-            <button type="button" className="action-primary" onClick={() => copyText(reference.imagePrompt, 'prompt')}>{copyTarget === 'prompt' ? 'Prompt copied ✓' : 'Copy Image Prompt'}</button>
+            {imagePrompt && (
+              <button type="button" className="action-primary" onClick={() => copyText(imagePrompt, 'prompt')}>{copyTarget === 'prompt' ? 'Prompt copied ✓' : 'Copy Image Prompt'}</button>
+            )}
             <button type="button" className="action-secondary close-action" onClick={onClose}>Close</button>
           </div>
         </div>

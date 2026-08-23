@@ -14,8 +14,10 @@ Open `http://127.0.0.1:4173/`. The app has no login, database, tracking, or remo
 
 ## How the catalog works
 
-- `src/references.ts` is the authored manifest. Each entry contains categories, observable tags, provenance, quality limits, a structured AI brief, and an original-concept image prompt.
+- `src/references.ts` holds identity, ordering, categories, provenance, quality limits, and runtime media. `src/reference-content.ts` is the single source of truth for descriptors, descriptions, observable tags, image recipes, structured AI briefs, and motion evidence.
 - `src/reference-schema.ts` validates the complete 55-entry manifest at startup.
+- Image recipes are classified as a primary generated visual, a supporting generated layer, or `build in code`. Code-native diagrams, real product interfaces, and exact branded assets do not expose a misleading image-prompt action.
+- The nine-field design brief is authored per card with no category-level Typography, Hierarchy, or Spacing fallback. Its Motion field is an implementation recommendation; the separate Motion behavior section reports captured evidence only.
 - Every reference has one primary category and may appear in overlapping secondary filters.
 - The seven filters describe observable visual styles; there is no catch-all “Reference Styles” category.
 - The grid always starts with a still 8:5 poster. On mouse devices, hovering only the image region of one of the ten motion-enabled cards starts its muted local MP4 from the beginning; leaving resets it to the poster, and only one grid preview can run at a time. Nearby clips preload while paused so the first decoded frame can replace the poster without flashing. Touch grids and reduced-motion environments remain still.
@@ -44,11 +46,12 @@ Regenerate copies and posters after adding source media:
 ## Add a new reference
 
 1. Save the untouched source in the appropriate local asset folder.
-2. Add a new seed to `src/references.ts` with one primary category, any secondary filters, 4–8 observable tags, provenance, quality limits, and the design profile fields.
-3. Generate the 8:5 poster without overwriting the original.
-4. If it is a linked website, capture a stable hero state and add the verified HTTPS URL. Use a separate card for each genuinely distinct moment from the same site, sharing `sourceGroupId`.
-5. If motion materially defines the reference, preload its fonts and lazy assets, record a hardware-rendered take with hidden scrollbars and frame-synchronized interactions, verify real captured cadence, then encode a muted fast-start 1440×900 H.264 MP4 offline. Describe the trigger, sequence, pacing, layering, and endpoint in the existing motion fields.
-6. Run `npm test` and `npm run build`.
+2. Add identity, categories, provenance, quality limits, and media paths to `src/references.ts`.
+3. Add the card’s descriptor, description, 4–8 observable tags, recipe classification, complete nine-field design profile, and factual motion behavior to `src/reference-content.ts`.
+4. Generate the 8:5 poster without overwriting the original.
+5. If it is a linked website, capture a stable hero state and add the verified HTTPS URL. Use a separate card for each genuinely distinct moment from the same site, sharing `sourceGroupId`.
+6. If motion materially defines the reference, preload fonts and lazy assets, record a hardware-rendered take with hidden scrollbars and frame-synchronized interactions, verify real cadence, then encode a muted fast-start 1440×900 H.264 MP4 offline. Describe only observed trigger, sequence, fixed layers, pacing, and endpoint in Motion behavior; put adaptation advice in the brief’s Motion field.
+7. Run `npm test` and `npm run build`.
 
 New external inspirations or generated substitute images should only be added after explicit approval.
 

@@ -12,6 +12,21 @@ export const categoryValues = [
 
 export const CategorySchema = z.enum(categoryValues);
 
+export const ImageRecipeSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('primary'),
+    prompt: z.string().min(80),
+  }),
+  z.object({
+    kind: z.literal('supporting'),
+    prompt: z.string().min(80),
+  }),
+  z.object({
+    kind: z.literal('none'),
+    reason: z.string().min(60),
+  }),
+]);
+
 export const ReferenceEntrySchema = z.object({
   id: z.string().min(1),
   order: z.number().int().positive(),
@@ -22,7 +37,7 @@ export const ReferenceEntrySchema = z.object({
   filters: z.array(CategorySchema).min(1),
   tags: z.array(z.string().min(1)).min(4).max(8),
   brief: z.string().min(100),
-  imagePrompt: z.string().min(80),
+  imageRecipe: ImageRecipeSchema,
   source: z.object({
     kind: z.enum(['image', 'website']),
     siteName: z.string().optional(),
@@ -44,7 +59,7 @@ export const ReferenceEntrySchema = z.object({
     detailImage: z.string().min(1),
     original: z.string().min(1),
     motionClip: z.string().min(1).optional(),
-    motionNotes: z.string().optional(),
+    motionNotes: z.string().min(20),
   }),
   quality: z.object({
     tier: z.enum(['canonical', 'usable', 'limited']),
@@ -59,4 +74,5 @@ export const ReferenceEntrySchema = z.object({
 export const ReferenceManifestSchema = z.array(ReferenceEntrySchema).length(55);
 
 export type Category = z.infer<typeof CategorySchema>;
+export type ImageRecipe = z.infer<typeof ImageRecipeSchema>;
 export type ReferenceEntry = z.infer<typeof ReferenceEntrySchema>;

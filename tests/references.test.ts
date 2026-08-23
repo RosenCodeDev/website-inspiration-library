@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { referenceContent } from '../src/reference-content';
 import { categories, references } from '../src/references';
 
 const publicPath = (asset: string) => resolve(process.cwd(), 'public', asset.replace(/^\//, ''));
@@ -37,6 +38,70 @@ describe('reference manifest', () => {
     expect(references).toHaveLength(55);
     expect(references.map((entry) => entry.order)).toEqual(Array.from({ length: 55 }, (_, index) => index + 1));
     expect(new Set(references.map((entry) => entry.id)).size).toBe(55);
+  });
+
+  it('has one canonical authored-content record for every reference', () => {
+    expect(Object.keys(referenceContent)).toHaveLength(55);
+    expect(new Set(Object.keys(referenceContent))).toEqual(new Set(references.map((entry) => entry.id)));
+  });
+
+  it('uses nine bespoke brief fields without the retired category defaults', () => {
+    const labels = ['Composition', 'Typography', 'Palette', 'Texture', 'Hierarchy', 'Spacing', 'Motion', 'Preserve', 'Avoid'];
+    const retiredDefaults = [
+      'an editorial serif paired with compact utilitarian mono labels',
+      'one high-contrast image or statement dominates a restrained interface',
+      'a full-bleed scene carries the experience while copy remains secondary',
+      'a readable headline anchors a field of subordinate information',
+      'historic imagery and a monumental headline share the focal plane',
+      'an archival figure remains recognizable beneath controlled digital disruption',
+      'illustration establishes the world, then a concise action completes the story',
+    ];
+
+    for (const entry of references) {
+      const lines = entry.brief.split('\n');
+      expect(lines, entry.id).toHaveLength(9);
+      expect(lines.map((line) => line.split(':', 1)[0]), entry.id).toEqual(labels);
+      for (const retired of retiredDefaults) expect(entry.brief, entry.id).not.toContain(retired);
+    }
+  });
+
+  it('separates generated assets from code-native references', () => {
+    const counts = { primary: 0, supporting: 0, none: 0 };
+    for (const entry of references) {
+      counts[entry.imageRecipe.kind] += 1;
+      if (entry.imageRecipe.kind === 'none') {
+        expect(entry.imageRecipe.reason.length, entry.id).toBeGreaterThanOrEqual(60);
+      } else {
+        expect(entry.imageRecipe.prompt, entry.id).toContain('[SUBJECT:');
+        expect(entry.imageRecipe.prompt, entry.id).not.toContain('website hero concept titled');
+        expect(entry.imageRecipe.prompt, entry.id).not.toContain('Use original placeholder copy');
+      }
+    }
+    expect(counts).toEqual({ primary: 26, supporting: 10, none: 19 });
+  });
+
+  it('keeps observed motion distinct from suggested brief motion', () => {
+    for (const entry of references) {
+      if (entry.media.motionClip) {
+        expect(entry.media.motionNotes, entry.id).toMatch(/^Trigger:/);
+      } else {
+        expect(entry.media.motionNotes, entry.id).toBe('Still reference; no captured motion evidence.');
+      }
+    }
+  });
+
+  it('keeps authored guidance concise and information-dense', () => {
+    const wordCount = (value: string) => value.trim().split(/\s+/).length;
+    for (const entry of references) {
+      expect(wordCount(entry.description), `${entry.id} description`).toBeLessThanOrEqual(35);
+      for (const tag of entry.tags) expect(wordCount(tag), `${entry.id} tag: ${tag}`).toBeLessThanOrEqual(5);
+      if (entry.imageRecipe.kind !== 'none') {
+        expect(wordCount(entry.imageRecipe.prompt), `${entry.id} image recipe`).toBeLessThanOrEqual(90);
+      }
+      for (const [field, value] of Object.entries(referenceContent[entry.id].profile)) {
+        expect(wordCount(value), `${entry.id} ${field}`).toBeLessThanOrEqual(40);
+      }
+    }
   });
 
   it('uses seven populated visual filters and categorizes every card', () => {
