@@ -219,10 +219,11 @@ describe('reference manifest', () => {
     }
   });
 
-  it('uses smart crops only for the four affected grid posters', () => {
+  it('uses smart crops only for the five affected grid posters', () => {
     const expectedMedia = {
       58: { poster: '/assets/posters/image-20.jpg', detail: '/assets/originals/20.jpg' },
       59: { poster: '/assets/posters/image-21.jpg', detail: '/assets/originals/21.jpg' },
+      60: { poster: '/assets/posters/image-22.jpg', detail: '/assets/originals/22.jpg' },
       62: { poster: '/assets/posters/image-24.jpg', detail: '/assets/originals/24.jpg' },
       63: { poster: '/assets/posters/image-25.jpg', detail: '/assets/originals/25.jpg' },
     } as const;

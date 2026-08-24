@@ -132,7 +132,7 @@ for ($index = 1; $index -le 25; $index++) {
   }
 
   $destination = Join-Path $posterTarget ('image-{0:D2}.jpg' -f $index)
-  $backgrounds = @{ 22 = '#c6ddec'; 23 = '#050505' }
+  $backgrounds = @{ 23 = '#050505' }
   if ($index -eq 20) {
     New-CroppedPoster -Source $sourcePath -Destination $destination -ExtraBottomCrop 20
   } elseif ($backgrounds.ContainsKey($index)) {

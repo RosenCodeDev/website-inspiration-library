@@ -104,4 +104,4 @@ Run the Impeccable route in `polish.md`. Keep changes that improve clarity, hier
 
 ## 8. Finish
 
-Verify responsive widths, keyboard flow, focus, contrast, reduced motion, loading, media fallback, and production build. Record successful verification before setting state to `complete`; schema v4 rejects completion without a selected final generation and passed verification. Report final lineage, references and roles, build path, hero provider, adaptations, evidence limits, tests, and remaining constraints.
+Verify responsive widths, keyboard flow, focus, contrast, reduced motion, loading, media fallback, and production build. Record successful verification before setting state to `complete`; schema v5 rejects completion without a selected final generation and passed verification. Report final lineage, references and roles, build path, hero provider, adaptations, evidence limits, tests, and remaining constraints.
