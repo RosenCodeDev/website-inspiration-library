@@ -307,6 +307,28 @@ function CategoryProfileBar({ activeFilter }: { activeFilter: Filter }) {
   );
 }
 
+function CategoryProfileVisibilityToggle({
+  visible,
+  onToggle,
+}: {
+  visible: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="category-profile-visibility">
+      <button
+        className={`category-profile-visibility-toggle${visible ? ' is-on' : ''}`}
+        type="button"
+        aria-pressed={visible}
+        onClick={onToggle}
+      >
+        <span className="category-profile-visibility-check" aria-hidden="true" />
+        <span>Show category profile</span>
+      </button>
+    </div>
+  );
+}
+
 function ReferenceCard({
   reference,
   onOpen,
@@ -490,6 +512,7 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
 
 export default function App() {
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
+  const [categoryProfileVisible, setCategoryProfileVisible] = useState(true);
   const [selected, setSelected] = useState<ReferenceEntry | null>(null);
   const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
@@ -542,7 +565,11 @@ export default function App() {
           ))}
         </nav>
 
-        <CategoryProfileBar key={activeFilter} activeFilter={activeFilter} />
+        <CategoryProfileVisibilityToggle
+          visible={categoryProfileVisible}
+          onToggle={() => setCategoryProfileVisible((current) => !current)}
+        />
+        {categoryProfileVisible && <CategoryProfileBar key={activeFilter} activeFilter={activeFilter} />}
 
         <p className="filter-status" role="status" aria-live="polite">
           {visibleReferences.length} {activeFilter === 'All' ? 'total' : activeFilter} references shown.

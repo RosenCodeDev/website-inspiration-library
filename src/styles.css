@@ -83,6 +83,55 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .filters button.active { background: var(--ink); color: var(--surface); }
 .filters button.active sup { color: #c98070; }
 
+.category-profile-visibility {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.category-profile-visibility-toggle {
+  appearance: none;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 6px 1px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+  cursor: pointer;
+}
+
+.category-profile-visibility-check {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  flex: 0 0 auto;
+  border: 2px solid var(--rule);
+}
+
+.category-profile-visibility-check::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.category-profile-visibility-toggle.is-on .category-profile-visibility-check::after { opacity: 1; }
+.category-profile-visibility-toggle:hover { color: var(--accent); }
+
 .category-profile-bar {
   margin-top: 12px;
   border-top: 2px solid var(--rule);
@@ -641,6 +690,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   .library-shell { padding: 20px 14px 40px; }
   .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 16px; }
   .filters button { justify-content: space-between; }
+  .category-profile-visibility { justify-content: flex-start; }
   .category-profile-toggle {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;

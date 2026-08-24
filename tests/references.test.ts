@@ -406,4 +406,14 @@ describe('reference manifest', () => {
     expect(app).toContain('className="filter-status" role="status" aria-live="polite"');
     expect(app).not.toMatch(/className="reference-grid"[^>]*aria-live/);
   });
+
+  it('lets users hide the category profile bar without changing category filters', () => {
+    const app = readFileSync(resolve(process.cwd(), 'src', 'App.tsx'), 'utf8');
+    const styles = readFileSync(resolve(process.cwd(), 'src', 'styles.css'), 'utf8');
+    expect(app).toContain('const [categoryProfileVisible, setCategoryProfileVisible] = useState(true);');
+    expect(app).toContain('aria-pressed={visible}');
+    expect(app).toContain('<span>Show category profile</span>');
+    expect(app).toContain('{categoryProfileVisible && <CategoryProfileBar key={activeFilter} activeFilter={activeFilter} />}');
+    expect(styles).toContain('.category-profile-visibility-toggle.is-on .category-profile-visibility-check::after');
+  });
 });
