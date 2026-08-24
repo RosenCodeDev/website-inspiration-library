@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { referenceContent } from '../src/reference-content';
 import { categories, references } from '../src/references';
+import { buildAgentPacket, buildBriefCopy, buildImagePromptCopy } from '../src/agent-packet';
 
 const publicPath = (asset: string) => resolve(process.cwd(), 'public', asset.replace(/^\//, ''));
 const archivePath = (...segments: string[]) => resolve(process.cwd(), 'archive', ...segments);
@@ -34,19 +35,19 @@ const rasterDimensions = (path: string) => {
 };
 
 describe('reference manifest', () => {
-  it('contains exactly 55 sequential, unique reference moments', () => {
-    expect(references).toHaveLength(55);
-    expect(references.map((entry) => entry.order)).toEqual(Array.from({ length: 55 }, (_, index) => index + 1));
-    expect(new Set(references.map((entry) => entry.id)).size).toBe(55);
+  it('contains exactly 63 sequential, unique reference moments', () => {
+    expect(references).toHaveLength(63);
+    expect(references.map((entry) => entry.order)).toEqual(Array.from({ length: 63 }, (_, index) => index + 1));
+    expect(new Set(references.map((entry) => entry.id)).size).toBe(63);
   });
 
   it('has one canonical authored-content record for every reference', () => {
-    expect(Object.keys(referenceContent)).toHaveLength(55);
+    expect(Object.keys(referenceContent)).toHaveLength(63);
     expect(new Set(Object.keys(referenceContent))).toEqual(new Set(references.map((entry) => entry.id)));
   });
 
-  it('uses nine bespoke brief fields without the retired category defaults', () => {
-    const labels = ['Composition', 'Typography', 'Palette', 'Texture', 'Hierarchy', 'Spacing', 'Motion', 'Preserve', 'Avoid'];
+  it('uses eleven bespoke brief fields without the retired category defaults', () => {
+    const labels = ['Scope', 'Interface inventory', 'Composition', 'Typography', 'Palette', 'Texture', 'Hierarchy', 'Spacing', 'Motion', 'Preserve', 'Avoid'];
     const retiredDefaults = [
       'an editorial serif paired with compact utilitarian mono labels',
       'one high-contrast image or statement dominates a restrained interface',
@@ -59,7 +60,7 @@ describe('reference manifest', () => {
 
     for (const entry of references) {
       const lines = entry.brief.split('\n');
-      expect(lines, entry.id).toHaveLength(9);
+      expect(lines, entry.id).toHaveLength(11);
       expect(lines.map((line) => line.split(':', 1)[0]), entry.id).toEqual(labels);
       for (const retired of retiredDefaults) expect(entry.brief, entry.id).not.toContain(retired);
     }
@@ -77,7 +78,7 @@ describe('reference manifest', () => {
         expect(entry.imageRecipe.prompt, entry.id).not.toContain('Use original placeholder copy');
       }
     }
-    expect(counts).toEqual({ primary: 26, supporting: 10, none: 19 });
+    expect(counts).toEqual({ primary: 34, supporting: 10, none: 19 });
   });
 
   it('keeps observed motion distinct from suggested brief motion', () => {
@@ -85,7 +86,7 @@ describe('reference manifest', () => {
       if (entry.media.motionClip) {
         expect(entry.media.motionNotes, entry.id).toMatch(/^Trigger:/);
       } else {
-        expect(entry.media.motionNotes, entry.id).toBe('Still reference; no captured motion evidence.');
+        expect(entry.media.motionNotes, entry.id).toBe('No motion captured. Use the brief’s Motion guidance for implementation.');
       }
     }
   });
@@ -94,6 +95,10 @@ describe('reference manifest', () => {
     const wordCount = (value: string) => value.trim().split(/\s+/).length;
     for (const entry of references) {
       expect(wordCount(entry.description), `${entry.id} description`).toBeLessThanOrEqual(35);
+      expect(wordCount(entry.scope), `${entry.id} scope`).toBeLessThanOrEqual(12);
+      expect(wordCount(entry.interfaceInventory), `${entry.id} interface inventory`).toBeLessThanOrEqual(28);
+      expect(entry.styleDescriptor.length, `${entry.id} descriptor`).toBeLessThanOrEqual(64);
+      expect(entry.cardDescriptor.length, `${entry.id} card descriptor`).toBeLessThanOrEqual(32);
       for (const tag of entry.tags) expect(wordCount(tag), `${entry.id} tag: ${tag}`).toBeLessThanOrEqual(5);
       if (entry.imageRecipe.kind !== 'none') {
         expect(wordCount(entry.imageRecipe.prompt), `${entry.id} image recipe`).toBeLessThanOrEqual(90);
@@ -131,8 +136,24 @@ describe('reference manifest', () => {
     }
   });
 
-  it('copies all 19 active image references byte-for-byte', () => {
-    for (let index = 1; index <= 19; index += 1) {
+  it('uses smart crops only for the four affected grid posters', () => {
+    const expectedMedia = {
+      58: { poster: '/assets/posters/image-20.jpg', detail: '/assets/originals/20.jpg' },
+      59: { poster: '/assets/posters/image-21.jpg', detail: '/assets/originals/21.jpg' },
+      62: { poster: '/assets/posters/image-24.jpg', detail: '/assets/originals/24.jpg' },
+      63: { poster: '/assets/posters/image-25.jpg', detail: '/assets/originals/25.jpg' },
+    } as const;
+
+    for (const [order, media] of Object.entries(expectedMedia)) {
+      const entry = references.find((reference) => reference.order === Number(order))!;
+      expect(entry.media.poster).toBe(media.poster);
+      expect(entry.media.detailImage).toBe(media.detail);
+      expect(entry.media.poster).not.toBe(entry.media.detailImage);
+    }
+  });
+
+  it('copies all 25 active image references byte-for-byte', () => {
+    for (let index = 1; index <= 25; index += 1) {
       const reference = references.find((entry) => entry.media.original.match(new RegExp(`/originals/${index}\\.(jpg|png)$`)));
       expect(reference, `missing image ${index}`).toBeDefined();
       const extension = reference!.media.original.split('.').pop();
@@ -179,7 +200,7 @@ describe('reference manifest', () => {
 
   it('exposes verified links only through website sources', () => {
     const linked = references.filter((entry) => entry.source.url);
-    expect(linked).toHaveLength(38);
+    expect(linked).toHaveLength(40);
     expect(linked.every((entry) => entry.source.kind === 'website')).toBe(true);
     expect(linked.every((entry) => entry.source.url?.startsWith('https://'))).toBe(true);
   });
@@ -200,6 +221,14 @@ describe('reference manifest', () => {
     const notionIds = references.filter((entry) => entry.source.sourceGroupId === 'notion').map((entry) => entry.id);
     expect(notionIds).toEqual(['site-notion', 'site-notion-releases']);
 
+    const notionEntries = references.filter((entry) => entry.source.sourceGroupId === 'notion');
+    expect(new Set(notionEntries.map((entry) => entry.designSystem?.id))).toEqual(new Set(['notion-product-system']));
+    expect(new Set(notionEntries.map((entry) => entry.scope)).size).toBe(2);
+    for (const entry of notionEntries) {
+      expect(buildAgentPacket(entry)).toContain('Shared design system: Notion product ecosystem');
+      expect(buildAgentPacket(entry)).toContain('Keep page-specific structure distinct');
+    }
+
     const xIds = references.filter((entry) => entry.source.sourceGroupId === 'x-business').map((entry) => entry.id);
     expect(xIds).toEqual([
       'site-x-advertising',
@@ -213,7 +242,7 @@ describe('reference manifest', () => {
     ]);
   });
 
-  it('uses motion only for the ten approved previews', () => {
+  it('uses motion only for the fourteen approved previews', () => {
     const motionIds = references.filter((entry) => entry.media.motionClip).map((entry) => entry.id);
     expect(motionIds).toEqual([
       'site-spade',
@@ -223,18 +252,56 @@ describe('reference manifest', () => {
       'site-schemas',
       'site-system-patch',
       'site-oqoqo',
+      'site-aside',
+      'site-jitter',
       'site-coda',
       'site-paper',
       'site-cursor',
+      'site-plinth',
+      'site-fin',
     ]);
-    expect(new Set(references.filter((entry) => entry.media.motionClip).map((entry) => entry.media.motionClip)).size).toBe(10);
+    expect(new Set(references.filter((entry) => entry.media.motionClip).map((entry) => entry.media.motionClip)).size).toBe(14);
   });
 
-  it('removes Notom and places Cursor immediately after Paper and before Voidpixel', () => {
+  it('places the new live and supplied references in the approved order', () => {
     expect(references.some((entry) => entry.id === 'site-notom')).toBe(false);
-    expect(references.at(-3)?.id).toBe('site-paper');
-    expect(references.at(-2)?.id).toBe('site-cursor');
-    expect(references.at(-1)?.id).toBe('image-voidpixel');
+    expect(references.slice(-11).map((entry) => entry.id)).toEqual([
+      'site-paper', 'site-cursor', 'site-plinth', 'site-fin', 'image-voidpixel',
+      'image-root-soil', 'image-rooted', 'image-meadow', 'image-grilled', 'image-synthos',
+    ].concat('image-bloom-brush'));
+  });
+
+  it('keeps new card titles concise and free of dash characters', () => {
+    const newIds = ['site-plinth', 'site-fin', 'image-root-soil', 'image-rooted', 'image-meadow', 'image-grilled', 'image-synthos', 'image-bloom-brush'];
+    for (const id of newIds) {
+      const entry = references.find((reference) => reference.id === id)!;
+      expect(entry.title, id).not.toMatch(/[-–—]/);
+      expect(entry.title.split(/\s+/).length, id).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('declares one shared X Business shell without replacing unique content', () => {
+    const xEntries = references.filter((entry) => entry.source.sourceGroupId === 'x-business');
+    expect(xEntries).toHaveLength(8);
+    expect(new Set(xEntries.map((entry) => entry.designSystem?.id))).toEqual(new Set(['x-business-docs']));
+    expect(new Set(xEntries.map((entry) => entry.scope)).size).toBe(8);
+    expect(new Set(xEntries.map((entry) => JSON.stringify(entry.imageRecipe))).size).toBe(8);
+  });
+
+  it('builds complete concise copy outputs for agents', () => {
+    for (const entry of references) {
+      const packet = buildAgentPacket(entry);
+      expect(packet).toContain(`Reference: ${entry.title}`);
+      expect(packet).toContain(`Scope: ${entry.scope}`);
+      expect(packet).toContain(`Interface inventory: ${entry.interfaceInventory}`);
+      expect(packet).toContain('STRUCTURED DESIGN BRIEF');
+      expect(packet).toContain('SOURCE EVIDENCE');
+      expect(packet).toContain('OBSERVED MOTION');
+      expect(buildBriefCopy(entry)).toContain(entry.brief);
+      const prompt = buildImagePromptCopy(entry);
+      if (entry.imageRecipe.kind === 'none') expect(prompt).toBeNull();
+      else expect(prompt).toContain('Higgsfield or another image-generation model');
+    }
   });
 
   it('does not claim fine-detail reliability for limited YouTube frames', () => {

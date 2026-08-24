@@ -1,6 +1,6 @@
 # Website Inspiration Library
 
-A private, local-first reference library for keeping a human in the design loop and giving AI concrete visual direction. It contains 55 independently curated moments: 19 supplied image references and 36 website-sourced cards.
+A private, local-first reference library for keeping a human in the design loop and giving AI concrete visual direction. It contains 63 independently curated moments: 25 supplied image references and 38 website-sourced cards.
 
 ## Run locally
 
@@ -14,22 +14,23 @@ Open `http://127.0.0.1:4173/`. The app has no login, database, tracking, or remo
 
 ## How the catalog works
 
-- `src/references.ts` holds identity, ordering, categories, provenance, quality limits, and runtime media. `src/reference-content.ts` is the single source of truth for descriptors, descriptions, observable tags, image recipes, structured AI briefs, and motion evidence.
-- `src/reference-schema.ts` validates the complete 55-entry manifest at startup.
+- `src/references.ts` holds identity, ordering, categories, provenance, quality limits, and runtime media. `src/reference-content.ts` is the single source of truth for descriptors, descriptions, scope, interface inventory, observable tags, image recipes, structured AI briefs, and motion evidence.
+- `src/reference-schema.ts` validates the complete 63-entry manifest at startup.
 - Image recipes are classified as a primary generated visual, a supporting generated layer, or `build in code`. Code-native diagrams, real product interfaces, and exact branded assets do not expose a misleading image-prompt action.
-- The nine-field design brief is authored per card with no category-level Typography, Hierarchy, or Spacing fallback. Its Motion field is an implementation recommendation; the separate Motion behavior section reports captured evidence only.
+- The eleven-field design brief adds Scope and Interface inventory to the original visual fields. Its Motion field is an implementation recommendation; the separate Motion behavior section reports captured evidence only.
+- `Copy Agent Packet` combines the complete reference, brief, quality limits, and observed motion for an implementation agent. The focused Brief and Image Prompt actions remain available, and generated-image instructions explicitly target Higgsfield or another image-generation model at 2K.
 - Every reference has one primary category and may appear in overlapping secondary filters.
 - The seven filters describe observable visual styles; there is no catch-all “Reference Styles” category.
-- The grid always starts with a still 8:5 poster. On mouse devices, hovering only the image region of one of the ten motion-enabled cards starts its muted local MP4 from the beginning; leaving resets it to the poster, and only one grid preview can run at a time. Nearby clips preload while paused so the first decoded frame can replace the poster without flashing. Touch grids and reduced-motion environments remain still.
+- The grid always starts with a still 8:5 poster. On mouse devices, hovering only the image region of one of the fourteen motion-enabled cards starts its muted local MP4 from the beginning; leaving resets it to the poster, and only one grid preview can run at a time. Nearby clips preload while paused so the first decoded frame can replace the poster without flashing. Touch grids and reduced-motion environments remain still.
 - The detail modal uses the same poster-first behavior: its clip plays only while the top visual area is hovered, has no player chrome, and resets to the full-size still on leave. A rejected or missing video falls back to the still.
 - Green, amber, and red dots mean canonical, usable, and limited source quality. Canonical sources support detailed analysis; usable sources support composition, palette, imagery, and broad hierarchy; limited sources are concept and rough-composition cues only.
 
 ## Media and provenance
 
-- The 19 active image files are copied byte-for-byte from `archive/Example Websites Images` to `public/assets/originals`. Superseded source files are retained under `archive/Superseded Source Images` and in Git history.
+- The 25 active image files are copied byte-for-byte from `archive/Example Websites Images` to `public/assets/originals`. Superseded source files are retained under `archive/Superseded Source Images` and in Git history.
 - Current website captures live in `public/assets/site-captures`; accidental browser scrollbar tracks are cropped from the affected captures.
-- Uniform 1600×1000 derivatives live in `public/assets/posters` and are generated with a high-quality non-generative bicubic crop.
-- Muted 1440×900 H.264 High Profile previews live in `public/assets/motion`. They were recorded directly from Spade, SSTR, Igloo, Lusion, Schemas of Uncertainty, System Patch, Oqoqo, Coda, Paper, and Cursor at a verified 30 fps with hardware-accelerated Chrome, frame-synchronized interaction, hidden scrollbars, and offline quality-focused encoding. The 60 fps proof was rejected because this computer could not sustain 60 real captured frames per second; no frames were interpolated or relabelled. No third-party gallery recordings are used.
+- Uniform 1600×1000 derivatives live in `public/assets/posters`. Most use a high-quality non-generative bicubic crop; supplied images 20–25 use a matching background mat and contain fit so important edge content is not removed.
+- Muted 1440×900 H.264 High Profile previews live in `public/assets/motion`. They were recorded directly from Spade, SSTR, Igloo, Lusion, Schemas of Uncertainty, System Patch, Oqoqo, Aside, Jitter, Coda, Paper, Cursor, Plinth, and Fin at a verified 30 fps with hardware-accelerated Chrome, frame-synchronized interaction, hidden scrollbars, and offline quality-focused encoding. Scrolling recipes refresh the document height while recording and fail unless they reach the verified bottom. The 60 fps proof was rejected because this computer could not sustain 60 real captured frames per second; no frames were interpolated or relabelled. No third-party gallery recordings are used.
 - Capture-only browser and encoding dependencies are excluded from the production app. Selected historical takes and review evidence are retained under `archive/Capture History`; new scratch captures remain ignored until deliberately promoted.
 - The exact hardware-capture recipes and encoding settings are tracked under `capture-tools`; see `capture-tools/README.md`. New temporary takes, browser profiles, and contact sheets remain ignored under `capture-work` until deliberately promoted into the archive.
 - The former `Motion and New Static Images` guide folder was removed after the approved Don’t Board Me and Orano assets were incorporated under `public/assets/site-captures`; no runtime component depends on the removed folder.
@@ -47,7 +48,7 @@ Regenerate copies and posters after adding source media:
 
 1. Save the untouched source in the appropriate local asset folder.
 2. Add identity, categories, provenance, quality limits, and media paths to `src/references.ts`.
-3. Add the card’s descriptor, description, 4–8 observable tags, recipe classification, complete nine-field design profile, and factual motion behavior to `src/reference-content.ts`.
+3. Add the card’s concise descriptor, description, scope, interface inventory, 4–8 observable tags, recipe classification, complete eleven-field design profile, and factual motion behavior to `src/reference-content.ts`.
 4. Generate the 8:5 poster without overwriting the original.
 5. If it is a linked website, capture a stable hero state and add the verified HTTPS URL. Use a separate card for each genuinely distinct moment from the same site, sharing `sourceGroupId`.
 6. If motion materially defines the reference, preload fonts and lazy assets, record a hardware-rendered take with hidden scrollbars and frame-synchronized interactions, verify real cadence, then encode a muted fast-start 1440×900 H.264 MP4 offline. Describe only observed trigger, sequence, fixed layers, pacing, and endpoint in Motion behavior; put adaptation advice in the brief’s Motion field.

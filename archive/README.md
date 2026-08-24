@@ -2,7 +2,7 @@
 
 This directory contains source material and historical evidence used to curate the portal. Nothing here is required by the running Vite application; runtime media lives under `public/assets`.
 
-- `Example Websites Images` contains the 19 user-approved source images.
+- `Example Websites Images` contains the 25 user-approved source images.
 - `Example Websites Links` contains the supplied website lists.
 - `Website Library Tutorial Example` contains the tutorial UI screenshots.
 - `Prompts` contains the original project prompt.

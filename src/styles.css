@@ -11,6 +11,7 @@
   --rule: #211d18;
   --accent: #ad5d4d;
   --panel: #eee3d5;
+  --detail-fill: #f3ebdd;
   --mono: "Courier New", Courier, monospace;
 }
 
@@ -297,7 +298,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   min-height: 290px;
   padding: 0 34px;
   border-bottom: 2px solid var(--rule);
-  background: #eadfce;
+  background: var(--detail-fill);
 }
 
 .detail-visual > img,
@@ -308,7 +309,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   max-height: 55vh;
   display: block;
   object-fit: contain;
-  background: #d8cfc2;
+  background: var(--detail-fill);
 }
 
 .detail-visual > video {
@@ -369,7 +370,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 }
 
 .recipe-panel,
-.brief-panel { background: var(--panel); }
+.brief-panel { background: var(--detail-fill); }
 
 .source-panel,
 .motion-panel { background: var(--surface); }

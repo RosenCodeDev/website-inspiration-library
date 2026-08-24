@@ -28,6 +28,10 @@ const recipes = [
   { name: 'paper', url: 'https://paper.design/', kind: 'scroll', settle: 6000, actionDuration: 16000, trimStart: 0, finalDuration: 18 },
   { name: 'oqoqo', url: 'https://oqoqo.ai/', kind: 'scroll', settle: 5500, actionDuration: 16000, trimStart: 0, finalDuration: 18 },
   { name: 'cursor', url: 'https://cursor.com/home', kind: 'scroll', settle: 6500, actionDuration: 19000, trimStart: 0, finalDuration: 21, detailFile: 'cursor.png' },
+  { name: 'aside', url: 'https://aside.com/', kind: 'scroll', settle: 5000, openingHold: 1600, actionDuration: 14000, trimStart: 0, finalDuration: 18 },
+  { name: 'jitter', url: 'https://madewithjitter.com/', kind: 'scroll', settle: 5000, openingHold: 1600, actionDuration: 15000, trimStart: 0, finalDuration: 19, resetVisibleVideos: true },
+  { name: 'plinth', url: 'https://plinthai.xyz/', kind: 'scroll', settle: 6000, actionDuration: 20000, trimStart: 0, finalDuration: 22, detailFile: 'plinth.png' },
+  { name: 'fin', url: 'https://www.fin.com/', kind: 'scroll', settle: 6500, actionDuration: 24000, trimStart: 0, finalDuration: 26, detailFile: 'fin.png' },
 ];
 
 const requestedNames = (process.env.CAPTURE_NAMES ?? '')
@@ -195,20 +199,20 @@ const startCapture = async (name, metrics) => {
 };
 
 const smoothScroll = async (page, duration) => {
-  await page.evaluate(async (totalDuration) => {
-    const maxScroll = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - innerHeight;
+  const result = await page.evaluate(async (totalDuration) => {
     const sections = 7;
     const hold = 320;
     const movingDuration = Math.max(1000, totalDuration - hold * (sections - 1) - 900);
     const sectionDuration = movingDuration / sections;
     const ease = (value) => value < 0.5 ? 2 * value * value : 1 - Math.pow(-2 * value + 2, 2) / 2;
     for (let section = 0; section < sections; section += 1) {
-      const from = maxScroll * section / sections;
-      const to = maxScroll * (section + 1) / sections;
+      const from = scrollY;
       await new Promise((resolve) => {
         const started = performance.now();
         const frame = (now) => {
           const progress = Math.min(1, (now - started) / sectionDuration);
+          const currentMax = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - innerHeight;
+          const to = currentMax * (section + 1) / sections;
           scrollTo(0, from + (to - from) * ease(progress));
           if (progress < 1) requestAnimationFrame(frame);
           else resolve();
@@ -217,8 +221,20 @@ const smoothScroll = async (page, duration) => {
       });
       if (section < sections - 1) await new Promise((resolve) => setTimeout(resolve, hold));
     }
+    for (let pass = 0; pass < 6; pass += 1) {
+      const currentMax = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - innerHeight;
+      scrollTo(0, currentMax);
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
     await new Promise((resolve) => setTimeout(resolve, 900));
+    const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    const maxScroll = scrollHeight - innerHeight;
+    return { scrollY, scrollHeight, innerHeight, maxScroll, remaining: Math.max(0, maxScroll - scrollY) };
   }, duration);
+  if (result.remaining > 4) {
+    throw new Error(`Scroll capture stopped ${Math.round(result.remaining)}px before the document bottom.`);
+  }
+  return result;
 };
 
 const smoothPointer = async (page, duration, igloo = false) => {
@@ -297,11 +313,27 @@ for (const recipe of selectedRecipes) {
       metrics = await sizeContentViewport(page);
       await page.waitForTimeout(600);
     }
+    if (recipe.resetVisibleVideos) {
+      await page.evaluate(async () => {
+        const visibleVideos = [...document.querySelectorAll('video')].filter((video) => {
+          const rect = video.getBoundingClientRect();
+          return rect.width > 8 && rect.height > 8 && rect.bottom > 0 && rect.top < innerHeight;
+        });
+        for (const video of visibleVideos) {
+          video.muted = true;
+          video.currentTime = 0;
+          await video.play().catch(() => {});
+        }
+      });
+      await page.waitForTimeout(500);
+    }
     await page.screenshot({ path: path.join(qaDir, recipe.name + '-opening.png') });
     await page.bringToFront();
     await page.waitForTimeout(300);
     const capture = await startCapture(recipe.name, metrics);
-    if (recipe.kind === 'scroll') await smoothScroll(page, recipe.actionDuration);
+    if (recipe.openingHold) await page.waitForTimeout(recipe.openingHold);
+    let scrollResult = null;
+    if (recipe.kind === 'scroll') scrollResult = await smoothScroll(page, recipe.actionDuration);
     if (recipe.kind === 'pointer') await smoothPointer(page, recipe.actionDuration, false);
     if (recipe.kind === 'igloo') {
       await page.waitForTimeout(2300);
@@ -311,7 +343,7 @@ for (const recipe of selectedRecipes) {
     await page.waitForTimeout(700);
     const logPath = await capture.stop();
     const encoded = await encodeAndMakeContactSheet(recipe, capture.outputPath);
-    results.push({ name: recipe.name, fps: requestedFps, metrics, master: capture.outputPath, log: logPath, ...encoded });
+    results.push({ name: recipe.name, fps: requestedFps, metrics, scrollResult, master: capture.outputPath, log: logPath, ...encoded });
   } catch (error) {
     console.error('FAILED ' + recipe.name + ': ' + (error.stack ?? error.message));
   } finally {

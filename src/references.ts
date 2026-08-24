@@ -1,6 +1,6 @@
 import { ReferenceManifestSchema, type Category, type ReferenceEntry, } from './reference-schema';
 import { referenceContent } from './reference-content';
-type Seed = Omit<ReferenceEntry, 'brief' | 'imageRecipe' | 'filters' | 'styleDescriptor' | 'description' | 'tags' | 'media'> & {
+type Seed = Omit<ReferenceEntry, 'brief' | 'imageRecipe' | 'filters' | 'cardDescriptor' | 'styleDescriptor' | 'description' | 'scope' | 'interfaceInventory' | 'designSystem' | 'tags' | 'media'> & {
     extraFilters?: Category[];
     media: Omit<ReferenceEntry['media'], 'motionNotes'> & { motionNotes?: string };
 };
@@ -11,6 +11,8 @@ const buildEntry = (seed: Seed): ReferenceEntry => {
     const profile = content.profile;
     const filters = Array.from(new Set([seed.primaryCategory, ...(seed.extraFilters ?? [])]));
     const brief = [
+        `Scope: ${content.scope}`,
+        `Interface inventory: ${content.interfaceInventory}`,
         `Composition: ${profile.composition}`,
         `Typography: ${profile.typography}`,
         `Palette: ${profile.palette}`,
@@ -24,8 +26,12 @@ const buildEntry = (seed: Seed): ReferenceEntry => {
     const { extraFilters: _extraFilters, ...entry } = seed;
     return {
         ...entry,
+        cardDescriptor: content.cardDescriptor,
         styleDescriptor: content.styleDescriptor,
         description: content.description,
+        scope: content.scope,
+        interfaceInventory: content.interfaceInventory,
+        designSystem: content.designSystem,
         tags: content.tags,
         media: { ...entry.media, motionNotes: content.motionBehavior },
         filters,
@@ -300,15 +306,15 @@ const siteSeeds: Seed[] = [
         id: 'site-aside', order: 39, title: 'Aside Browser',
         primaryCategory: 'Illustrated Storybook',
         source: { kind: 'website', siteName: 'Aside', url: 'https://aside.com/', captureMethod: 'live-browser-capture', capturedAt: '2026-08-21', sourceGroupId: 'aside', originalAsset: '/assets/site-captures/21-aside.png' },
-        media: { poster: '/assets/posters/site-21.jpg', detailImage: '/assets/site-captures/21-aside.png', original: '/assets/site-captures/21-aside.png', motionNotes: 'Cloud and interface layers move at different depths while product states demonstrate the browser concept.' },
-        quality: { tier: 'canonical', width: 1251, height: 713, confidence: 1, reliableFor: ['hero hierarchy', 'product staging', 'atmospheric palette'], note: 'Current live capture with the browser scrollbar removed.' }
+        media: { poster: '/assets/posters/site-21.jpg', detailImage: '/assets/site-captures/21-aside.png', original: '/assets/site-captures/21-aside.png', motionClip: '/assets/motion/aside.mp4' },
+        quality: { tier: 'canonical', width: 1251, height: 713, confidence: 1, reliableFor: ['hero hierarchy', 'product staging', 'atmospheric palette', 'ambient interface motion'], note: 'Current live still with an unobstructed hardware-rendered hero motion capture.' }
     },
     {
         id: 'site-jitter', order: 40, title: 'Made with Jitter',
         primaryCategory: 'Print-Tech Paper',
         source: { kind: 'website', siteName: 'Made with Jitter', url: 'https://madewithjitter.com/', captureMethod: 'live-browser-capture', capturedAt: '2026-08-21', sourceGroupId: 'jitter', originalAsset: '/assets/site-captures/22-jitter.png' },
-        media: { poster: '/assets/posters/site-22.jpg', detailImage: '/assets/site-captures/22-jitter.png', original: '/assets/site-captures/22-jitter.png', motionNotes: 'Featured work plays in curated loops while the surrounding gallery interface remains typographically calm.' },
-        quality: { tier: 'canonical', width: 1251, height: 713, confidence: 1, reliableFor: ['gallery framing', 'typography', 'motion hierarchy'], note: 'Current live capture with the browser scrollbar removed.' }
+        media: { poster: '/assets/posters/site-22.jpg', detailImage: '/assets/site-captures/22-jitter.png', original: '/assets/site-captures/22-jitter.png', motionClip: '/assets/motion/jitter.mp4' },
+        quality: { tier: 'canonical', width: 1251, height: 713, confidence: 1, reliableFor: ['gallery framing', 'typography', 'motion hierarchy', 'featured-loop pacing'], note: 'Current live still with an unobstructed hardware-rendered hero motion capture.' }
     },
     {
         id: 'site-pen', order: 41, title: 'Pen.dev',
@@ -348,16 +354,16 @@ const siteSeeds: Seed[] = [
 ];
 const expansionSeeds: Seed[] = [
     {
-        id: 'site-notion-releases', order: 20, title: 'Notion — What’s New',
+        id: 'site-notion-releases', order: 20, title: 'Notion Releases',
         primaryCategory: 'Print-Tech Paper', extraFilters: ['Data-as-Texture'],
-        source: { kind: 'website', siteName: 'Notion — What’s New', url: 'https://www.notion.com/releases', captureMethod: 'live-browser-capture', capturedAt: '2026-08-23', sourceGroupId: 'notion', originalAsset: '/assets/site-captures/notion-releases.png' },
+        source: { kind: 'website', siteName: 'Notion Releases', url: 'https://www.notion.com/releases', captureMethod: 'live-browser-capture', capturedAt: '2026-08-23', sourceGroupId: 'notion', originalAsset: '/assets/site-captures/notion-releases.png' },
         media: { poster: '/assets/posters/notion-releases.jpg', detailImage: '/assets/site-captures/notion-releases.png', original: '/assets/site-captures/notion-releases.png' },
         quality: { tier: 'canonical', width: 1600, height: 1000, confidence: 1, reliableFor: ['release-feed hierarchy', 'editorial spacing', 'screenshot framing', 'date labeling', 'typography'], note: 'High-resolution unobstructed live capture of the current release feed.' }
     },
     {
-        id: 'site-x-business', order: 32, title: 'X Business',
+        id: 'site-x-business', order: 32, title: 'X Ads Measurement',
         primaryCategory: 'Dither Mono', extraFilters: ['Data-as-Texture'],
-        source: { kind: 'website', siteName: 'X Business', url: 'https://business.x.com/en', captureMethod: 'live-browser-capture', capturedAt: '2026-08-23', sourceGroupId: 'x-business', originalAsset: '/assets/site-captures/x-business.png' },
+        source: { kind: 'website', siteName: 'X Ads Measurement', url: 'https://business.x.com/en', captureMethod: 'live-browser-capture', capturedAt: '2026-08-23', sourceGroupId: 'x-business', originalAsset: '/assets/site-captures/x-business.png' },
         media: { poster: '/assets/posters/x-business.jpg', detailImage: '/assets/site-captures/x-business.png', original: '/assets/site-captures/x-business.png' },
         quality: { tier: 'canonical', width: 1600, height: 1000, confidence: 1, reliableFor: ['hero hierarchy', 'type scale', 'conversion pattern', 'monochrome palette'], note: 'High-resolution unobstructed live capture.' }
     },
@@ -369,9 +375,9 @@ const expansionSeeds: Seed[] = [
         quality: { tier: 'canonical', width: 1600, height: 1000, confidence: 1, reliableFor: ['content hierarchy', 'editorial spacing', 'navigation', 'module grouping'], note: 'High-resolution unobstructed live capture.' }
     },
     {
-        id: 'site-x-intro', order: 34, title: 'Intro to X for Business',
+        id: 'site-x-intro', order: 34, title: 'Intro to X',
         primaryCategory: 'Print-Tech Paper', extraFilters: ['Data-as-Texture'],
-        source: { kind: 'website', siteName: 'Intro to X for Business', url: 'https://business.x.com/en/basics/intro-x-for-business', captureMethod: 'live-browser-capture', capturedAt: '2026-08-23', sourceGroupId: 'x-business', originalAsset: '/assets/site-captures/x-intro.png' },
+        source: { kind: 'website', siteName: 'Intro to X', url: 'https://business.x.com/en/basics/intro-x-for-business', captureMethod: 'live-browser-capture', capturedAt: '2026-08-23', sourceGroupId: 'x-business', originalAsset: '/assets/site-captures/x-intro.png' },
         media: { poster: '/assets/posters/x-intro.jpg', detailImage: '/assets/site-captures/x-intro.png', original: '/assets/site-captures/x-intro.png' },
         quality: { tier: 'canonical', width: 1600, height: 1000, confidence: 1, reliableFor: ['long-form hierarchy', 'headline scale', 'report spacing', 'evidence placement'], note: 'High-resolution unobstructed live capture.' }
     },
@@ -383,9 +389,9 @@ const expansionSeeds: Seed[] = [
         quality: { tier: 'canonical', width: 1600, height: 1000, confidence: 1, reliableFor: ['onboarding hierarchy', 'instruction grouping', 'type scale', 'spacing'], note: 'High-resolution unobstructed live capture.' }
     },
     {
-        id: 'site-x-organic', order: 36, title: 'X Organic Best Practices',
+        id: 'site-x-organic', order: 36, title: 'X Best Practices',
         primaryCategory: 'Data-as-Texture', extraFilters: ['Print-Tech Paper'],
-        source: { kind: 'website', siteName: 'X Organic Best Practices', url: 'https://business.x.com/en/basics/organic-best-practices', captureMethod: 'live-browser-capture', capturedAt: '2026-08-23', sourceGroupId: 'x-business', originalAsset: '/assets/site-captures/x-organic.png' },
+        source: { kind: 'website', siteName: 'X Best Practices', url: 'https://business.x.com/en/basics/organic-best-practices', captureMethod: 'live-browser-capture', capturedAt: '2026-08-23', sourceGroupId: 'x-business', originalAsset: '/assets/site-captures/x-organic.png' },
         media: { poster: '/assets/posters/x-organic.jpg', detailImage: '/assets/site-captures/x-organic.png', original: '/assets/site-captures/x-organic.png' },
         quality: { tier: 'canonical', width: 1600, height: 1000, confidence: 1, reliableFor: ['guidance density', 'module hierarchy', 'typographic contrast', 'grid structure'], note: 'High-resolution unobstructed live capture.' }
     },
@@ -416,6 +422,20 @@ const expansionSeeds: Seed[] = [
         source: { kind: 'website', siteName: 'Cursor', url: 'https://cursor.com/home', captureMethod: 'live-browser-capture', capturedAt: '2026-08-22', sourceGroupId: 'cursor', originalAsset: '/assets/site-captures/cursor.png' },
         media: { poster: '/assets/posters/cursor.jpg', detailImage: '/assets/site-captures/cursor.png', original: '/assets/site-captures/cursor.png', motionClip: '/assets/motion/cursor.mp4', motionNotes: 'A smooth top-to-bottom scroll moves from the coding-agent hero and layered desktop/CLI demonstration through customer proof, autonomous-agent and multi-tool workflows, frontier model and enterprise modules, research highlights, and the final download footer; short section holds keep dense interface text legible before the roughly twenty-one-second sequence settles at the bottom.' },
         quality: { tier: 'canonical', width: 1600, height: 1000, confidence: 1, reliableFor: ['hero hierarchy', 'product-interface framing', 'editorial spacing', 'software proof density', 'scroll sequencing'], note: 'High-resolution unobstructed live still plus a hardware-rendered full-page motion capture with browser chrome and scrollbars excluded.' }
+    },
+    {
+        id: 'site-plinth', order: 55, title: 'Plinth',
+        primaryCategory: 'Classical Remix', extraFilters: ['Data-as-Texture'],
+        source: { kind: 'website', siteName: 'Plinth', url: 'https://plinthai.xyz/', captureMethod: 'live-browser-capture', capturedAt: '2026-08-23', sourceGroupId: 'plinth', originalAsset: '/assets/site-captures/plinth.png' },
+        media: { poster: '/assets/posters/plinth.jpg', detailImage: '/assets/site-captures/plinth.png', original: '/assets/site-captures/plinth.png', motionClip: '/assets/motion/plinth.mp4' },
+        quality: { tier: 'canonical', width: 1600, height: 1000, confidence: 1, reliableFor: ['hero hierarchy', 'classical artwork', 'metallic palette', 'marketplace interface', 'scroll sequencing'], note: 'High-resolution unobstructed live still plus a hardware-rendered full-page motion capture.' }
+    },
+    {
+        id: 'site-fin', order: 56, title: 'Fin',
+        primaryCategory: 'Vast Quiet Cinematic', extraFilters: ['Data-as-Texture'],
+        source: { kind: 'website', siteName: 'Fin', url: 'https://www.fin.com/', captureMethod: 'live-browser-capture', capturedAt: '2026-08-23', sourceGroupId: 'fin', originalAsset: '/assets/site-captures/fin.png' },
+        media: { poster: '/assets/posters/fin.jpg', detailImage: '/assets/site-captures/fin.png', original: '/assets/site-captures/fin.png', motionClip: '/assets/motion/fin.mp4' },
+        quality: { tier: 'canonical', width: 1600, height: 1000, confidence: 1, reliableFor: ['hero hierarchy', 'planetary imagery', 'typography', 'financial proof', 'scroll sequencing'], note: 'High-resolution unobstructed live still plus a hardware-rendered full-page motion capture.' }
     }
 ];
 const additionalImageSeeds: Seed[] = [
@@ -425,6 +445,48 @@ const additionalImageSeeds: Seed[] = [
         source: { kind: 'image', siteName: 'Voidpixel', captureMethod: 'original-upload', sourceGroupId: 'voidpixel', originalAsset: imageFile(19, 'jpg') },
         media: { poster: '/assets/posters/image-19.jpg', detailImage: imageFile(19, 'jpg'), original: imageFile(19, 'jpg') },
         quality: { tier: 'canonical', width: 2880, height: 2202, confidence: 0.98, reliableFor: ['hero layout', 'pixel typography', 'dashboard composition', 'palette', 'texture'], note: 'High-resolution unaltered supplied source. No verified public website URL is attached.' }
+    },
+    {
+        id: 'image-root-soil', order: 58, title: 'Root & Soil',
+        primaryCategory: 'Vast Quiet Cinematic', extraFilters: ['Illustrated Storybook'],
+        source: { kind: 'image', captureMethod: 'original-upload', sourceGroupId: 'root-soil', originalAsset: imageFile(20, 'jpg') },
+        media: { poster: '/assets/posters/image-20.jpg', detailImage: imageFile(20, 'jpg'), original: imageFile(20, 'jpg') },
+        quality: { tier: 'canonical', width: 1440, height: 960, confidence: 0.98, reliableFor: ['hero hierarchy', 'type scale', 'landscape treatment', 'palette', 'partner placement'], note: 'High-resolution unaltered supplied source.' }
+    },
+    {
+        id: 'image-rooted', order: 59, title: 'Rooted',
+        primaryCategory: 'Print-Tech Paper', extraFilters: ['Vast Quiet Cinematic'],
+        source: { kind: 'image', captureMethod: 'original-upload', sourceGroupId: 'rooted', originalAsset: imageFile(21, 'jpg') },
+        media: { poster: '/assets/posters/image-21.jpg', detailImage: imageFile(21, 'jpg'), original: imageFile(21, 'jpg') },
+        quality: { tier: 'canonical', width: 1440, height: 962, confidence: 0.98, reliableFor: ['editorial hierarchy', 'type scale', 'archival image treatment', 'palette', 'partner placement'], note: 'High-resolution unaltered supplied source.' }
+    },
+    {
+        id: 'image-meadow', order: 60, title: 'Meadow',
+        primaryCategory: 'Illustrated Storybook', extraFilters: ['Vast Quiet Cinematic'],
+        source: { kind: 'image', captureMethod: 'original-upload', sourceGroupId: 'meadow', originalAsset: imageFile(22, 'jpg') },
+        media: { poster: '/assets/posters/image-22.jpg', detailImage: imageFile(22, 'jpg'), original: imageFile(22, 'jpg') },
+        quality: { tier: 'canonical', width: 1435, height: 822, confidence: 0.98, reliableFor: ['hero hierarchy', 'illustration', 'CTA geometry', 'palette', 'proof placement'], note: 'High-resolution unaltered supplied source.' }
+    },
+    {
+        id: 'image-grilled', order: 61, title: 'Perfectly Grilled',
+        primaryCategory: 'Data-as-Texture', extraFilters: ['Dither Mono'],
+        source: { kind: 'image', captureMethod: 'original-upload', sourceGroupId: 'perfectly-grilled', originalAsset: imageFile(23, 'png') },
+        media: { poster: '/assets/posters/image-23.jpg', detailImage: imageFile(23, 'png'), original: imageFile(23, 'png') },
+        quality: { tier: 'canonical', width: 1411, height: 835, confidence: 0.98, reliableFor: ['radial composition', 'annotation system', 'food photography', 'contrast', 'label placement'], note: 'High-resolution unaltered supplied source.' }
+    },
+    {
+        id: 'image-synthos', order: 62, title: 'Synthos',
+        primaryCategory: 'Glitched Antiquity', extraFilters: ['Dither Mono', 'Classical Remix'],
+        source: { kind: 'image', captureMethod: 'original-upload', sourceGroupId: 'synthos', originalAsset: imageFile(24, 'jpg') },
+        media: { poster: '/assets/posters/image-24.jpg', detailImage: imageFile(24, 'jpg'), original: imageFile(24, 'jpg') },
+        quality: { tier: 'canonical', width: 1438, height: 1020, confidence: 0.98, reliableFor: ['hero composition', 'typography', 'ink-wash treatment', 'input geometry', 'microcopy hierarchy'], note: 'High-resolution unaltered supplied source.' }
+    },
+    {
+        id: 'image-bloom-brush', order: 63, title: 'Bloom & Brush',
+        primaryCategory: 'Illustrated Storybook', extraFilters: ['Classical Remix'],
+        source: { kind: 'image', captureMethod: 'original-upload', sourceGroupId: 'bloom-brush', originalAsset: imageFile(25, 'jpg') },
+        media: { poster: '/assets/posters/image-25.jpg', detailImage: imageFile(25, 'jpg'), original: imageFile(25, 'jpg') },
+        quality: { tier: 'canonical', width: 1437, height: 1015, confidence: 0.98, reliableFor: ['hero hierarchy', 'typography', 'ink-wash treatment', 'CTA placement', 'statistics'], note: 'High-resolution unaltered supplied source.' }
     }
 ];
 const seedById = new Map([...imageSeeds, ...siteSeeds, ...expansionSeeds, ...additionalImageSeeds]
@@ -467,7 +529,15 @@ const orderedIds = [
     'site-ctgt-finance',
     'site-paper',
     'site-cursor',
+    'site-plinth',
+    'site-fin',
     'image-voidpixel',
+    'image-root-soil',
+    'image-rooted',
+    'image-meadow',
+    'image-grilled',
+    'image-synthos',
+    'image-bloom-brush',
 ];
 export const references = ReferenceManifestSchema.parse(orderedIds.map((id, index) => {
     const seed = seedById.get(id);

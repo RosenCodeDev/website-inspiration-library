@@ -10,12 +10,18 @@ export type ContentProfile = {
   avoid: string;
 };
 
+export type DesignSystemContext = {
+  id: string;
+  name: string;
+  sharedShell: string;
+};
+
 export type ImageRecipe =
   | { kind: 'primary'; prompt: string }
   | { kind: 'supporting'; prompt: string }
   | { kind: 'none'; reason: string };
 
-export type ReferenceContent = {
+type ReferenceContentCore = {
   styleDescriptor: string;
   description: string;
   tags: string[];
@@ -24,9 +30,17 @@ export type ReferenceContent = {
   motionBehavior: string;
 };
 
-const stillMotion = 'Still reference; no captured motion evidence.';
+type ReferenceContext = {
+  scope: string;
+  interfaceInventory: string;
+  designSystem?: DesignSystemContext;
+};
 
-export const referenceContent: Record<string, ReferenceContent> = {
+export type ReferenceContent = ReferenceContentCore & ReferenceContext & { cardDescriptor: string };
+
+const stillMotion = 'No motion captured. Use the brief’s Motion guidance for implementation.';
+
+const referenceCore: Record<string, ReferenceContentCore> = {
   'image-astra-ai': {
     styleDescriptor: 'AI workflow hero / halftone interface',
     description: 'A centered AI-workflow proposition sits above a hard-edged command surface, while cropped halftone portraits turn the lower frame into a dense monochrome production field.',
@@ -849,11 +863,11 @@ export const referenceContent: Record<string, ReferenceContent> = {
       texture: 'Soft atmospheric gradients and clouds surrounding crisp application chrome and flat interface detail.',
       hierarchy: 'Product proposition first, browser surface second, primary action third, proof badge and navigation last.',
       spacing: 'Use broad sky around the headline, keep the browser large and readable, and avoid cloud detail directly behind text.',
-      motion: 'If adapted, use slow cloud parallax and purposeful in-browser demonstrations while the page headline stays fixed.',
+      motion: 'On hover, hold the opening cloud and browser-interface cycle briefly, then scroll through product proof with readable section pacing and a settled bottom endpoint; reset on exit.',
       preserve: 'Optimistic sky scale, believable browser UI, centered clarity, and clear separation between atmosphere and function.',
       avoid: 'Generated fake UI, excessive glass blur, crowded controls, decorative AI sparkles, or clouds obscuring interface edges.',
     },
-    motionBehavior: stillMotion,
+    motionBehavior: 'Trigger: automatic hero animation followed by captured scrolling. Clouds and browser-interface layers establish the opening, then the sequence moves through product proof with readable holds and ends at the verified document bottom in approximately eighteen seconds.',
   },
   'site-jitter': {
     styleDescriptor: 'Motion gallery / editorial wrapper',
@@ -867,11 +881,11 @@ export const referenceContent: Record<string, ReferenceContent> = {
       texture: 'Flat editorial canvas, crisp media boundaries, and rich texture contained within authorized animation thumbnails.',
       hierarchy: 'Gallery statement first, featured work second, submission path third, navigation last.',
       spacing: 'Use generous centered margins above, a narrow text column, and one wide media band with no decorative background elements.',
-      motion: 'Confine autoplay or hover playback to media boundaries; keep the editorial wrapper, copy, and controls calm.',
+      motion: 'On hover, restart the featured strip, hold it briefly, then scroll through the gallery with media-contained playback, readable pacing, and a settled bottom endpoint; restore the poster on exit.',
       preserve: 'Work-led color, quiet wrapper, clear featured hierarchy, and separation between gallery UI and animation content.',
       avoid: 'Generated portfolio work, full-page autoplay, equal-weight thumbnail walls, animated page decoration, or media without attribution.',
     },
-    motionBehavior: stillMotion,
+    motionBehavior: 'Trigger: automatic featured-media playback followed by captured scrolling. The opening loop stays inside the gallery strip, then the sequence travels through curated work and creator context before settling at the verified document bottom in approximately nineteen seconds.',
   },
   'site-pen': {
     styleDescriptor: 'Design tool hero / typographic utility',
@@ -1017,4 +1031,302 @@ export const referenceContent: Record<string, ReferenceContent> = {
     },
     motionBehavior: stillMotion,
   },
+  'site-plinth': {
+    styleDescriptor: 'Agent marketplace / classical systems',
+    description: 'A direct marketplace proposition pairs metallic interface chrome with a monumental classical figure, then develops the product through technical agent listings and transaction proof.',
+    tags: ['mixed serif headline', 'classical warrior figure', 'metallic blue surface', 'agent search field', 'hard-edged controls', 'scroll-driven marketplace'],
+    imageRecipe: { kind: 'primary', prompt: '[SUBJECT: a full-length classical marble warrior holding a long sword] isolated sculptural figure with crisp drapery, pale stone texture, and cool metallic reflections. Anchor the figure on the right third; leave broad blue-grey negative space on the left for HTML copy and a technical search control. Directional studio light from upper left. Silver, ice blue, graphite, and white; no text, logos, UI, pedestal labels, fantasy armor, or decorative particles. 16:10.' },
+    profile: {
+      composition: 'Place the proposition and search control on the left; anchor the tall classical figure on the right, then alternate technical listings with broad product explanations below.',
+      typography: 'Large white grotesk paired with an italic editorial serif phrase; compact monospace or neutral sans-serif for agent metadata and controls.',
+      palette: 'Cool steel blue, silver, ice white, graphite, and restrained black.',
+      texture: 'Metallic gradients, polished interface rules, carved stone, subtle noise, and dense technical rows.',
+      hierarchy: 'Marketplace proposition first, classical figure second, search action third, agent inventory and transaction proof below.',
+      spacing: 'Use a broad two-column hero, large clear type fields, tight technical rows, and deliberate holds between product chapters.',
+      motion: 'Scroll from the hero through agent inventory and marketplace proof with smooth movement, short reading holds, and a settled endpoint.',
+      preserve: 'Classical and technical contrast, cool metallic atmosphere, clear marketplace utility, and credible agent metadata.',
+      avoid: 'Fantasy-game styling, generic AI sparkles, colorful marketplace cards, fake generated UI text, or rushed scrolling.',
+    },
+    motionBehavior: 'Trigger: captured scrolling. The classical hero stays legible before the page moves through agent listings, marketplace mechanics, and supporting proof. Interface and sculptural layers remain distinct; the approximately twenty-second sequence uses short holds and settles at the bottom.',
+  },
+  'site-fin': {
+    styleDescriptor: 'Fintech hero / planetary scale',
+    description: 'A restrained global-money proposition floats above a dark planetary horizon, then gives way to dense transfer infrastructure, network proof, and international coverage.',
+    tags: ['cream serif headline', 'planetary horizon', 'black cinematic stage', 'outlined dual CTA', 'code texture', 'scroll-driven finance proof'],
+    imageRecipe: { kind: 'primary', prompt: '[SUBJECT: the curved horizon of Earth seen from near space with faint continents and atmospheric glow] cinematic orbital photograph with the planet occupying the lower half and open black space above for HTML copy. Use a subdued rim light and natural earth-brown land, deep ocean blue, cream atmosphere, and true black. No text, logos, payment icons, charts, interface panels, satellites, lens flares, or science-fiction neon. 16:10.' },
+    profile: {
+      composition: 'Center the proposition and paired actions over a low planetary horizon; continue through full-width network, transfer, coverage, and proof chapters.',
+      typography: 'Large warm-cream editorial serif for the proposition; restrained sans-serif for navigation, controls, metrics, and technical copy.',
+      palette: 'True black, warm cream, earth brown, deep ocean blue, and controlled grey.',
+      texture: 'Cinematic planetary photography, faint code fields, thin outlined controls, and crisp infrastructure diagrams.',
+      hierarchy: 'Global-money statement first, planetary scale second, paired actions third, network evidence and coverage below.',
+      spacing: 'Keep the hero centered and sparse; use wide dark fields around proof modules and readable pauses between dense sections.',
+      motion: 'Scroll from the planetary hero through infrastructure and global coverage with smooth pacing, section holds, and a stable footer finish.',
+      preserve: 'Financial seriousness, planetary metaphor, restrained cream-on-black typography, and evidence-led progression.',
+      avoid: 'Crypto neon, stock-market clichés, glossy payment cards, generated charts, excessive glow, or rapid scrolling.',
+    },
+    motionBehavior: 'Trigger: captured scrolling. The planetary hero holds before the page travels through transfer infrastructure, network proof, and global coverage. Dark cinematic fields alternate with denser evidence; the approximately twenty-six-second sequence pauses for legibility and settles at the footer.',
+  },
+  'image-root-soil': {
+    styleDescriptor: 'Agriculture hero / painted panorama',
+    description: 'A large soil-health statement sits above an autumn farming panorama, using a terracotta line and low rolling horizon to connect ecological purpose with harvest scale.',
+    tags: ['large two-tone headline', 'autumn field panorama', 'terracotta emphasis', 'low rolling horizon', 'cream editorial shell', 'partner logo row'],
+    imageRecipe: { kind: 'primary', prompt: '[SUBJECT: broad regenerative farmland with rolling golden fields, red-orange tree lines, and distant wooded hills] panoramic editorial landscape with lightly painted texture and a low horizon. Reserve the upper half as warm-cream negative space for HTML copy; keep the richest foliage along the lower third. Soft late-autumn daylight. Warm cream, straw gold, terracotta, rust, olive, and deep brown; no text, logos, people, farm machinery, UI, or photorealistic stock treatment. 16:10.' },
+    profile: {
+      composition: 'Set a large two-tone statement in the upper field; run the agricultural panorama low across the frame and align partner marks along the bottom.',
+      typography: 'Large restrained grotesk with terracotta emphasis; small neutral sans-serif navigation, supporting copy, and partner labels.',
+      palette: 'Warm cream, straw gold, terracotta, rust, olive, and dark brown.',
+      texture: 'Soft painted landscape, lightly irregular foliage, matte paper field, and crisp flat type.',
+      hierarchy: 'Soil-health statement first, harvest landscape second, short explanation third, partner proof last.',
+      spacing: 'Keep generous cream space around the headline; place the horizon below center and separate partner marks from the scenery.',
+      motion: 'If adapted, use slight atmospheric drift or field parallax while copy and partner marks remain fixed.',
+      preserve: 'Low horizon, seasonal agricultural color, concise ecological message, and quiet institutional proof.',
+      avoid: 'Glossy food photography, green-tech gradients, floating data cards, busy farm scenes, or fast landscape motion.',
+    },
+    motionBehavior: stillMotion,
+  },
+  'image-rooted': {
+    styleDescriptor: 'Reforestation hero / archival terrain',
+    description: 'An editorial reforestation statement sits above a large sepia mountain plate, balancing generous white space, olive action color, and documentary landscape texture.',
+    tags: ['editorial serif headline', 'sepia mountain plate', 'olive action text', 'wide white margins', 'stippled terrain', 'partner logo row'],
+    imageRecipe: { kind: 'primary', prompt: '[SUBJECT: a rugged mountain valley covered by young forest and distant ridgelines] archival monochrome landscape rendered with sepia stippling, fine grain, and subdued documentary contrast. Place the terrain inside a wide rectangular plate with one clipped corner; keep the upper field white for HTML copy and partner marks. Flat overcast light. White, warm grey, sepia, charcoal, and olive only; no text, logos, people, UI, badges, or saturated green. 16:10.' },
+    profile: {
+      composition: 'Place the reforestation statement and olive action in the upper-left field; align partner marks beneath and anchor a wide mountain plate across the lower half.',
+      typography: 'Large editorial serif headline paired with compact sans-serif navigation, action, and institutional labels.',
+      palette: 'White, warm grey, sepia, charcoal, and muted olive.',
+      texture: 'Stippled mountain photography, archival grain, crisp white paper, and one clipped image corner.',
+      hierarchy: 'Reforestation statement first, mountain evidence second, olive action third, partner proof fourth.',
+      spacing: 'Use broad white margins, a controlled left text column, and a wide lower image plate with clear separation from logos.',
+      motion: 'If adapted, reveal the mountain plate once or use a nearly imperceptible push; keep editorial text stable.',
+      preserve: 'Documentary credibility, sepia terrain, white-space discipline, and restrained olive accent.',
+      avoid: 'Bright eco gradients, generic leaf icons, rounded donation cards, saturated stock forests, or continuous parallax.',
+    },
+    motionBehavior: stillMotion,
+  },
+  'image-meadow': {
+    styleDescriptor: 'Workspace hero / illustrated calm',
+    description: 'A focused productivity proposition and hard black actions sit inside a pale illustrated landscape, using clouds, dashed rules, and distant hills to make digital work feel calm.',
+    tags: ['pale blue landscape', 'left-aligned grotesk headline', 'hard black CTA', 'dashed frame rule', 'cloud illustration', 'review proof row'],
+    imageRecipe: { kind: 'primary', prompt: '[SUBJECT: a quiet open meadow with distant blue hills, soft clouds, and sparse trees] flat editorial illustration with gentle grain, broad layered shapes, and a calm low horizon. Reserve the left-center sky for HTML headline and actions; keep scenic detail concentrated along the lower and right edges. Diffuse daylight. Powder blue, mist white, muted green, charcoal, and pale lavender; no text, logos, UI, devices, people, gradients, or glossy 3D forms. 16:10.' },
+    profile: {
+      composition: 'Frame the hero with a dashed rule; place proposition, copy, and paired actions on the left while clouds and a low illustrated landscape fill the remaining field.',
+      typography: 'Large friendly grotesk headline with compact sans-serif body, hard-edged actions, and small review labels.',
+      palette: 'Powder blue, mist white, muted green, pale lavender, and charcoal.',
+      texture: 'Soft illustration grain, broad cloud forms, dashed interface rules, and flat black controls.',
+      hierarchy: 'Productivity proposition first, actions second, landscape third, review proof along the lower edge.',
+      spacing: 'Use generous sky around the text, a low horizon, compact action spacing, and a shallow proof band.',
+      motion: 'If adapted, drift clouds slowly and add slight hill parallax while headline, actions, and reviews remain fixed.',
+      preserve: 'Calm illustrated field, decisive black actions, low scenic horizon, and simple proof placement.',
+      avoid: 'Busy dashboards, glass cards, saturated gradients, animated characters, or excessive depth.',
+    },
+    motionBehavior: stillMotion,
+  },
+  'image-grilled': {
+    styleDescriptor: 'Culinary plate / annotated anatomy',
+    description: 'A centered grilled dish becomes a technical diagram through white leader lines and compact ingredient labels, turning appetite into a precise monochrome product study.',
+    tags: ['centered plated dish', 'white annotation leaders', 'black technical field', 'ingredient callouts', 'overhead food photography', 'radial information layout'],
+    imageRecipe: { kind: 'primary', prompt: '[SUBJECT: a grilled steak sliced over arugula on a dark ceramic plate] meticulous overhead culinary photograph centered on a true-black field, with realistic char, warm interior, fresh greens, and controlled highlights. Leave clear radial space around the plate for code-rendered annotation lines and labels. Focused softbox light from upper left. Black, deep brown, muted green, warm red, and white highlights; no text, labels, leader lines, logos, utensils, table setting, steam, or decorative props. 16:10.' },
+    profile: {
+      composition: 'Center the plate and distribute compact ingredient labels around it; connect each label with thin white leaders while keeping the outer field empty.',
+      typography: 'Small condensed or monospace labels in white with restrained uppercase hierarchy.',
+      palette: 'True black, white, grilled brown, muted green, and warm red.',
+      texture: 'Detailed food photography, matte black field, thin geometric leaders, and precise label spacing.',
+      hierarchy: 'Dish first, annotation network second, individual ingredient labels third.',
+      spacing: 'Keep a clean radial margin around the plate, avoid leader crossings, and align labels to consistent outer columns.',
+      motion: 'If adapted, draw leaders outward once and reveal labels in sequence; keep the plate fixed.',
+      preserve: 'Central plate scale, technical annotation logic, severe black field, and realistic food texture.',
+      avoid: 'Generated text, floating recipe cards, rustic table props, warm background gradients, or continuous label motion.',
+    },
+    motionBehavior: stillMotion,
+  },
+  'image-synthos': {
+    styleDescriptor: 'Learning hero / ink landscape',
+    description: 'A typewriter-style learning proposition and compact command input face a monochrome ink mountain, combining practical AI utility with a quiet scholarly landscape.',
+    tags: ['typewriter display headline', 'ink wash mountain', 'left command input', 'monochrome split hero', 'small utility navigation', 'bottom microcopy'],
+    imageRecipe: { kind: 'primary', prompt: '[SUBJECT: a steep solitary mountain emerging from mist] monochrome East Asian ink-wash landscape with dry-brush ridges, soft atmospheric fade, and open paper around the peak. Anchor the mountain on the right half and reserve the left half for HTML headline and a command input. Diffuse flat paper light. White, ink black, graphite, and pale grey only; no text, seals, calligraphy, people, buildings, UI, or photographic detail. 16:10.' },
+    profile: {
+      composition: 'Place headline, explanatory copy, and compact command input on the left; anchor the ink mountain on the right and run microcopy along the bottom edge.',
+      typography: 'Large typewriter-style display with small neutral sans-serif controls, navigation, and dense bottom notes.',
+      palette: 'Paper white, ink black, graphite, and pale mist grey.',
+      texture: 'Dry-brush mountain edges, soft ink wash, crisp input rules, and lightly printed microtype.',
+      hierarchy: 'Learning proposition first, ink mountain second, command input third, supporting microcopy last.',
+      spacing: 'Use a clear half-frame dialogue, generous paper around the mountain, and a shallow aligned bottom information band.',
+      motion: 'If adapted, let mist or ink density shift subtly while all copy and input geometry remain stable.',
+      preserve: 'Scholarly restraint, ink landscape, typewriter voice, and direct command interaction.',
+      avoid: 'Chatbot bubbles, colorful AI gradients, generated copy in the artwork, floating glass fields, or dramatic mountain flyovers.',
+    },
+    motionBehavior: stillMotion,
+  },
+  'image-bloom-brush': {
+    styleDescriptor: 'Studio hero / floral ink wash',
+    description: 'A centered creative-studio proposition floats above a pink and black blossom landscape, balancing two compact actions with painterly negative space and restrained proof metrics.',
+    tags: ['centered studio headline', 'pink ink blossoms', 'paired compact CTA', 'wide offwhite field', 'black brush landscape', 'bottom statistic row'],
+    imageRecipe: { kind: 'primary', prompt: '[SUBJECT: flowering branches and distant low hills painted in expressive ink wash] airy editorial landscape with black dry-brush forms, translucent blush-pink blossoms, and broad offwhite paper. Keep the center-upper field calm for HTML headline and paired actions; concentrate branches along the side and lower edges. Soft flat paper light. Offwhite, ink black, blush pink, dusty rose, and pale grey; no text, seals, logos, UI, people, frames, or photorealism. 16:10.' },
+    profile: {
+      composition: 'Center the proposition and paired actions in a broad offwhite field; frame it with blossom branches and low ink hills, then align statistics along the bottom.',
+      typography: 'Large refined serif or soft grotesk headline paired with compact sans-serif actions and small statistic labels.',
+      palette: 'Offwhite, ink black, blush pink, dusty rose, and pale grey.',
+      texture: 'Translucent floral ink wash, dry-brush landscape marks, smooth paper, and crisp flat controls.',
+      hierarchy: 'Studio proposition first, blossom landscape second, paired actions third, proof statistics last.',
+      spacing: 'Protect a large calm center, keep painterly detail near the edges, and separate the shallow statistics band below.',
+      motion: 'If adapted, reveal ink and blossoms once with a slow wash; keep headline, actions, and statistics fixed.',
+      preserve: 'Central calm, pink-and-black painterly frame, compact conversion path, and restrained proof.',
+      avoid: 'Busy floral wallpaper, glossy gradients, floating portfolio cards, ornamental script, or continuous petal animation.',
+    },
+    motionBehavior: stillMotion,
+  },
 };
+
+const xBusinessDesignSystem: DesignSystemContext = {
+  id: 'x-business-docs',
+  name: 'X Business documentation',
+  sharedShell: 'Reuse the black-and-white navigation, compact grotesk typography, wide editorial margins, and modular documentation shell. Change only the page-specific heading, diagrams, examples, and following modules.',
+};
+
+const notionProductSystem: DesignSystemContext = {
+  id: 'notion-product-system',
+  name: 'Notion product ecosystem',
+  sharedShell: 'Reuse the clean white global navigation, bold black grotesk typography, generous spacing, restrained monochrome interface, and sparse illustration language. Keep page-specific structure distinct: proposition and proof on the homepage; dated releases and product evidence in the release feed.',
+};
+
+const referenceContext: Record<string, ReferenceContext> = {
+  'image-astra-ai': { scope: 'AI workflow landing hero.', interfaceInventory: 'Utility navigation, centered proposition, primary action, command input, halftone portrait field.' },
+  'image-dark-portal': { scope: 'Dark authentication screen.', interfaceInventory: 'Welcome heading, labeled inputs, primary action, support link, full-height portrait panel.' },
+  'image-light-portal': { scope: 'Light authentication screen.', interfaceInventory: 'Welcome heading, labeled inputs, primary action, support link, full-height atmospheric panel.' },
+  'image-castle-waitlist': { scope: 'Waitlist landing hero.', interfaceInventory: 'Brand mark, oversized announcement, supporting copy, inline email form, cropped castle engraving.' },
+  'image-flora-footer': { scope: 'Illustrated website footer.', interfaceInventory: 'Sitemap columns, brand statement, newsletter field, legal links, panoramic landscape.' },
+  'image-bloomride': { scope: 'Travel landing hero.', interfaceInventory: 'Utility navigation, destination headline, supporting copy, paired actions, panoramic cycling landscape.' },
+  'image-voypix': { scope: 'Creative builder landing hero.', interfaceInventory: 'Brand navigation, bitmap proposition, short copy, primary action, reaching-hand collage.' },
+  'image-nova-stack': { scope: 'Developer platform landing hero.', interfaceInventory: 'Compatibility badge, proposition, paired actions, isometric integration map, partner modules.' },
+  'image-auron-architecture': { scope: 'Architecture studio landing hero.', interfaceInventory: 'Thin navigation, framed city engraving, centered proposition, paired actions, plate border.' },
+  'image-vitra-waitlist': { scope: 'Editorial product waitlist hero.', interfaceInventory: 'Brand navigation, conversational headline, supporting copy, email form, illustrated scene.' },
+  'image-launchpad-tools': { scope: 'Integration platform landing hero.', interfaceInventory: 'Product proposition, supporting copy, primary action, connected-tool diagram, proof labels.' },
+  'image-stillness': { scope: 'Practice platform landing hero.', interfaceInventory: 'Compact navigation, editorial proposition, action, botanical figure illustration, supporting caption.' },
+  'image-linq-recovered': { scope: 'Messaging product landing hero.', interfaceInventory: 'Navigation, large proposition, paired actions, landscape stage, layered conversation UI.' },
+  'image-yieldstream': { scope: 'Investment platform landing hero.', interfaceInventory: 'Navigation tabs, celestial illustration, central proposition, metrics, technical labels, primary action.' },
+  'image-marble-recovered': { scope: 'Learning product landing hero.', interfaceInventory: 'Brand navigation, oversized proposition, primary action, illustrated water world, child figure.' },
+  'image-break-pattern': { scope: 'Personal transformation landing hero.', interfaceInventory: 'Utility navigation, two-tone statement, supporting copy, paired hands, concentric target, center point.' },
+  'image-market-predictions': { scope: 'Prediction market landing hero.', interfaceInventory: 'Navigation, proposition, market chart, geographic labels, data controls, primary action.' },
+  'image-juris': { scope: 'Legal intelligence landing hero.', interfaceInventory: 'Brand navigation, proposition, supporting copy, primary action, classical figure, document motifs.' },
+  'site-notion': { scope: 'Collaborative workspace landing hero.', interfaceInventory: 'Global navigation, proposition, paired actions, product illustration, customer proof.', designSystem: notionProductSystem },
+  'site-notion-releases': { scope: 'Product release feed.', interfaceInventory: 'Global navigation, release heading, dated entries, screenshots, category labels, pagination.', designSystem: notionProductSystem },
+  'site-spade': { scope: 'Transaction-data landing hero.', interfaceInventory: 'Navigation, proposition, supporting copy, primary action, engraved coin, transaction panels.' },
+  'site-sstr': { scope: 'Technical product narrative.', interfaceInventory: 'Automatic hero, technical proposition, field imagery, results modules, system proof, closing action.' },
+  'site-watch': { scope: 'Cinematic product landing hero.', interfaceInventory: 'Minimal navigation, product title, supporting caption, full-bleed watch film, progress controls.' },
+  'site-igloo': { scope: 'Interactive studio landing hero.', interfaceInventory: 'Minimal navigation, central igloo structure, atmospheric scene, hover response, compact captions.' },
+  'site-dont-board-me': { scope: 'Pet-service landing hero.', interfaceInventory: 'Brand navigation, illustrated dog, large proposition, supporting copy, primary action, decorative marks.' },
+  'site-opal': { scope: 'Focus product landing hero.', interfaceInventory: 'Navigation, centered proposition, product device, status interface, paired actions, atmospheric backdrop.' },
+  'site-lusion': { scope: 'Interactive studio landing hero.', interfaceInventory: 'Minimal navigation, central 3D object, studio statement, pointer response, compact project links.' },
+  'site-mana': { scope: 'Beverage campaign landing hero.', interfaceInventory: 'Brand navigation, product can, oversized campaign type, supporting labels, purchase action.' },
+  'site-orano': { scope: 'Innovation experience landing scene.', interfaceInventory: 'Technical navigation, wireframe rover, grid landscape, system labels, yellow controls, progress cues.' },
+  'site-snows': { scope: 'Seasonal editorial landing hero.', interfaceInventory: 'Minimal navigation, oversized winter title, atmospheric landscape, chapter cue, compact credits.' },
+  'site-x-advertising': { scope: 'Advertising overview page.', interfaceInventory: 'Shared X navigation, hero statement, primary action, feature modules, campaign proof, following resources.', designSystem: xBusinessDesignSystem },
+  'site-x-business': { scope: 'Business landing page.', interfaceInventory: 'Shared X navigation, monochrome hero, paired actions, business modules, customer proof, resource links.', designSystem: xBusinessDesignSystem },
+  'site-x-basics': { scope: 'Business learning hub.', interfaceInventory: 'Shared X navigation, editorial heading, topic cards, learning paths, supporting links.', designSystem: xBusinessDesignSystem },
+  'site-x-intro': { scope: 'Business introduction article.', interfaceInventory: 'Shared X navigation, article heading, metadata, long-form sections, evidence modules, following resources.', designSystem: xBusinessDesignSystem },
+  'site-x-get-started': { scope: 'Business onboarding guide.', interfaceInventory: 'Shared X navigation, guide heading, ordered setup steps, examples, related resources.', designSystem: xBusinessDesignSystem },
+  'site-x-organic': { scope: 'Organic strategy guide.', interfaceInventory: 'Shared X navigation, guide heading, practice modules, examples, checklist content, related resources.', designSystem: xBusinessDesignSystem },
+  'site-x-ads-start': { scope: 'Advertising setup guide.', interfaceInventory: 'Shared X navigation, procedural heading, setup stages, technical labels, actions, related resources.', designSystem: xBusinessDesignSystem },
+  'site-x-ad-formats': { scope: 'Advertising format catalog.', interfaceInventory: 'Shared X navigation, catalog heading, format modules, comparison details, examples, related resources.', designSystem: xBusinessDesignSystem },
+  'site-schemas': { scope: 'Generative research landing hero.', interfaceInventory: 'Minimal navigation, centered statement, indefinite canvas field, small controls, project context.' },
+  'site-apple': { scope: 'Consumer technology homepage hero.', interfaceInventory: 'Global navigation, campaign headline, product film, paired actions, promotional modules.' },
+  'site-clou': { scope: 'Architecture studio landing hero.', interfaceInventory: 'Minimal navigation, studio identity, project imagery, compact project metadata, directional controls.' },
+  'site-system-patch': { scope: 'Design case-study narrative.', interfaceInventory: 'Project navigation, case-study heading, pinned media, process chapters, captions, closing credits.' },
+  'site-oqoqo': { scope: 'AI evaluation platform landing page.', interfaceInventory: 'Navigation, product proposition, primary action, product interface, evaluation proof, technical modules.' },
+  'site-human-made': { scope: 'Fashion brand loading and identity scene.', interfaceInventory: 'Loading sequence, centered identity mark, edge navigation, restrained status copy.' },
+  'site-more-nutrition': { scope: 'Nutrition campaign landing hero.', interfaceInventory: 'Loader, campaign headline, product packaging, nutrition callouts, navigation, purchase action.' },
+  'site-aside': { scope: 'Browser product landing hero.', interfaceInventory: 'Navigation, centered proposition, product actions, layered browser illustration, clouds, supporting proof.' },
+  'site-jitter': { scope: 'Motion gallery landing page.', interfaceInventory: 'Navigation, concise headline, featured animation strip, gallery entries, creator attribution, filter links.' },
+  'site-pen': { scope: 'Developer tool landing hero.', interfaceInventory: 'Navigation, proposition, supporting copy, primary action, grid texture, product proof.' },
+  'site-coda': { scope: 'Commerce campaign narrative.', interfaceInventory: 'Campaign hero, actions, animated statistics, proof modules, partner content, closing footer.' },
+  'site-izanami': { scope: 'Atmospheric artist landing scene.', interfaceInventory: 'Loader, identity statement, ambient fog landscape, minimal navigation, chapter cue.' },
+  'site-ctgt': { scope: 'AI governance landing hero.', interfaceInventory: 'Utility navigation, governance proposition, research copy, single action, alpine film.' },
+  'site-ctgt-finance': { scope: 'Financial AI industry hero.', interfaceInventory: 'Utility navigation, governance statement, industry caption, landscape film, three-part control rail.' },
+  'site-paper': { scope: 'Design-tool product narrative.', interfaceInventory: 'Connected-canvas hero, real workspace UI, code workflow, live-data modules, agent handoff, roadmap.' },
+  'site-cursor': { scope: 'AI coding platform narrative.', interfaceInventory: 'Product navigation, agent proposition, paired actions, editor and terminal UI, proof chapters, closing download.' },
+  'image-voidpixel': { scope: 'Pixel-tool landing hero.', interfaceInventory: 'Bitmap proposition, primary action, procedural dot field, wide product dashboard, utility labels.' },
+  'site-plinth': { scope: 'AI agent marketplace narrative.', interfaceInventory: 'Navigation, marketplace proposition, search control, classical figure, agent listings, transaction proof.' },
+  'site-fin': { scope: 'Global payments product narrative.', interfaceInventory: 'Navigation, centered proposition, paired actions, planetary film, network proof, coverage modules.' },
+  'image-root-soil': { scope: 'Regenerative agriculture landing hero.', interfaceInventory: 'Brand navigation, two-tone statement, supporting copy, field panorama, partner proof.' },
+  'image-rooted': { scope: 'Reforestation organization landing hero.', interfaceInventory: 'Navigation, editorial statement, olive action, partner marks, sepia mountain plate.' },
+  'image-meadow': { scope: 'Productivity product landing hero.', interfaceInventory: 'Navigation, proposition, paired actions, illustrated landscape, review proof, dashed frame.' },
+  'image-grilled': { scope: 'Annotated culinary feature.', interfaceInventory: 'Centered dish, radial leader lines, ingredient labels, section title, black technical field.' },
+  'image-synthos': { scope: 'AI learning product landing hero.', interfaceInventory: 'Navigation, typewriter proposition, supporting copy, command input, ink mountain, microcopy.' },
+  'image-bloom-brush': { scope: 'Creative studio landing hero.', interfaceInventory: 'Navigation, centered proposition, paired actions, floral ink landscape, bottom statistics.' },
+};
+
+const cardDescriptors: Record<string, string> = {
+  'image-astra-ai': 'AI workflow × halftone',
+  'image-dark-portal': 'Auth split × noir dither',
+  'image-light-portal': 'Auth split × light dither',
+  'image-castle-waitlist': 'Waitlist × bitmap engraving',
+  'image-flora-footer': 'Illustrated footer × utility',
+  'image-bloomride': 'Travel × illustrated panorama',
+  'image-voypix': 'Builder × pixel collage',
+  'image-nova-stack': 'Developer × systems map',
+  'image-auron-architecture': 'Architecture × engraving',
+  'image-vitra-waitlist': 'Waitlist × illustration',
+  'image-launchpad-tools': 'Integrations × radial field',
+  'image-stillness': 'Meditation × voxel world',
+  'image-linq-recovered': 'Messaging × manga world',
+  'image-yieldstream': 'Finance × celestial print',
+  'image-marble-recovered': 'Learning × ocean world',
+  'image-break-pattern': 'Transformation × fresco',
+  'image-market-predictions': 'Prediction × type globe',
+  'image-juris': 'Legal AI × painted allegory',
+  'site-notion': 'Ecosystem × illustration',
+  'site-notion-releases': 'Changelog × editorial',
+  'site-spade': 'Finance × contour ledger',
+  'site-sstr': 'Industrial × engineered',
+  'site-watch': 'Watch × type collision',
+  'site-igloo': '3D portfolio × crystal',
+  'site-dont-board-me': 'Pet care × poster',
+  'site-opal': 'Editorial × photo mosaic',
+  'site-lusion': '3D studio × interactive',
+  'site-mana': 'Beverage × cut paper',
+  'site-orano': 'Innovation × wireframe',
+  'site-snows': 'Confectionery × still life',
+  'site-x-advertising': 'Ads × wireframe system',
+  'site-x-business': 'Business × conversion',
+  'site-x-basics': 'Learning × orbital system',
+  'site-x-intro': 'Primer × concentric field',
+  'site-x-get-started': 'Onboarding × mirrored orbit',
+  'site-x-organic': 'Practice × radial diagram',
+  'site-x-ads-start': 'Ads guide × perspective',
+  'site-x-ad-formats': 'Formats × device wireframes',
+  'site-schemas': 'Research × ASCII field',
+  'site-apple': 'Retail × product collage',
+  'site-clou': 'Studio × rotating type',
+  'site-system-patch': 'Case study × identity panels',
+  'site-oqoqo': 'AI evaluation × evidence UI',
+  'site-human-made': 'Brand entrance × emblem',
+  'site-more-nutrition': 'Nutrition × product world',
+  'site-aside': 'Browser × cloud interface',
+  'site-jitter': 'Motion gallery × editorial',
+  'site-pen': 'Design tool × utility',
+  'site-coda': 'Commerce × bold print',
+  'site-izanami': 'Fashion × fog landscape',
+  'site-ctgt': 'AI governance × alpine',
+  'site-ctgt-finance': 'Finance × ridge controls',
+  'site-paper': 'Design tool × paper grid',
+  'site-cursor': 'AI coding × product proof',
+  'image-voidpixel': 'Pixel hero × dashboard',
+  'site-plinth': 'Agent market × classical',
+  'site-fin': 'Fintech × planetary',
+  'image-root-soil': 'Agriculture × panorama',
+  'image-rooted': 'Reforestation × terrain',
+  'image-meadow': 'Workspace × illustrated',
+  'image-grilled': 'Culinary × annotations',
+  'image-synthos': 'Learning × ink landscape',
+  'image-bloom-brush': 'Studio × floral ink',
+};
+
+export const referenceContent: Record<string, ReferenceContent> = Object.fromEntries(
+  Object.entries(referenceCore).map(([id, content]) => {
+    const context = referenceContext[id];
+    if (!context) throw new Error(`Missing reference context: ${id}`);
+    const cardDescriptor = cardDescriptors[id];
+    if (!cardDescriptor) throw new Error(`Missing card descriptor: ${id}`);
+    return [id, { ...content, ...context, cardDescriptor }];
+  }),
+);

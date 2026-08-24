@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -7,16 +8,15 @@ import {
 } from 'react';
 import { categories, references } from './references';
 import type { Category, ReferenceEntry } from './reference-schema';
+import { buildAgentPacket, buildBriefCopy, buildImagePromptCopy } from './agent-packet';
+import { optimizeCardTagOrder } from './card-tag-layout';
 
 type Filter = 'All' | Category;
-type CopyTarget = 'brief' | 'prompt' | 'link' | null;
+type CopyTarget = 'packet' | 'brief' | 'prompt' | 'link' | null;
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
-const formatDescriptor = (descriptor: string) => descriptor
-  .split('/')
-  .map((part) => part.trim().split(/\s+/).slice(0, 2).join(' '))
-  .join(' x ');
+const formatDescriptor = (descriptor: string) => descriptor.replace(/\s*\/\s*/g, ' × ');
 
 const formatSummary = (reference: ReferenceEntry) => reference.description;
 
@@ -217,6 +217,40 @@ function CardPreview({
   );
 }
 
+function OptimizedCardTags({ tags }: { tags: string[] }) {
+  const visibleTags = useMemo(() => tags.slice(0, 4), [tags]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [order, setOrder] = useState(() => visibleTags.map((_, index) => index));
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateOrder = () => {
+      const widths = visibleTags.map((_, index) => (
+        container.querySelector<HTMLElement>(`[data-tag-index="${index}"]`)?.offsetWidth ?? 0
+      ));
+      const nextOrder = optimizeCardTagOrder(widths, container.clientWidth);
+      setOrder((currentOrder) => (
+        currentOrder.every((value, index) => value === nextOrder[index]) ? currentOrder : nextOrder
+      ));
+    };
+
+    updateOrder();
+    const observer = new ResizeObserver(updateOrder);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [visibleTags]);
+
+  return (
+    <div ref={containerRef} className="tags" aria-label="Visual tags">
+      {order.map((index) => (
+        <span key={`${visibleTags[index]}-${index}`} data-tag-index={index}>{visibleTags[index]}</span>
+      ))}
+    </div>
+  );
+}
+
 function ReferenceCard({
   reference,
   onOpen,
@@ -243,11 +277,9 @@ function ReferenceCard({
         <div className="card-copy">
           <div className="card-heading">
             <h2>{displayTitle(reference)}</h2>
-            <p className="descriptor" title={formatDescriptor(reference.styleDescriptor)}>{formatDescriptor(reference.styleDescriptor)}</p>
+            <p className="descriptor" title={formatDescriptor(reference.styleDescriptor)}>{reference.cardDescriptor}</p>
           </div>
-          <div className="tags" aria-label="Visual tags">
-            {reference.tags.slice(0, 4).map((tag) => <span key={tag}>{tag}</span>)}
-          </div>
+          <OptimizedCardTags tags={reference.tags} />
         </div>
         <div className="card-footer">
           <span className="card-category"><i aria-hidden="true" />{reference.primaryCategory}</span>
@@ -264,8 +296,8 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
   const [motionActive, setMotionActive] = useState(false);
   const reducedMotion = useReducedMotion();
   const hasVerifiedWebsite = reference.source.kind === 'website' && Boolean(reference.source.url);
-  const imagePrompt = reference.imageRecipe.kind === 'none' ? null : reference.imageRecipe.prompt;
-  const recipeText = imagePrompt ?? (reference.imageRecipe.kind === 'none' ? reference.imageRecipe.reason : '');
+  const imagePrompt = buildImagePromptCopy(reference);
+  const recipeText = reference.imageRecipe.kind === 'none' ? reference.imageRecipe.reason : reference.imageRecipe.prompt;
   const recipeType = reference.imageRecipe.kind === 'primary'
     ? 'Primary visual'
     : reference.imageRecipe.kind === 'supporting'
@@ -273,7 +305,9 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
       : 'Build in code';
   const recipeHeading = reference.imageRecipe.kind === 'none'
     ? 'IMAGE RECIPE — generation not recommended'
-    : 'IMAGE RECIPE — fill [SUBJECT], send to Higgsfield gpt_image_2 @ 2K';
+    : reference.imageRecipe.kind === 'primary'
+      ? 'IMAGE RECIPE — customize [SUBJECT], send to Higgsfield or another image-generation model @ 2K'
+      : 'IMAGE RECIPE — generate as a compositing layer with Higgsfield or another image-generation model @ 2K';
 
   useEffect(() => { dialogRef.current?.focus({ preventScroll: true }); }, []);
 
@@ -384,9 +418,10 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="action-primary" onClick={() => copyText(reference.brief, 'brief')}>{copyTarget === 'brief' ? 'Brief copied ✓' : 'Copy Brief'}</button>
+            <button type="button" className="action-primary packet-action" onClick={() => copyText(buildAgentPacket(reference), 'packet')}>{copyTarget === 'packet' ? 'Agent packet copied ✓' : 'Copy Agent Packet'}</button>
+            <button type="button" className="action-secondary" onClick={() => copyText(buildBriefCopy(reference), 'brief')}>{copyTarget === 'brief' ? 'Brief copied ✓' : 'Copy Brief'}</button>
             {imagePrompt && (
-              <button type="button" className="action-primary" onClick={() => copyText(imagePrompt, 'prompt')}>{copyTarget === 'prompt' ? 'Prompt copied ✓' : 'Copy Image Prompt'}</button>
+              <button type="button" className="action-secondary" onClick={() => copyText(imagePrompt, 'prompt')}>{copyTarget === 'prompt' ? 'Prompt copied ✓' : 'Copy Image Prompt'}</button>
             )}
             <button type="button" className="action-secondary close-action" onClick={onClose}>Close</button>
           </div>

@@ -23,7 +23,8 @@ Get-ChildItem -LiteralPath $sourceImages -File |
 function New-CroppedPoster {
   param(
     [Parameter(Mandatory = $true)][string]$Source,
-    [Parameter(Mandatory = $true)][string]$Destination
+    [Parameter(Mandatory = $true)][string]$Destination,
+    [int]$ExtraBottomCrop = 0
   )
 
   $width = 1600
@@ -41,6 +42,11 @@ function New-CroppedPoster {
     $cropWidth = $image.Width
     $cropHeight = [int]($cropWidth / $targetRatio)
     $cropX = 0
+    if ($ExtraBottomCrop -gt 0) {
+      $cropHeight -= $ExtraBottomCrop
+      $cropWidth = [int]($cropHeight * $targetRatio)
+      $cropX = [int](($image.Width - $cropWidth) / 2)
+    }
     $cropY = 0
   }
 
@@ -72,7 +78,47 @@ function New-CroppedPoster {
   $image.Dispose()
 }
 
-for ($index = 1; $index -le 19; $index++) {
+function New-ContainedPoster {
+  param(
+    [Parameter(Mandatory = $true)][string]$Source,
+    [Parameter(Mandatory = $true)][string]$Destination,
+    [Parameter(Mandatory = $true)][string]$Background
+  )
+
+  $width = 1600
+  $height = 1000
+  $image = [System.Drawing.Image]::FromFile($Source)
+  $scale = [Math]::Min($width / $image.Width, $height / $image.Height)
+  $drawWidth = [int][Math]::Round($image.Width * $scale)
+  $drawHeight = [int][Math]::Round($image.Height * $scale)
+  $drawX = [int](($width - $drawWidth) / 2)
+  $drawY = [int](($height - $drawHeight) / 2)
+
+  $bitmap = New-Object System.Drawing.Bitmap $width, $height
+  $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+  $graphics.Clear([System.Drawing.ColorTranslator]::FromHtml($Background))
+  $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+  $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+  $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+  $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+  $graphics.DrawImage($image, $drawX, $drawY, $drawWidth, $drawHeight)
+
+  $encoder = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() |
+    Where-Object { $_.MimeType -eq 'image/jpeg' }
+  $parameters = New-Object System.Drawing.Imaging.EncoderParameters 1
+  $parameters.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter(
+    [System.Drawing.Imaging.Encoder]::Quality,
+    [long]92
+  )
+  $bitmap.Save($Destination, $encoder, $parameters)
+
+  $parameters.Dispose()
+  $graphics.Dispose()
+  $bitmap.Dispose()
+  $image.Dispose()
+}
+
+for ($index = 1; $index -le 25; $index++) {
   $source = Get-ChildItem -LiteralPath $originalTarget -File |
     Where-Object { $_.BaseName -eq [string]$index } |
     Select-Object -First 1
@@ -85,9 +131,15 @@ for ($index = 1; $index -le 19; $index++) {
     $sourcePath = $source.FullName
   }
 
-  New-CroppedPoster -Source $sourcePath -Destination (
-    Join-Path $posterTarget ('image-{0:D2}.jpg' -f $index)
-  )
+  $destination = Join-Path $posterTarget ('image-{0:D2}.jpg' -f $index)
+  $backgrounds = @{ 22 = '#c6ddec'; 23 = '#050505' }
+  if ($index -eq 20) {
+    New-CroppedPoster -Source $sourcePath -Destination $destination -ExtraBottomCrop 20
+  } elseif ($backgrounds.ContainsKey($index)) {
+    New-ContainedPoster -Source $sourcePath -Destination $destination -Background $backgrounds[$index]
+  } else {
+    New-CroppedPoster -Source $sourcePath -Destination $destination
+  }
 }
 
 $siteCaptures = Get-ChildItem -LiteralPath $captureSource -Filter '*.png' |
@@ -110,7 +162,9 @@ $namedCaptures = @(
   'x-ads-start',
   'x-ad-formats',
   'paper',
-  'cursor'
+  'cursor',
+  'plinth',
+  'fin'
 )
 
 foreach ($name in $namedCaptures) {

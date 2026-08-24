@@ -31,8 +31,16 @@ export const ReferenceEntrySchema = z.object({
   id: z.string().min(1),
   order: z.number().int().positive(),
   title: z.string().min(1),
+  cardDescriptor: z.string().min(1),
   styleDescriptor: z.string().min(1),
   description: z.string().min(1),
+  scope: z.string().min(1),
+  interfaceInventory: z.string().min(1),
+  designSystem: z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    sharedShell: z.string().min(1),
+  }).optional(),
   primaryCategory: CategorySchema,
   filters: z.array(CategorySchema).min(1),
   tags: z.array(z.string().min(1)).min(4).max(8),
@@ -71,7 +79,7 @@ export const ReferenceEntrySchema = z.object({
   }),
 });
 
-export const ReferenceManifestSchema = z.array(ReferenceEntrySchema).length(55);
+export const ReferenceManifestSchema = z.array(ReferenceEntrySchema).length(63);
 
 export type Category = z.infer<typeof CategorySchema>;
 export type ImageRecipe = z.infer<typeof ImageRecipeSchema>;

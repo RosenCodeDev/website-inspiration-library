@@ -1,0 +1,106 @@
+[
+  {
+    "name": "aside",
+    "fps": 30,
+    "metrics": {
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "outerWidth": 1456,
+      "outerHeight": 995,
+      "screenX": 0,
+      "screenY": 0,
+      "devicePixelRatio": 1,
+      "captureX": 8,
+      "captureY": 87
+    },
+    "scrollResult": {
+      "scrollY": 6593,
+      "scrollHeight": 7493,
+      "innerHeight": 900,
+      "maxScroll": 6593,
+      "remaining": 0
+    },
+    "master": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\masters\\aside-30fps.mkv",
+    "log": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\qa\\aside-30fps-ffmpeg.log",
+    "finalPath": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\final\\aside.mp4",
+    "contactPath": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\qa\\aside-contact.png"
+  },
+  {
+    "name": "jitter",
+    "fps": 30,
+    "metrics": {
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "outerWidth": 1456,
+      "outerHeight": 995,
+      "screenX": 0,
+      "screenY": 0,
+      "devicePixelRatio": 1,
+      "captureX": 8,
+      "captureY": 87
+    },
+    "scrollResult": {
+      "scrollY": 4111,
+      "scrollHeight": 5011,
+      "innerHeight": 900,
+      "maxScroll": 4111,
+      "remaining": 0
+    },
+    "master": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\masters\\jitter-30fps.mkv",
+    "log": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\qa\\jitter-30fps-ffmpeg.log",
+    "finalPath": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\final\\jitter.mp4",
+    "contactPath": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\qa\\jitter-contact.png"
+  },
+  {
+    "name": "plinth",
+    "fps": 30,
+    "metrics": {
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "outerWidth": 1456,
+      "outerHeight": 995,
+      "screenX": 0,
+      "screenY": 0,
+      "devicePixelRatio": 1,
+      "captureX": 8,
+      "captureY": 87
+    },
+    "scrollResult": {
+      "scrollY": 7891,
+      "scrollHeight": 8791,
+      "innerHeight": 900,
+      "maxScroll": 7891,
+      "remaining": 0
+    },
+    "master": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\masters\\plinth-30fps.mkv",
+    "log": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\qa\\plinth-30fps-ffmpeg.log",
+    "finalPath": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\final\\plinth.mp4",
+    "contactPath": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\qa\\plinth-contact.png"
+  },
+  {
+    "name": "fin",
+    "fps": 30,
+    "metrics": {
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "outerWidth": 1456,
+      "outerHeight": 995,
+      "screenX": 0,
+      "screenY": 0,
+      "devicePixelRatio": 1,
+      "captureX": 8,
+      "captureY": 87
+    },
+    "scrollResult": {
+      "scrollY": 14582,
+      "scrollHeight": 15482,
+      "innerHeight": 900,
+      "maxScroll": 14582,
+      "remaining": 0
+    },
+    "master": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\masters\\fin-30fps.mkv",
+    "log": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\qa\\fin-30fps-ffmpeg.log",
+    "finalPath": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\final\\fin.mp4",
+    "contactPath": "C:\\Users\\hrose\\Desktop\\website-library\\capture-work\\smooth\\qa\\fin-contact.png"
+  }
+]

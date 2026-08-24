@@ -21,7 +21,7 @@ Close or move windows that cover the upper-left 1440×900 screen region, then ru
     $env:CAPTURE_FPS='30'
     npm run capture
 
-Use comma-separated names to run several recipes. Valid names are spade, sstr, igloo, lusion, schemas, system-patch, coda, paper, oqoqo, and cursor.
+Use comma-separated names to run several recipes. Valid names are spade, sstr, igloo, lusion, schemas, system-patch, coda, paper, oqoqo, cursor, aside, jitter, plinth, and fin.
 
 Each take:
 
@@ -51,5 +51,9 @@ After publication, preserve historically useful masters, earlier takes, stills, 
 | Paper | Smooth scroll | Prewarm lazy content, then travel from landing state to the bottom. |
 | Oqoqo | Smooth scroll | Decline the optional analytics dialog, keep the approved still, then travel from the evaluation hero through product proof and settle at the footer. |
 | Cursor | Smooth scroll | Capture a separate 1600x1000 hero still, then travel through the agent demonstrations, research proof, changelog, and footer. |
+| Aside | Automatic hero, then smooth scroll | Hold the browser-interface and cloud animation briefly, then travel through the product narrative to the verified document bottom. |
+| Jitter | Automatic featured media, then smooth scroll | Reset visible media, hold the featured hero briefly, then travel through the motion gallery to the verified document bottom. |
+| Plinth | Smooth scroll | Capture a separate 1600x1000 hero still, then travel from the classical marketplace hero through agent listings and transaction proof. |
+| Fin | Smooth scroll | Capture a separate 1600x1000 hero still, then travel from the planetary payments hero through network, transfer, and global-coverage proof. |
 
 If a site redesigns its hero, update both the recipe and that card's authored motion notes instead of forcing the old choreography onto the new page.
