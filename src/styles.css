@@ -102,34 +102,24 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 700;
-  line-height: 14px;
+  line-height: 16px;
   text-transform: uppercase;
   letter-spacing: .045em;
   cursor: pointer;
 }
 
-.category-profile-visibility-check {
-  position: relative;
-  width: 14px;
-  height: 14px;
-  display: inline-block;
+.category-profile-visibility-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
   flex: 0 0 auto;
-  border: 2px solid var(--rule);
 }
 
-.category-profile-visibility-check::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 6px;
-  height: 6px;
-  background: var(--accent);
-  opacity: 0;
-  transform: translate(-50%, -50%);
-}
+.category-profile-visibility-icon-frame { fill: var(--rule); }
+.category-profile-visibility-icon-field { fill: var(--paper); }
+.category-profile-visibility-icon-center { fill: var(--accent); opacity: 0; }
 
-.category-profile-visibility-toggle.is-on .category-profile-visibility-check::after { opacity: 1; }
+.category-profile-visibility-toggle.is-on .category-profile-visibility-icon-center { opacity: 1; }
 .category-profile-visibility-toggle:hover { color: var(--accent); }
 
 .category-profile-bar {

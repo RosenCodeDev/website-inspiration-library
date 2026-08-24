@@ -14,7 +14,7 @@ const w = (
 
 const categoryProfileSeeds: Record<Category, CategoryProfile> = {
   'Print-Tech Paper': {
-    thesis: 'Editorial structure, tactile print evidence, and precise utility controls.',
+    thesis: 'Editorial structure, tactile print evidence, and precise utility controls',
     composition: 'Use strong grids, measured margins, asymmetric editorial balance, and clear reading order.',
     typography: 'Pair expressive serif or condensed display type with restrained sans or mono utility text.',
     palette: 'Favor paper neutrals, ink black, and one controlled print accent.',
@@ -24,7 +24,7 @@ const categoryProfileSeeds: Record<Category, CategoryProfile> = {
     avoid: 'Glossy glass cards, soft gradient haze, excessive pills, or generic editorial decoration.',
   },
   'Dither Mono': {
-    thesis: 'Monochrome hierarchy shaped by pixels, halftone, grain, and hard contrast.',
+    thesis: 'Monochrome hierarchy shaped by pixels, halftone, grain, and hard contrast',
     composition: 'Use decisive black-white masses, strict alignment, and one high-contrast focal region.',
     typography: 'Use compact grotesk, serif, or bitmap display type with plain functional labels.',
     palette: 'Keep black, white, and controlled grey; add color only when the chosen reference proves it.',
@@ -34,7 +34,7 @@ const categoryProfileSeeds: Record<Category, CategoryProfile> = {
     avoid: 'Unbounded grayscale, neon cyberpunk glow, decorative terminal clichés, or illegible noise.',
   },
   'Vast Quiet Cinematic': {
-    thesis: 'Large atmospheric space, restrained copy, and one scene with cinematic weight.',
+    thesis: 'Large atmospheric space, restrained copy, and one scene with cinematic weight',
     composition: 'Let a full-bleed scene dominate while copy occupies a calm, deliberate edge or center zone.',
     typography: 'Use few lines, confident scale contrast, and compact navigation or captions.',
     palette: 'Use a narrow atmospheric palette with controlled exposure and one optional signal accent.',
@@ -44,7 +44,7 @@ const categoryProfileSeeds: Record<Category, CategoryProfile> = {
     avoid: 'Dense card grids, busy utility chrome, fast bounce motion, or copy covering the focal subject.',
   },
   'Data-as-Texture': {
-    thesis: 'Information, systems, and product evidence become the visual material.',
+    thesis: 'Information, systems, and product evidence become the visual material',
     composition: 'Organize diagrams, interfaces, labels, and modules into a readable evidence hierarchy.',
     typography: 'Use clear grotesk or mono labels with disciplined scale, alignment, and annotation logic.',
     palette: 'Start neutral; use functional accents to encode state, path, or priority.',
@@ -54,7 +54,7 @@ const categoryProfileSeeds: Record<Category, CategoryProfile> = {
     avoid: 'Fake unreadable dashboards, random charts, decorative data noise, or generated interface text.',
   },
   'Classical Remix': {
-    thesis: 'Historic imagery and formal typography recast through contemporary digital structure.',
+    thesis: 'Historic imagery and formal typography recast through contemporary digital structure',
     composition: 'Balance monumental art or architecture with modern navigation, copy, and controls.',
     typography: 'Use high-contrast serif display type with concise modern sans or mono support.',
     palette: 'Use stone, ink, parchment, earth, or museum neutrals with one restrained digital accent.',
@@ -64,7 +64,7 @@ const categoryProfileSeeds: Record<Category, CategoryProfile> = {
     avoid: 'Theme-park antiquity, ornamental overload, fake Latin, gold gradients, or fantasy-game chrome.',
   },
   'Glitched Antiquity': {
-    thesis: 'Archival or ancient material disrupted by controlled digital artifacts.',
+    thesis: 'Archival or ancient material disrupted by controlled digital artifacts',
     composition: 'Keep the historic subject recognizable while glitches occupy defined layers or edges.',
     typography: 'Pair formal display type with technical labels, pixel text, or narrow utility copy.',
     palette: 'Use aged neutrals or monochrome with sparse electric or registration accents.',
@@ -74,7 +74,7 @@ const categoryProfileSeeds: Record<Category, CategoryProfile> = {
     avoid: 'Full-screen random glitch, generic hacker motifs, unreadable copy, or effects without hierarchy.',
   },
   'Illustrated Storybook': {
-    thesis: 'Illustration establishes a coherent world and a simple human path through it.',
+    thesis: 'Illustration establishes a coherent world and a simple human path through it',
     composition: 'Use scene layers, clear character or object focus, and protected space for copy and actions.',
     typography: 'Use warm editorial display type with plain, accessible supporting text and controls.',
     palette: 'Use a limited illustrated palette with intentional foreground, midground, and background contrast.',

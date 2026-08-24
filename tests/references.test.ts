@@ -412,8 +412,17 @@ describe('reference manifest', () => {
     const styles = readFileSync(resolve(process.cwd(), 'src', 'styles.css'), 'utf8');
     expect(app).toContain('const [categoryProfileVisible, setCategoryProfileVisible] = useState(true);');
     expect(app).toContain('aria-pressed={visible}');
+    expect(app).toContain('viewBox="0 0 16 16"');
     expect(app).toContain('<span>Show category profile</span>');
     expect(app).toContain('{categoryProfileVisible && <CategoryProfileBar key={activeFilter} activeFilter={activeFilter} />}');
-    expect(styles).toContain('.category-profile-visibility-toggle.is-on .category-profile-visibility-check::after');
+    expect(styles).toContain('.category-profile-visibility-toggle.is-on .category-profile-visibility-icon-center');
+  });
+
+  it('keeps compact-bar summaries free of sentence-ending periods', () => {
+    const app = readFileSync(resolve(process.cwd(), 'src', 'App.tsx'), 'utf8');
+    expect(app).toContain('{categories.length - 1} aesthetic categories, {references.length} reference moments');
+    for (const profile of Object.values(categoryProfiles)) {
+      expect(profile.thesis).not.toMatch(/\.$/);
+    }
   });
 });

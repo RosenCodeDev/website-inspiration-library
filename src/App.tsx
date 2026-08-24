@@ -269,7 +269,7 @@ function CategoryProfileBar({ activeFilter }: { activeFilter: Filter }) {
     return (
       <div className="category-profile-bar category-profile-summary" aria-label="Library summary">
         <span className="category-profile-name">All</span>
-        <span className="category-profile-thesis">{categories.length - 1} aesthetic categories. {references.length} reference moments.</span>
+        <span className="category-profile-thesis">{categories.length - 1} aesthetic categories, {references.length} reference moments</span>
       </div>
     );
   }
@@ -322,7 +322,16 @@ function CategoryProfileVisibilityToggle({
         aria-pressed={visible}
         onClick={onToggle}
       >
-        <span className="category-profile-visibility-check" aria-hidden="true" />
+        <svg
+          className="category-profile-visibility-icon"
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <rect className="category-profile-visibility-icon-frame" width="16" height="16" />
+          <rect className="category-profile-visibility-icon-field" x="2" y="2" width="12" height="12" />
+          <rect className="category-profile-visibility-icon-center" x="4" y="4" width="8" height="8" />
+        </svg>
         <span>Show category profile</span>
       </button>
     </div>
