@@ -2,10 +2,12 @@
 
 A private, local-first reference library for keeping a human in the design loop and giving AI concrete visual direction. It contains 63 independently curated moments: 25 supplied image references and 38 website-sourced cards.
 
+**New user? Follow the [First-Time User Guide](FIRST-TIME-USER-GUIDE.md) for copy-and-paste installation and website-start instructions.**
+
 ## Run locally
 
 ```powershell
-cd C:\Users\hrose\Desktop\website-library
+cd C:\Users\hrose\Desktop\website-inspiration-library
 npm install
 npm run dev
 ```
@@ -24,6 +26,17 @@ Open `http://127.0.0.1:4173/`. The app has no login, database, tracking, or remo
 - The grid always starts with a still 8:5 poster. On mouse devices, hovering only the image region of one of the fourteen motion-enabled cards starts its muted local MP4 from the beginning; leaving resets it to the poster, and only one grid preview can run at a time. Nearby clips preload while paused so the first decoded frame can replace the poster without flashing. Touch grids and reduced-motion environments remain still.
 - The detail modal uses the same poster-first behavior: its clip plays only while the top visual area is hovered, has no player chrome, and resets to the full-size still on leave. A rejected or missing video falls back to the still.
 - Green, amber, and red dots mean canonical, usable, and limited source quality. Canonical sources support detailed analysis; usable sources support composition, palette, imagery, and broad hierarchy; limited sources are concept and rough-composition cues only.
+- Backend-only workflow intelligence assigns every card a page type, design roles, page uses, anchor/support strength, best use, caution, and verified-live or reference-only clone strategy. Seven category Taste Constitutions keep multi-reference directions coherent. These fields guide `design-taste-injection` without changing the portal UI.
+
+## Design Taste Injection
+
+The repository contains the reusable Codex skill under `skills/design-taste-injection`. Install or update it globally with:
+
+```powershell
+npm run setup:codex
+```
+
+Restart Codex Desktop, open an independent website project folder, and paste `$design-taste-injection` into the Codex chat. The skill reads this library in place and stores all project-specific state under the target project’s `.inspiration` folder. It never writes website work into this repository.
 
 ## Media and provenance
 
@@ -49,10 +62,11 @@ Regenerate copies and posters after adding source media:
 1. Save the untouched source in the appropriate local asset folder.
 2. Add identity, categories, provenance, quality limits, and media paths to `src/references.ts`.
 3. Add the card’s concise descriptor, description, scope, interface inventory, 4–8 observable tags, recipe classification, complete eleven-field design profile, and factual motion behavior to `src/reference-content.ts`.
-4. Generate the 8:5 poster without overwriting the original.
-5. If it is a linked website, capture a stable hero state and add the verified HTTPS URL. Use a separate card for each genuinely distinct moment from the same site, sharing `sourceGroupId`.
-6. If motion materially defines the reference, preload fonts and lazy assets, record a hardware-rendered take with hidden scrollbars and frame-synchronized interactions, verify real cadence, then encode a muted fast-start 1440×900 H.264 MP4 offline. Describe only observed trigger, sequence, fixed layers, pacing, and endpoint in Motion behavior; put adaptation advice in the brief’s Motion field.
-7. Run `npm test` and `npm run build`.
+4. Add its page type, design roles, page uses, anchor/support strength, best use, and caution to `src/workflow-intelligence.ts`.
+5. Generate the 8:5 poster without overwriting the original.
+6. If it is a linked website, capture a stable hero state and add the verified HTTPS URL. Use a separate card for each genuinely distinct moment from the same site, sharing `sourceGroupId`.
+7. If motion materially defines the reference, preload fonts and lazy assets, record a hardware-rendered take with hidden scrollbars and frame-synchronized interactions, verify real cadence, then encode a muted fast-start 1440×900 H.264 MP4 offline. Describe only observed trigger, sequence, fixed layers, pacing, and endpoint in Motion behavior; put adaptation advice in the brief’s Motion field.
+8. Export and review the workflow catalog, acknowledge the changed fingerprint, then run `npm test` and `npm run build`. See `docs/LIBRARY-MAINTENANCE.md`.
 
 New external inspirations or generated substitute images should only be added after explicit approval.
 

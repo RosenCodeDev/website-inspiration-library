@@ -4,7 +4,7 @@ This folder keeps the exact capture choreography in Git while isolating Playwrig
 
 ## One-time setup
 
-    cd C:\Users\hrose\Desktop\website-library\capture-tools
+    cd C:\Users\hrose\Desktop\website-inspiration-library\capture-tools
     npm install
 
 The script uses Google Chrome at C:\Program Files\Google\Chrome\Application\chrome.exe and FFmpeg from PATH. On Windows ARM machines, use the x64 FFmpeg build through emulation and set its exact location before capture when it is not on PATH:

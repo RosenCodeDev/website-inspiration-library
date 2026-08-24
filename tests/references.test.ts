@@ -5,11 +5,47 @@ import { describe, expect, it } from 'vitest';
 import { referenceContent } from '../src/reference-content';
 import { categories, references } from '../src/references';
 import { buildAgentPacket, buildBriefCopy, buildImagePromptCopy } from '../src/agent-packet';
+import { categoryProfiles, referenceWorkflow } from '../src/workflow-intelligence';
+import workflowFingerprints from './workflow-fingerprints.json';
+import categoryFingerprints from './category-fingerprints.json';
 
 const publicPath = (asset: string) => resolve(process.cwd(), 'public', asset.replace(/^\//, ''));
 const archivePath = (...segments: string[]) => resolve(process.cwd(), 'archive', ...segments);
 
 const sha256 = (path: string) => createHash('sha256').update(readFileSync(path)).digest('hex');
+
+const stable = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(stable);
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return Object.fromEntries(Object.keys(record).sort().map((key) => [key, stable(record[key])]));
+  }
+  return value;
+};
+
+const workflowFingerprint = (reference: (typeof references)[number]) => {
+  const card = {
+    id: reference.id,
+    order: reference.order,
+    title: reference.title,
+    cardDescriptor: reference.cardDescriptor,
+    styleDescriptor: reference.styleDescriptor,
+    description: reference.description,
+    scope: reference.scope,
+    interfaceInventory: reference.interfaceInventory,
+    designSystem: reference.designSystem,
+    primaryCategory: reference.primaryCategory,
+    filters: reference.filters,
+    tags: reference.tags,
+    brief: reference.brief,
+    imageRecipe: reference.imageRecipe,
+    source: reference.source,
+    media: reference.media,
+    quality: reference.quality,
+    workflow: reference.workflow,
+  };
+  return createHash('sha256').update(JSON.stringify(stable(card))).digest('hex').slice(0, 16);
+};
 
 const jpegDimensions = (path: string) => {
   const data = readFileSync(path);
@@ -44,6 +80,39 @@ describe('reference manifest', () => {
   it('has one canonical authored-content record for every reference', () => {
     expect(Object.keys(referenceContent)).toHaveLength(63);
     expect(new Set(Object.keys(referenceContent))).toEqual(new Set(references.map((entry) => entry.id)));
+  });
+
+  it('requires complete workflow intelligence for every card and category', () => {
+    expect(Object.keys(referenceWorkflow)).toHaveLength(63);
+    expect(new Set(Object.keys(referenceWorkflow))).toEqual(new Set(references.map((entry) => entry.id)));
+    expect(Object.keys(categoryProfiles)).toEqual(categories.slice(1));
+
+    for (const entry of references) {
+      expect(entry.workflow.roles.length, entry.id).toBeGreaterThanOrEqual(2);
+      expect(entry.workflow.pageUses.length, entry.id).toBeGreaterThanOrEqual(1);
+      expect(entry.workflow.cloneStrategy, entry.id).toBe(entry.source.url ? 'verified-live' : 'reference-only');
+      expect(entry.workflow.bestFor.split(/\s+/).length, `${entry.id} bestFor`).toBeLessThanOrEqual(24);
+      expect(entry.workflow.cautions.split(/\s+/).length, `${entry.id} cautions`).toBeLessThanOrEqual(24);
+    }
+  });
+
+  it('requires intentional acknowledgement when card intelligence changes', () => {
+    const current = Object.fromEntries(references.map((entry) => [entry.id, workflowFingerprint(entry)]));
+    expect(current).toEqual(workflowFingerprints);
+  });
+
+  it('keeps category constitutions concise and complete', () => {
+    for (const [category, profile] of Object.entries(categoryProfiles)) {
+      expect(Object.keys(profile), category).toEqual(['thesis', 'composition', 'typography', 'palette', 'texture', 'motion', 'codeHero', 'avoid']);
+      for (const [field, value] of Object.entries(profile)) {
+        expect(value.split(/\s+/).length, `${category} ${field}`).toBeLessThanOrEqual(24);
+      }
+    }
+    const current = Object.fromEntries(Object.entries(categoryProfiles).map(([category, profile]) => [
+      category,
+      createHash('sha256').update(JSON.stringify(stable(profile))).digest('hex').slice(0, 16),
+    ]));
+    expect(current).toEqual(categoryFingerprints);
   });
 
   it('uses eleven bespoke brief fields without the retired category defaults', () => {

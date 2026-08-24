@@ -1,0 +1,7 @@
+interface:
+  display_name: "Design Taste Injection"
+  short_description: "Turn a taste library into guided website designs"
+  default_prompt: "Use $design-taste-injection to guide this website from brief to polished implementation."
+
+policy:
+  allow_implicit_invocation: true

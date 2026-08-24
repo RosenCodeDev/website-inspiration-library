@@ -12,6 +12,70 @@ export const categoryValues = [
 
 export const CategorySchema = z.enum(categoryValues);
 
+export const momentTypeValues = [
+  'authentication',
+  'footer',
+  'hero',
+  'landing-page',
+  'product-narrative',
+  'editorial-feed',
+  'article',
+  'guide',
+  'catalog',
+  'gallery',
+  'interactive-scene',
+  'annotated-feature',
+] as const;
+
+export const designRoleValues = [
+  'composition',
+  'typography',
+  'hero-art',
+  'navigation',
+  'conversion',
+  'content-system',
+  'data-display',
+  'motion',
+  'interaction',
+  'product-proof',
+  'storytelling',
+] as const;
+
+export const pageUseValues = [
+  'marketing',
+  'product',
+  'editorial',
+  'documentation',
+  'campaign',
+  'portfolio',
+  'authentication',
+  'footer',
+] as const;
+
+export const ReferenceWorkflowSchema = z.object({
+  momentType: z.enum(momentTypeValues),
+  roles: z.array(z.enum(designRoleValues)).min(2).max(6),
+  pageUses: z.array(z.enum(pageUseValues)).min(1).max(4),
+  anchorStrength: z.number().int().min(1).max(5),
+  supportingStrength: z.number().int().min(1).max(5),
+  bestFor: z.string().min(12).max(180),
+  cautions: z.string().min(12).max(180),
+  cloneStrategy: z.enum(['verified-live', 'reference-only']),
+});
+
+export const CategoryProfileSchema = z.object({
+  thesis: z.string().min(12).max(180),
+  composition: z.string().min(12).max(220),
+  typography: z.string().min(12).max(220),
+  palette: z.string().min(12).max(220),
+  texture: z.string().min(12).max(220),
+  motion: z.string().min(12).max(220),
+  codeHero: z.string().min(12).max(220),
+  avoid: z.string().min(12).max(220),
+});
+
+export const CategoryProfilesSchema = z.record(CategorySchema, CategoryProfileSchema);
+
 export const ImageRecipeSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('primary'),
@@ -36,6 +100,7 @@ export const ReferenceEntrySchema = z.object({
   description: z.string().min(1),
   scope: z.string().min(1),
   interfaceInventory: z.string().min(1),
+  workflow: ReferenceWorkflowSchema,
   designSystem: z.object({
     id: z.string().min(1),
     name: z.string().min(1),
@@ -83,4 +148,6 @@ export const ReferenceManifestSchema = z.array(ReferenceEntrySchema).length(63);
 
 export type Category = z.infer<typeof CategorySchema>;
 export type ImageRecipe = z.infer<typeof ImageRecipeSchema>;
+export type ReferenceWorkflow = z.infer<typeof ReferenceWorkflowSchema>;
+export type CategoryProfile = z.infer<typeof CategoryProfileSchema>;
 export type ReferenceEntry = z.infer<typeof ReferenceEntrySchema>;

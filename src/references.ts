@@ -1,6 +1,7 @@
 import { ReferenceManifestSchema, type Category, type ReferenceEntry, } from './reference-schema';
 import { referenceContent } from './reference-content';
-type Seed = Omit<ReferenceEntry, 'brief' | 'imageRecipe' | 'filters' | 'cardDescriptor' | 'styleDescriptor' | 'description' | 'scope' | 'interfaceInventory' | 'designSystem' | 'tags' | 'media'> & {
+import { getReferenceWorkflow } from './workflow-intelligence';
+type Seed = Omit<ReferenceEntry, 'brief' | 'imageRecipe' | 'filters' | 'cardDescriptor' | 'styleDescriptor' | 'description' | 'scope' | 'interfaceInventory' | 'designSystem' | 'tags' | 'media' | 'workflow'> & {
     extraFilters?: Category[];
     media: Omit<ReferenceEntry['media'], 'motionNotes'> & { motionNotes?: string };
 };
@@ -31,6 +32,10 @@ const buildEntry = (seed: Seed): ReferenceEntry => {
         description: content.description,
         scope: content.scope,
         interfaceInventory: content.interfaceInventory,
+        workflow: getReferenceWorkflow(
+            seed.id,
+            seed.source.kind === 'website' && Boolean(seed.source.url),
+        ),
         designSystem: content.designSystem,
         tags: content.tags,
         media: { ...entry.media, motionNotes: content.motionBehavior },

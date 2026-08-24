@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design Taste Injection Workbench</title>
+  <style>
+    :root { color-scheme: light; --paper: #f3ebdd; --ink: #171612; --muted: #746e64; --rule: #26231d; --accent: #9c4b37; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: Georgia, 'Times New Roman', serif; }
+    header { border-top: 3px solid var(--rule); border-bottom: 3px solid var(--rule); padding: 24px clamp(18px, 4vw, 58px); display: flex; gap: 24px; justify-content: space-between; align-items: end; }
+    h1 { margin: 0; font-size: clamp(30px, 5vw, 66px); font-weight: 400; letter-spacing: -.035em; }
+    header p, .meta, .empty, .chip { font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; text-transform: uppercase; letter-spacing: .045em; }
+    header p { max-width: 42ch; margin: 0; color: var(--muted); }
+    main { padding: 24px clamp(18px, 4vw, 58px) 72px; }
+    #summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+    .chip { border: 2px solid var(--rule); padding: 7px 9px; background: #f9f4eb; }
+    .lineage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+    article { border: 2px solid var(--rule); background: #f9f4eb; min-width: 0; }
+    .preview { aspect-ratio: 8 / 5; border-bottom: 2px solid var(--rule); background: var(--paper); overflow: hidden; display: grid; place-items: center; }
+    iframe { width: 100%; height: 100%; border: 0; background: white; }
+    .preview span { max-width: 30ch; text-align: center; color: var(--muted); font: 12px/1.5 ui-monospace, monospace; text-transform: uppercase; }
+    .body { padding: 16px; }
+    h2 { margin: 0 0 10px; font-weight: 400; font-size: 25px; }
+    .meta { color: var(--muted); margin: 5px 0; }
+    .status-selected { color: #2b6b42; } .status-rejected { color: #9b352c; } .status-superseded { color: #8a6b20; }
+    .empty { border: 2px solid var(--rule); padding: 42px; text-align: center; background: #f9f4eb; }
+    @media (max-width: 980px) { .lineage { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) { header { display: block; } header p { margin-top: 12px; } .lineage { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header><h1>Design Workbench</h1><p>One project history. Every direction, variant, build path, and hero remains reviewable.</p></header>
+  <main><section id="summary"></section><section id="lineage" class="lineage"><div class="empty">Loading project state…</div></section></main>
+  <script>
+    const esc = (value = '') => String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+    const render = (state) => {
+      const summary = document.querySelector('#summary');
+      summary.innerHTML = [`Status ${state.status}`, `${state.generations.length} generations`, `${state.references.pinned.length} pinned`, `${state.references.excluded.length} excluded`, `Hero ${state.heroProvider}`].map((item) => `<span class="chip">${esc(item)}</span>`).join('');
+      const lineage = document.querySelector('#lineage');
+      if (!state.generations.length) { lineage.innerHTML = '<div class="empty">The workflow is ready. Approved directions will appear here without replacing earlier work.</div>'; return; }
+      lineage.innerHTML = [...state.generations].reverse().map((item) => `<article>
+        <div class="preview">${item.preview ? `<iframe src="${esc(item.preview)}" title="${esc(item.label || item.id)}"></iframe>` : '<span>Preview will appear here when this generation is rendered.</span>'}</div>
+        <div class="body"><h2>${esc(item.id)} · ${esc(item.label || item.stage)}</h2>
+        <p class="meta status-${esc(item.status)}">${esc(item.status)} · ${esc(item.category || 'No category')}</p>
+        <p class="meta">Parent ${esc(item.parent || 'root')}</p>
+        <p>${esc(item.thesis || '')}</p>
+        <p class="meta">${esc((item.references || []).map((ref) => `${ref.id}: ${ref.role}`).join(' · '))}</p></div>
+      </article>`).join('');
+    };
+    fetch('../state.json', { cache: 'no-store' }).then((response) => { if (!response.ok) throw new Error('state unavailable'); return response.json(); }).then(render).catch((error) => { document.querySelector('#lineage').innerHTML = `<div class="empty">${esc(error.message)}. Start the workbench through its loopback server.</div>`; });
+  </script>
+</body>
+</html>
