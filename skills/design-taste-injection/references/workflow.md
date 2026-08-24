@@ -27,6 +27,21 @@ For initial selection requests, set `fitMode` to `exploratory`. Each direction c
 
 These are focused previews, not complete websites. Add all directions to the single workbench. Checkpoint.
 
+Each direction generation record must include this validated scope:
+
+```json
+{
+  "previewScope": {
+    "kind": "focused-category-preview",
+    "pageCount": 1,
+    "sections": ["hero", "opening-module"],
+    "completeSite": false
+  }
+}
+```
+
+Do not build pricing, footer, secondary pages, or the remaining approved architecture during this pass. The state script rejects broader direction records.
+
 ## 2. Select references without surrendering control
 
 Use this decision rubric:

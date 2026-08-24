@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { categories, references } from './references';
 import type { Category, ReferenceEntry } from './reference-schema';
+import { categoryProfiles } from './workflow-intelligence';
 import { buildAgentPacket, buildBriefCopy, buildImagePromptCopy } from './agent-packet';
 import { optimizeCardTagOrder } from './card-tag-layout';
 
@@ -251,6 +252,61 @@ function OptimizedCardTags({ tags }: { tags: string[] }) {
   );
 }
 
+const categoryProfileFields = [
+  ['composition', 'Composition'],
+  ['typography', 'Typography'],
+  ['palette', 'Palette'],
+  ['texture', 'Texture'],
+  ['motion', 'Motion'],
+  ['codeHero', 'Code hero'],
+  ['avoid', 'Avoid'],
+] as const;
+
+function CategoryProfileBar({ activeFilter }: { activeFilter: Filter }) {
+  const [open, setOpen] = useState(false);
+
+  if (activeFilter === 'All') {
+    return (
+      <div className="category-profile-bar category-profile-summary" aria-label="Library summary">
+        <span className="category-profile-name">All</span>
+        <span className="category-profile-thesis">{categories.length - 1} aesthetic categories. {references.length} reference moments.</span>
+      </div>
+    );
+  }
+
+  const profile = categoryProfiles[activeFilter];
+  const detailsId = `category-profile-${activeFilter.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`;
+
+  return (
+    <section className={`category-profile-bar${open ? ' is-open' : ''}`} aria-label={`${activeFilter} design profile`}>
+      <button
+        className="category-profile-toggle"
+        type="button"
+        aria-expanded={open}
+        aria-controls={detailsId}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="category-profile-name">{activeFilter}</span>
+        <span className="category-profile-thesis">{profile.thesis}</span>
+        <span className="category-profile-action">
+          {open ? 'Hide profile' : 'Show profile'}
+          <i aria-hidden="true" />
+        </span>
+      </button>
+      {open && (
+        <dl id={detailsId} className="category-profile-details">
+          {categoryProfileFields.map(([key, label]) => (
+            <div key={key}>
+              <dt>{label}</dt>
+              <dd>{profile[key]}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
+  );
+}
+
 function ReferenceCard({
   reference,
   onOpen,
@@ -395,6 +451,7 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
               <dl>
                 <div><dt>Capture</dt><dd>{reference.source.captureMethod.replaceAll('-', ' ')}</dd></div>
                 <div><dt>Status</dt><dd title={qualityDefinitions[reference.quality.tier]}>{reference.quality.tier} source</dd></div>
+                <div><dt>Page type</dt><dd>{reference.workflow.momentType.replaceAll('-', ' ')}</dd></div>
                 <div><dt>Dimensions</dt><dd>{reference.quality.width} × {reference.quality.height}</dd></div>
                 <div><dt>Confidence</dt><dd>{Math.round(reference.quality.confidence * 100)}%</dd></div>
                 <div><dt>Reliable for</dt><dd>{reference.quality.reliableFor.join(', ')}</dd></div>
@@ -484,6 +541,8 @@ export default function App() {
             </button>
           ))}
         </nav>
+
+        <CategoryProfileBar key={activeFilter} activeFilter={activeFilter} />
 
         <p className="filter-status" role="status" aria-live="polite">
           {visibleReferences.length} {activeFilter === 'All' ? 'total' : activeFilter} references shown.

@@ -15,6 +15,12 @@ const runNode = (script: string, args: string[] = [], env: NodeJS.ProcessEnv = {
   [script, ...args],
   { cwd: root, encoding: 'utf8', env: { ...process.env, ...env }, maxBuffer: 20 * 1024 * 1024 },
 );
+const focusedDirectionScope = () => ({
+  kind: 'focused-category-preview',
+  pageCount: 1,
+  sections: ['hero', 'opening-module'],
+  completeSite: false,
+});
 
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
@@ -27,6 +33,7 @@ describe('design-taste-injection skill', () => {
     expect(skill).toContain('APPROVE AND CONTINUE');
     expect(skill).toContain('DO NOT USE THIS CARD');
     expect(skill).toContain('`H0`');
+    expect(skill).toContain('focused-category-preview');
     expect(metadata).toContain('$design-taste-injection');
     expect(metadata).toContain('allow_implicit_invocation: true');
   });
@@ -74,6 +81,7 @@ describe('design-taste-injection skill', () => {
     const generationPath = resolve(scratch, 'generation.json');
     writeFileSync(generationPath, JSON.stringify({
       id: 'D01', parent: null, stage: 'direction', status: 'candidate', label: 'Print Tech Paper', category: 'Print-Tech Paper', thesis: 'Editorial proof with tactile structure.', references: [], preview: makePreview('D01'), createdAt: new Date().toISOString(),
+      previewScope: focusedDirectionScope(),
     }));
     const appended = runNode(script, ['append-generation', project, generationPath], env);
     expect(appended.status, appended.stderr).toBe(0);
@@ -245,11 +253,25 @@ describe('design-taste-injection skill', () => {
     writeFileSync(record, JSON.stringify({
       id: 'D07', parent: null, stage: 'direction', status: 'candidate', label: 'Missing',
       category: 'Illustrated Storybook', thesis: 'Missing preview.', references: [],
-      preview: '../previews/D07/index.html', createdAt: new Date().toISOString(),
+      preview: '../previews/D07/index.html', previewScope: focusedDirectionScope(), createdAt: new Date().toISOString(),
     }));
     const rejectedPreview = runNode(stateScript, ['append-generation', project, record], env);
     expect(rejectedPreview.status).not.toBe(0);
     expect(rejectedPreview.stderr).toContain('generation preview is missing');
+
+    const overbuiltFolder = resolve(project, '.inspiration', 'previews', 'D08');
+    mkdirSync(overbuiltFolder, { recursive: true });
+    writeFileSync(resolve(overbuiltFolder, 'index.html'), '<!doctype html><html><body><main>Overbuilt direction</main></body></html>');
+    writeFileSync(record, JSON.stringify({
+      id: 'D08', parent: null, stage: 'direction', status: 'candidate', label: 'Overbuilt',
+      category: 'Illustrated Storybook', thesis: 'A complete site created too early.', references: [],
+      preview: '../previews/D08/index.html',
+      previewScope: { kind: 'focused-category-preview', pageCount: 2, sections: ['hero', 'opening-module', 'pricing'], completeSite: true },
+      createdAt: new Date().toISOString(),
+    }));
+    const rejectedScope = runNode(stateScript, ['append-generation', project, record], env);
+    expect(rejectedScope.status).not.toBe(0);
+    expect(rejectedScope.stderr).toContain('one page with exactly a hero and one opening module');
   }, 20_000);
 
   it('migrates legacy project state without losing its generation history', () => {
@@ -279,23 +301,29 @@ describe('design-taste-injection skill', () => {
     );
     expect(migrated.status, migrated.stderr).toBe(0);
     const state = JSON.parse(readFileSync(resolve(inspiration, 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(4);
+    expect(state.schemaVersion).toBe(5);
+    expect(state.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
     expect(state.generations[0].id).toBe('D01');
     expect(state.generations[0].preview).toBe('../previews/D01/index.html');
     expect(readFileSync(resolve(inspiration, 'previews', 'D01', 'index.html'), 'utf8')).toContain('Legacy generation preserved');
 
-    const projectV2 = resolve(scratch, 'legacy-project-state-v2');
-    const inspirationV2 = resolve(projectV2, '.inspiration');
-    mkdirSync(inspirationV2, { recursive: true });
-    writeFileSync(resolve(inspirationV2, 'state.json'), JSON.stringify({
-      ...state, schemaVersion: 2, workbenchVersion: 1, projectRoot: projectV2,
-      generations: [{ ...state.generations[0], id: 'D02', parent: null, preview: '../previews/D02/index.html' }],
-    }));
-    const migratedV2 = runNode(resolve(skillRoot, 'scripts', 'project-state.mjs'), ['init', projectV2], { DESIGN_TASTE_LIBRARY_ROOT: root });
-    expect(migratedV2.status, migratedV2.stderr).toBe(0);
-    const v2State = JSON.parse(readFileSync(resolve(inspirationV2, 'state.json'), 'utf8'));
-    expect(v2State.schemaVersion).toBe(4);
-    expect(v2State.generations[0].id).toBe('D02');
+    for (const legacyVersion of [2, 3, 4]) {
+      const legacyProject = resolve(scratch, `legacy-project-state-v${legacyVersion}`);
+      const legacyInspiration = resolve(legacyProject, '.inspiration');
+      mkdirSync(legacyInspiration, { recursive: true });
+      const { previewScope: _previewScope, ...legacyGenerationBase } = state.generations[0];
+      const legacyGeneration = { ...legacyGenerationBase, id: `D0${legacyVersion}`, parent: null, preview: `../previews/D0${legacyVersion}/index.html` };
+      writeFileSync(resolve(legacyInspiration, 'state.json'), JSON.stringify({
+        ...state, schemaVersion: legacyVersion, workbenchVersion: 1, projectRoot: legacyProject,
+        generations: [legacyGeneration],
+      }));
+      const migratedLegacy = runNode(resolve(skillRoot, 'scripts', 'project-state.mjs'), ['init', legacyProject], { DESIGN_TASTE_LIBRARY_ROOT: root });
+      expect(migratedLegacy.status, migratedLegacy.stderr).toBe(0);
+      const legacyState = JSON.parse(readFileSync(resolve(legacyInspiration, 'state.json'), 'utf8'));
+      expect(legacyState.schemaVersion).toBe(5);
+      expect(legacyState.generations[0].id).toBe(`D0${legacyVersion}`);
+      expect(legacyState.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
+    }
   });
 
   it('updates state through validated events and preserves the prior file after rejection', () => {
@@ -323,7 +351,7 @@ describe('design-taste-injection skill', () => {
     expect(rejected.status).not.toBe(0);
     expect(readFileSync(statePath, 'utf8')).toBe(beforeInvalid);
     const state = JSON.parse(beforeInvalid);
-    expect(state.schemaVersion).toBe(4);
+    expect(state.schemaVersion).toBe(5);
     expect(state.intake.introduction).toBe('A product site');
     expect(state.informationArchitecture.status).toBe('approved');
   }, 20_000);
@@ -609,7 +637,7 @@ describe('design-taste-injection skill', () => {
     expect(report.results.every((entry: { status: string }) => entry.status === 'inconclusive')).toBe(true);
   }, 20_000);
 
-  it('enforces schema-4 stage prerequisites and rejects invented completed work', async () => {
+  it('enforces schema-5 stage prerequisites and rejects invented completed work', async () => {
     const project = resolve(scratch, 'semantic-state-project');
     const catalogResult = runNode(resolve(skillRoot, 'scripts', 'library.mjs'), ['catalog'], { DESIGN_TASTE_LIBRARY_ROOT: root });
     const catalog = JSON.parse(catalogResult.stdout);
@@ -620,6 +648,7 @@ describe('design-taste-injection skill', () => {
     const generation = (id: string, stage: string, status = 'selected', parent: string | null = null) => ({
       id, parent, stage, status, label: id, category: 'Print-Tech Paper', thesis: 'Validated project artifact.', references: [],
       preview: `../previews/${id}/index.html`, createdAt: new Date().toISOString(),
+      ...(stage === 'direction' ? { previewScope: focusedDirectionScope() } : {}),
     });
     state.generations = [
       generation('D1', 'direction'), generation('V1', 'variant', 'selected', 'D1'), generation('B1', 'build-path', 'selected', 'V1'),
@@ -721,6 +750,10 @@ describe('design-taste-injection skill', () => {
     expect(guide).toContain('$design-taste-injection');
     expect(guide).toContain('Codex chat');
     expect(guide).toContain('PowerShell');
+    expect(guide).toContain('## Happy path in Codex chat');
+    expect(guide).toContain('APPROVE AND CONTINUE — choose D03.');
+    const installedSection = guide.split('### If the library is already at')[1].split('The setup command')[0];
+    expect(installedSection.match(/npm run doctor/g)).toHaveLength(1);
   });
 
   it('pins the complete approved MIT clone-remix pipeline with attribution', () => {

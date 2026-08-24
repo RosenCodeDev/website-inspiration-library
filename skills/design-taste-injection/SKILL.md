@@ -52,6 +52,7 @@ Never interpret pin or exclusion as approval to advance.
 ## Workflow Rules
 
 - Present one `D01-DNN` direction for every populated library category in exploratory fit mode; do not randomly omit categories. Disclose exact, adjacent, or aesthetic-only page fit.
+- Keep every first-pass direction to one page containing exactly a code-built hero and one opening module. Save `previewScope` as `focused-category-preview`; state validation rejects full-site direction records before category approval.
 - For each direction recommend one primary anchor and at most two supporting cards. Give each support one job: typography, hero art, motion, interaction, navigation, content system, data display, product proof, or conversion.
 - Explain selection with project fit, page fit, role fit, complementarity, quality, and prior usage. User intent controls the recommendation; diversity prevents the same references from dominating every project.
 - Use `diverse` grouping by default: at most one card from a shared system per set. Use `system-depth` only when several distinct moments from Notion, X, or another shared system materially serve different jobs. A user pin may override the default.

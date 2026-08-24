@@ -52,7 +52,6 @@ npm install
 npm run setup:codex
 npm run check:codex
 npm run doctor
-npm run doctor
 ```
 
 The setup command automatically installs the skill and remembers where the library lives. You do not manually copy any skill files.
@@ -118,6 +117,22 @@ Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Leave that PowerShell win
 6. When visual directions are ready, Codex will give you a local Design Workbench link. Open it and choose using the options Codex presents; you do not need to locate the HTML file yourself.
 
 That single skill invocation starts the complete workflow. You do not invoke separate commands for reference selection, hero images, variants, clone remix, or Impeccable.
+
+## Happy path in Codex chat
+
+Codex accepts ordinary language. The phrases below are concise examples, not rigid commands.
+
+1. **Start:** `$design-taste-injection`
+2. **Approve the website structure:** `APPROVE AND CONTINUE`
+3. **Choose an aesthetic direction:** `APPROVE AND CONTINUE — choose D03.`
+4. **Approve its references:** `ACCEPT ALL`
+5. **Choose a developed variant:** `APPROVE AND CONTINUE — choose D03-B.`
+6. **Choose how to build:** `APPROVE AND CONTINUE — use Original.`
+7. **Choose the hero:** `APPROVE AND CONTINUE — keep H0.`
+8. **Approve the integrated site:** `APPROVE AND CONTINUE`
+9. **Approve final polish:** `APPROVE AND CONTINUE`
+
+At any checkpoint, use `REVISE` with the change you want, `TRY ANOTHER` for a new option, or `GO BACK` to revisit the previous decision. During reference review, you can also use `SWAP`, `SHOW ANOTHER SET`, `PIN THIS CARD`, or `DO NOT USE THIS CARD`.
 
 Design Taste Injection already includes the approved Site Clone analysis, reconstruction, remix, and visual-comparison mechanics. There is no separate Site Clone command or installation. Normal website cloning uses the packages installed by the library's `npm install` command.
 

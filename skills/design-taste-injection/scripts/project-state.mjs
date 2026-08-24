@@ -10,7 +10,7 @@ import { assertContainedPath, assertIndependentPath, canonicalPath } from './pat
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
 const templatePath = resolve(skillRoot, 'assets', 'workbench-template.html');
-const currentSchemaVersion = 4;
+const currentSchemaVersion = 5;
 const currentWorkbenchVersion = 3;
 const legacyWorkbenchHashes = new Set([
   '90d7b70ac826a8955583e5f09d5ccb198e1d2a85e27e49b07391e23255d91b5d',
@@ -20,6 +20,7 @@ const workflowStatuses = new Set(['intake', 'architecture', 'directions', 'refer
 const generationStages = new Set(['direction', 'variant', 'build-path', 'hero', 'implementation', 'final']);
 const generationStatuses = new Set(['candidate', 'selected', 'rejected', 'superseded']);
 const architectureStatuses = new Set(['pending', 'candidate', 'approved']);
+const focusedPreviewSections = ['hero', 'opening-module'];
 
 const fail = (message) => { console.error(`Design Taste Injection: ${message}`); process.exitCode = 1; };
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
@@ -95,6 +96,20 @@ const validateReferenceSet = (set, label, catalog = null) => {
     if (set.signature !== expected) errors.push(`${label} signature does not match its cards and roles`);
   }
   return errors;
+};
+
+const validateDirectionPreviewScope = (scope, label, allowLegacy = true) => {
+  if (!isRecord(scope)) return [`${label} requires previewScope`];
+  if (scope.kind === 'legacy-unverified') return allowLegacy ? [] : [`${label} cannot use legacy-unverified previewScope`];
+  if (scope.kind !== 'focused-category-preview') return [`${label} previewScope.kind must be focused-category-preview`];
+  const sections = Array.isArray(scope.sections) ? scope.sections : [];
+  if (scope.pageCount !== 1
+    || sections.length !== focusedPreviewSections.length
+    || !focusedPreviewSections.every((section) => sections.includes(section))
+    || scope.completeSite !== false) {
+    return [`${label} must stay to one page with exactly a hero and one opening module; completeSite must be false`];
+  }
+  return [];
 };
 
 const validateState = (state, expectedProjectRoot, catalog = null) => {
@@ -184,6 +199,7 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
     if (generation.category !== null && generation.category !== undefined && typeof generation.category !== 'string') errors.push(`category is invalid for ${generation.id}`);
     if (catalog && generation.category && !catalogCategories.has(generation.category)) errors.push(`unknown category for ${generation.id}: ${generation.category}`);
     if (typeof generation.thesis !== 'string') errors.push(`thesis is required for ${generation.id}`);
+    if (generation.stage === 'direction') errors.push(...validateDirectionPreviewScope(generation.previewScope, `direction ${generation.id}`));
     if (!Array.isArray(generation.references)) errors.push(`references are required for ${generation.id}`);
     else {
       const referenceIds = generation.references.map((item) => item?.id);
@@ -237,7 +253,7 @@ const legacyPreview = (generation) => `<!doctype html>\n<html lang="en"><meta ch
 
 const normalizeStatus = (status) => ({ direction: 'directions', reference: 'references', variant: 'variants', build: 'implementation' })[status] ?? (workflowStatuses.has(status) ? status : 'intake');
 const migrateState = async (state, paths, projectRoot, catalog) => {
-  if (![1, 2, 3, 4].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
+  if (![1, 2, 3, 4, 5].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
   if (state.schemaVersion === currentSchemaVersion) {
     if (state.references?.selectionStatus === 'current' && state.references.catalogFingerprint !== catalog.fingerprint) {
       state.references.historicalCards ??= {};
@@ -300,6 +316,7 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
     generation.category ??= null;
     generation.thesis = typeof generation.thesis === 'string' ? generation.thesis : '';
     generation.references = Array.isArray(generation.references) ? generation.references : [];
+    if (generation.stage === 'direction' && !isRecord(generation.previewScope)) generation.previewScope = { kind: 'legacy-unverified' };
     generation.createdAt = validDate(generation.createdAt) ? generation.createdAt : state.updatedAt;
     generation.preview = `../previews/${generation.id}/index.html`;
     const path = previewPath(paths, generation.id);
@@ -441,6 +458,10 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
     state.verification = { status: 'passed', checks: [...new Set(payload.checks)], completedAt: new Date().toISOString() };
   }
   else if (event.type === 'generation.appended') {
+    if (payload?.stage === 'direction') {
+      const scopeErrors = validateDirectionPreviewScope(payload.previewScope, `direction ${payload.id ?? '(missing)'}`, false);
+      if (scopeErrors.length) throw new Error(scopeErrors.join('; '));
+    }
     await assertGenerationPreview(paths, payload);
     state.generations.push(payload);
   } else if (event.type === 'generation.status-changed') {
