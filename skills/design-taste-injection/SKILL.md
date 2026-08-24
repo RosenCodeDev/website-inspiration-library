@@ -7,13 +7,17 @@ description: Guide a website from project brief through taste-library directions
 
 Turn the user's intent and private taste library into a deliberate website. The user chooses at every consequential fork; do not silently select a final direction.
 
+Explicit invocation: `$design-taste-injection`.
+
 ## Start
 
 1. Read [workflow.md](references/workflow.md) and [library-usage.md](references/library-usage.md).
 2. Locate the installed `config/library.json`. If absent or invalid, stop and ask the user to run `npm run setup:codex` from the website-inspiration-library repository, then restart Codex.
 3. Confirm the current workspace is the target website project, not the library or installed skill. Never place project output in either protected location.
-4. Run `node scripts/project-state.mjs init <project-root>` to create or resume `.inspiration/state.json` and the single Design Workbench.
-5. Inspect the target project and any user-supplied materials before proposing structure.
+4. Treat every `scripts/...`, `references/...`, and `vendor/...` path in this skill as relative to the directory containing this installed `SKILL.md`, never the website project. Resolve the script to an absolute path before running it.
+5. Run `node <installed-skill-root>/scripts/project-state.mjs init <project-root>` to create or resume `.inspiration/state.json` and the single Design Workbench.
+6. Use `project-state.mjs apply-event`, `reference-selection.mjs propose-and-save`, and `reference-selection.mjs action-and-save` for persistent changes. Never edit state or translate a selection session by hand.
+7. Inspect the target project and any user-supplied materials before proposing structure.
 
 ## Intake
 
@@ -47,12 +51,13 @@ Never interpret pin or exclusion as approval to advance.
 
 ## Workflow Rules
 
-- Present one `D01-DNN` direction for every populated library category; do not randomly omit categories.
+- Present one `D01-DNN` direction for every populated library category in exploratory fit mode; do not randomly omit categories. Disclose exact, adjacent, or aesthetic-only page fit.
 - For each direction recommend one primary anchor and at most two supporting cards. Give each support one job: typography, hero art, motion, interaction, navigation, content system, data display, product proof, or conversion.
 - Explain selection with project fit, page fit, role fit, complementarity, quality, and prior usage. User intent controls the recommendation; diversity prevents the same references from dominating every project.
+- Use `diverse` grouping by default: at most one card from a shared system per set. Use `system-depth` only when several distinct moments from Notion, X, or another shared system materially serve different jobs. A user pin may override the default.
 - "Match feel, not content." Preserve relationships and behavior, not another brand's copy, identity, people, product imagery, claims, or licensed assets.
 - Keep a category-level Taste Constitution around every set so references from one category remain coherent.
-- After category approval, create `Dxx-A-C` variants, then original/remix paths, then hero states `H0-H4`. Add every generation to the same workbench; never overwrite prior choices.
+- After category approval, use implementation fit mode, which requires exact page fit unless the user explicitly approves a disclosed fallback. Create `Dxx-A-C` variants, then original/remix paths, then hero states `H0-H4`. Add every generation to the same workbench; never overwrite prior choices.
 - `H0` is a polished code-built CSS/SVG/canvas hero, never an empty placeholder. Preserve it when generating `H1-H4` image alternatives.
 - Codex image generation is the default. Offer Higgsfield only if installed and the user selects it. A missing Higgsfield account never blocks progress.
 - Keep observed evidence separate from recommendations. Respect each card's quality limits.
@@ -61,7 +66,7 @@ Never interpret pin or exclusion as approval to advance.
 ## Conditional Routes
 
 - For original construction and hero lineage, read [workbench.md](references/workbench.md).
-- If a verified live source is selected for cloning, read [clone-remix.md](references/clone-remix.md). Ask for approval before cloning. Use the vendored mechanics only for the approved clone/remix route.
+- If a `verified-clone-remix` source is selected for cloning, read [clone-remix.md](references/clone-remix.md). Ask for approval before cloning. Use the vendored mechanics only for the approved clone/remix route. Support curated, measurable references with human review; never promise that an arbitrary site can be cloned reliably.
 - Before creating or revising imagery, read [image-generation.md](references/image-generation.md).
 - When the chosen implementation is ready for final refinement, read [polish.md](references/polish.md) and orchestrate Impeccable inside this workflow.
 

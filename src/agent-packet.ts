@@ -1,6 +1,6 @@
 import type { ReferenceEntry } from './reference-schema';
 
-const imageModelLead = 'Use with Higgsfield or another image-generation model. Generate at 2K.';
+const imageModelLead = 'Use Codex image generation by default. Higgsfield or another capable image model is optional. Generate at the highest supported quality, targeting 2K.';
 
 const qualityLimit = {
   canonical: 'Detailed layout, typography, spacing, palette, texture, and hierarchy are reliable.',

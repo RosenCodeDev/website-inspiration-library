@@ -2,6 +2,8 @@
 import { createHash } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { existsSync, realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
 const root = resolve(import.meta.dirname, '..');
@@ -47,7 +49,7 @@ const loadCatalog = async () => {
       return { ...card, fingerprint: fingerprint(card) };
     });
     const core = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       libraryRoot: root,
       publicAssetRoot: resolve(root, 'public'),
       categories: categories.filter((category) => category !== 'All'),
@@ -76,7 +78,10 @@ const main = async () => {
   }
 };
 
-main().catch((error) => {
+const isDirect = process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+if (isDirect) main().catch((error) => {
   console.error(error.stack || error.message);
   process.exitCode = 1;
 });
+
+export { loadCatalog };

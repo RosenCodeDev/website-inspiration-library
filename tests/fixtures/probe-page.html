@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { --accent: #b95f45; }
+    body { margin: 0; font-family: Arial, sans-serif; color: #171612; background: #f3ebdd; }
+    main { width: min(90%, 960px); margin: 48px auto; }
+    .motion { width: 120px; height: 40px; background: var(--accent); transition: transform 200ms ease; }
+    .motion:hover { transform: translateX(20px); }
+    canvas { display: block; width: 320px; height: 120px; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Controlled probe fixture</h1>
+    <button class="motion">Move</button>
+    <canvas id="paint" width="320" height="120"></canvas>
+    <svg width="120" height="40" aria-label="Animated vector"><rect width="20" height="20" fill="#171612"><animate attributeName="x" from="0" to="100" dur="1s" repeatCount="indefinite" /></rect></svg>
+  </main>
+  <script>
+    const context = document.querySelector('#paint').getContext('2d');
+    context.fillStyle = '#171612';
+    context.fillRect(0, 0, 320, 120);
+  </script>
+</body>
+</html>

@@ -3,14 +3,27 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "vite --host=127.0.0.1 --port=4173",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run tests",
     "verify:archive": "node scripts/verify-archive.mjs",
+    "verify:archive-pointers": "node scripts/verify-archive.mjs --allow-pointers",
+    "verify:vendor": "node scripts/skill-integrity.mjs verify-vendor skills/design-taste-injection/vendor/site-clone",
+    "check:scripts": "node --check scripts/setup-codex.mjs && node --check scripts/check-codex.mjs && node --check scripts/doctor.mjs && node --check scripts/export-workflow-catalog.mjs && node --check scripts/skill-integrity.mjs && node --check scripts/validate-skill.mjs && node --check scripts/verify-temp-install.mjs && node --check scripts/controlled-clone-fixture.mjs && node --check scripts/clone-plumbing-smoke.mjs && node --check scripts/public-clone-pilot.mjs && node --check skills/design-taste-injection/scripts/browser-discovery.mjs && node --check skills/design-taste-injection/scripts/path-safety.mjs && node --check skills/design-taste-injection/scripts/project-state.mjs && node --check skills/design-taste-injection/scripts/reference-selection.mjs && node --check skills/design-taste-injection/scripts/clone-runtime.mjs && node --check skills/design-taste-injection/scripts/serve-workbench.mjs && node --check skills/design-taste-injection/scripts/build-probe-bundle.mjs",
     "catalog:workflow": "node scripts/export-workflow-catalog.mjs",
-    "setup:codex": "node scripts/setup-codex.mjs"
+    "setup:codex": "node scripts/setup-codex.mjs",
+    "check:codex": "node scripts/check-codex.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "validate:skill": "node scripts/validate-skill.mjs",
+    "verify:temp-install": "node scripts/verify-temp-install.mjs",
+    "test:clone-fixture": "node scripts/controlled-clone-fixture.mjs",
+    "test:public-clone": "node scripts/public-clone-pilot.mjs",
+    "release:check": "npm run check:scripts && npm run validate:skill && npm run verify:vendor && npm run verify:archive-pointers && npm test && npm run build && npm run verify:temp-install && npm run test:clone-fixture"
   },
   "dependencies": {
     "react": "19.2.6",
@@ -21,6 +34,9 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
+    "pixelmatch": "^7.1.0",
+    "playwright-core": "^1.62.1",
+    "pngjs": "^7.0.0",
     "typescript": "5.9.3",
     "vite": "8.2.2",
     "vitest": "4.1.11"

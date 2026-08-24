@@ -1,6 +1,6 @@
 import { CategoryProfilesSchema, type Category, type CategoryProfile, type ReferenceWorkflow } from './reference-schema';
 
-type WorkflowSeed = Omit<ReferenceWorkflow, 'cloneStrategy'>;
+type WorkflowSeed = Omit<ReferenceWorkflow, 'anchorUses' | 'cloneMode' | 'cloneReason'>;
 
 const w = (
   momentType: WorkflowSeed['momentType'],
@@ -153,14 +153,50 @@ export const referenceWorkflow: Record<string, WorkflowSeed> = {
   'image-bloom-brush': w('hero', ['hero-art', 'typography', 'conversion', 'composition'], ['portfolio', 'marketing'], 5, 5, 'Creative studios balancing floral material and clear action.', 'Keep painterly framing outside the primary reading path.'),
 };
 
+const verifiedCloneRemixIds = new Set([
+  'site-spade',
+  'site-igloo',
+  'site-lusion',
+  'site-aside',
+  'site-jitter',
+  'site-coda',
+  'site-paper',
+  'site-cursor',
+  'site-plinth',
+  'site-fin',
+]);
+
+const anchorUsesFor = (workflow: WorkflowSeed): WorkflowSeed['pageUses'] => {
+  if (workflow.momentType === 'authentication') return ['authentication'];
+  if (workflow.momentType === 'footer') return ['footer'];
+  if (workflow.momentType === 'editorial-feed' || workflow.momentType === 'article') {
+    return workflow.pageUses.filter((pageUse) => pageUse === 'editorial' || pageUse === 'documentation');
+  }
+  if (workflow.momentType === 'guide' || workflow.momentType === 'catalog') {
+    return workflow.pageUses.filter((pageUse) => pageUse === 'documentation' || pageUse === 'product' || pageUse === 'editorial');
+  }
+  return workflow.pageUses;
+};
+
 export const getReferenceWorkflow = (
   id: string,
   hasVerifiedLiveSource: boolean,
 ): ReferenceWorkflow => {
   const intelligence = referenceWorkflow[id];
   if (!intelligence) throw new Error(`Missing workflow intelligence: ${id}`);
+  const cloneMode = verifiedCloneRemixIds.has(id)
+    ? 'verified-clone-remix'
+    : hasVerifiedLiveSource
+      ? 'inspired-rebuild'
+      : 'reference-only';
   return {
     ...intelligence,
-    cloneStrategy: hasVerifiedLiveSource ? 'verified-live' : 'reference-only',
+    anchorUses: anchorUsesFor(intelligence),
+    cloneMode,
+    cloneReason: cloneMode === 'verified-clone-remix'
+      ? 'Curated public source suitable for measured reconstruction and identity-safe remixing.'
+      : cloneMode === 'inspired-rebuild'
+        ? 'Live source supports analysis, but this card is not approved for automatic verified cloning.'
+        : 'No reproducible live source is approved; use this card only as a visual reference.',
   };
 };

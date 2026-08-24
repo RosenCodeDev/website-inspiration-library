@@ -20,13 +20,13 @@ Open `http://127.0.0.1:4173/`. The app has no login, database, tracking, or remo
 - `src/reference-schema.ts` validates the complete 63-entry manifest at startup.
 - Image recipes are classified as a primary generated visual, a supporting generated layer, or `build in code`. Code-native diagrams, real product interfaces, and exact branded assets do not expose a misleading image-prompt action.
 - The eleven-field design brief adds Scope and Interface inventory to the original visual fields. Its Motion field is an implementation recommendation; the separate Motion behavior section reports captured evidence only.
-- `Copy Agent Packet` combines the complete reference, brief, quality limits, and observed motion for an implementation agent. The focused Brief and Image Prompt actions remain available, and generated-image instructions explicitly target Higgsfield or another image-generation model at 2K.
+- `Copy Agent Packet` combines the complete reference, brief, quality limits, and observed motion for an implementation agent. Focused Brief and Image Prompt actions remain available; copied image guidance defaults to Codex while retaining Higgsfield or another capable model as an option.
 - Every reference has one primary category and may appear in overlapping secondary filters.
 - The seven filters describe observable visual styles; there is no catch-all “Reference Styles” category.
 - The grid always starts with a still 8:5 poster. On mouse devices, hovering only the image region of one of the fourteen motion-enabled cards starts its muted local MP4 from the beginning; leaving resets it to the poster, and only one grid preview can run at a time. Nearby clips preload while paused so the first decoded frame can replace the poster without flashing. Touch grids and reduced-motion environments remain still.
 - The detail modal uses the same poster-first behavior: its clip plays only while the top visual area is hovered, has no player chrome, and resets to the full-size still on leave. A rejected or missing video falls back to the still.
 - Green, amber, and red dots mean canonical, usable, and limited source quality. Canonical sources support detailed analysis; usable sources support composition, palette, imagery, and broad hierarchy; limited sources are concept and rough-composition cues only.
-- Backend-only workflow intelligence assigns every card a page type, design roles, page uses, anchor/support strength, best use, caution, and verified-live or reference-only clone strategy. Seven category Taste Constitutions keep multi-reference directions coherent. These fields guide `design-taste-injection` without changing the portal UI.
+- Backend-only workflow intelligence assigns every card a page type, design roles, page uses, safe anchor uses, anchor/support strength, best use, caution, and curated clone mode. Seven category Taste Constitutions keep multi-reference directions coherent. These fields guide `design-taste-injection` without changing the portal UI.
 
 ## Design Taste Injection
 
@@ -34,14 +34,21 @@ The repository contains the reusable Codex skill under `skills/design-taste-inje
 
 ```powershell
 npm run setup:codex
+npm run check:codex
+npm run doctor
 ```
 
 Restart Codex Desktop, open an independent website project folder, and paste `$design-taste-injection` into the Codex chat. The skill reads this library in place and stores all project-specific state under the target project’s `.inspiration` folder. It never writes website work into this repository.
+
+The workflow uses schema-v4 state, validated saved reference actions, project-wide usage diversity, and `diverse` shared-system selection by default. `system-depth` is available when several Notion, X, or other grouped moments need distinct jobs. Clone Remix is supported for curated, measurable references with human approval; it is not presented as a guarantee for arbitrary websites. After installing the current skill, `npm run test:public-clone` runs the network-dependent Aside clean-room clone and identity-safe remix pilot; it remains outside CI because public availability and bot protection are nondeterministic. The latest measured result is recorded in [docs/validation/PUBLIC-CLONE-PILOT.md](docs/validation/PUBLIC-CLONE-PILOT.md).
+
+Run `npm run release:check` before a release. It validates scripts and the skill, checks the pinned vendor and archive pointers, runs tests and the portal build, verifies a temporary global installation, and reconstructs a controlled responsive fixture that must remain functional after its source server stops.
 
 ## Media and provenance
 
 - The 25 active image files are copied byte-for-byte from `archive/Example Websites Images` to `public/assets/originals`. Superseded source files are retained under `archive/Superseded Source Images` and in Git history.
 - Current website captures live in `public/assets/site-captures`; accidental browser scrollbar tracks are cropped from the affected captures.
+- Runtime media resolves from the exported catalog's `publicAssetRoot` plus each card's `/assets/...` path. These ordinary Git files under `public/assets` are the only media required by the portal; Git LFS stores historical evidence only.
 - Uniform 1600×1000 derivatives live in `public/assets/posters`. Most use a high-quality non-generative bicubic crop; supplied images 20–25 use a matching background mat and contain fit so important edge content is not removed.
 - Muted 1440×900 H.264 High Profile previews live in `public/assets/motion`. They were recorded directly from Spade, SSTR, Igloo, Lusion, Schemas of Uncertainty, System Patch, Oqoqo, Aside, Jitter, Coda, Paper, Cursor, Plinth, and Fin at a verified 30 fps with hardware-accelerated Chrome, frame-synchronized interaction, hidden scrollbars, and offline quality-focused encoding. Scrolling recipes refresh the document height while recording and fail unless they reach the verified bottom. The 60 fps proof was rejected because this computer could not sustain 60 real captured frames per second; no frames were interpolated or relabelled. No third-party gallery recordings are used.
 - Capture-only browser and encoding dependencies are excluded from the production app. Selected historical takes and review evidence are retained under `archive/Capture History`; new scratch captures remain ignored until deliberately promoted.

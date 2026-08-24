@@ -13,7 +13,17 @@ If Higgsfield is absent, continue with Codex. Never require its installation.
 
 ## Prompt construction
 
-Start from the selected card recipe and adapt it to the real project. Include:
+Build the prompt in this order:
+
+1. The project-owned subject and purpose.
+2. The approved category constitution.
+3. The approved composition and protected HTML text region.
+4. Transferable mechanics assigned to each selected reference.
+5. The output constraints below.
+
+Do not begin from one card's subject. A card recipe may contribute composition, material, lighting, texture, or geometry mechanics only. Exclude its brand names, logos, people, products, characters, interface copy, and recognizable identity unless they belong to the user's project.
+
+Include:
 
 - Asset role and subject.
 - Output geometry and intended crop.

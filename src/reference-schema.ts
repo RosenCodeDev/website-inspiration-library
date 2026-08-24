@@ -56,11 +56,13 @@ export const ReferenceWorkflowSchema = z.object({
   momentType: z.enum(momentTypeValues),
   roles: z.array(z.enum(designRoleValues)).min(2).max(6),
   pageUses: z.array(z.enum(pageUseValues)).min(1).max(4),
+  anchorUses: z.array(z.enum(pageUseValues)).min(1).max(4),
   anchorStrength: z.number().int().min(1).max(5),
   supportingStrength: z.number().int().min(1).max(5),
   bestFor: z.string().min(12).max(180),
   cautions: z.string().min(12).max(180),
-  cloneStrategy: z.enum(['verified-live', 'reference-only']),
+  cloneMode: z.enum(['verified-clone-remix', 'inspired-rebuild', 'reference-only']),
+  cloneReason: z.string().min(12).max(180),
 });
 
 export const CategoryProfileSchema = z.object({

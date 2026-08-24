@@ -20,7 +20,8 @@ The portal displays the first two layers. Design Taste Injection reads all four.
 3. Add or revise the card in `src/workflow-intelligence.ts`.
 4. Review its primary category constitution. If the category’s practical meaning changed, revise that constitution rather than adding an unexamined exception.
 5. Review `designSystem` and `sourceGroupId`. Related moments share a system but keep distinct purposes.
-6. Run:
+6. Confirm each runtime media path resolves by joining the exported catalog's `publicAssetRoot` with the card path. Runtime media belongs under `public/assets`; historical LFS recordings are never used by the portal.
+7. Run:
 
    ```powershell
    npm run catalog:workflow
@@ -28,7 +29,7 @@ The portal displays the first two layers. Design Taste Injection reads all four.
    npm run build
    ```
 
-7. A fingerprint failure is expected after a meaningful change. Inspect the exported record, then update that card’s value in `tests/workflow-fingerprints.json`. If a constitution changed, update only its value in `tests/category-fingerprints.json`. Do not refresh unrelated fingerprints.
+8. A fingerprint failure is expected after a meaningful change. Inspect the exported record, then update that card’s value in `tests/workflow-fingerprints.json`. If a constitution changed, update only its value in `tests/category-fingerprints.json`. Do not refresh unrelated fingerprints.
 
 ## Workflow intelligence choices
 
@@ -39,7 +40,8 @@ The portal displays the first two layers. Design Taste Injection reads all four.
 - `supportingStrength` measures fitness for a focused secondary role.
 - `bestFor` is a concise positive use case.
 - `cautions` prevents overreach or identity copying.
-- `cloneStrategy` is derived: only a verified live URL is eligible. Eligibility never means automatic approval.
+- `cloneMode` is curated independently from URL availability. Only reviewed `verified-clone-remix` cards may enter the measured clone route; other live sites remain `inspired-rebuild` references.
+- `anchorUses` limits which page purposes a card may lead. Automatic anchors also require the requested category to be primary.
 
 ## Concise writing checks
 

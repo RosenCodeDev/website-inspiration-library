@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -26,7 +26,10 @@ const main = async () => {
   process.stdout.write(result.stdout);
 };
 
-main().catch((error) => {
+const isDirect = process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+if (isDirect) main().catch((error) => {
   console.error(`Design Taste Injection: ${error.message}`);
   process.exitCode = 1;
 });
+
+export { getLibraryRoot, main };

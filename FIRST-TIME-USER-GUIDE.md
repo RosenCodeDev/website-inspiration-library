@@ -37,6 +37,8 @@ git clone https://github.com/RosenCodeDev/website-inspiration-library.git
 cd C:\Users\hrose\Desktop\website-inspiration-library
 npm install
 npm run setup:codex
+npm run check:codex
+npm run doctor
 ```
 
 ### If the library is already at `C:\Users\hrose\Desktop\website-inspiration-library`
@@ -48,6 +50,9 @@ cd C:\Users\hrose\Desktop\website-inspiration-library
 git pull
 npm install
 npm run setup:codex
+npm run check:codex
+npm run doctor
+npm run doctor
 ```
 
 The setup command automatically installs the skill and remembers where the library lives. You do not manually copy any skill files.
@@ -61,10 +66,10 @@ Impeccable performs the final design-quality and accessibility pass. Install it 
 Paste into **PowerShell**:
 
 ```powershell
-npx impeccable skills install -y --providers=codex --scope=global
+npx impeccable install --providers=codex --scope=global
 ```
 
-Then completely close and reopen Codex Desktop.
+For future updates, use `npx impeccable update`. In each website project, open `/hooks` in Codex after install or update and approve the Impeccable project hook when Codex asks. Then completely close and reopen Codex Desktop.
 
 ## Optional: install Higgsfield
 
@@ -114,6 +119,12 @@ Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Leave that PowerShell win
 
 That single skill invocation starts the complete workflow. You do not invoke separate commands for reference selection, hero images, variants, clone remix, or Impeccable.
 
+Design Taste Injection already includes the approved Site Clone analysis, reconstruction, remix, and visual-comparison mechanics. There is no separate Site Clone command or installation. Normal website cloning uses the packages installed by the library's `npm install` command.
+
+Rare websites use an advanced technology called WebGPU. If Codex detects WebGPU and needs deeper inspection, it may ask you to install the WebGPU Inspector browser extension. This is not required for ordinary websites, so there is no extra first-time setup. Higgsfield is unrelated to cloning and remains optional.
+
+Clone Remix is intended for approved, measurable public references with human review. Some websites block measurement or use effects that cannot be reconstructed reliably; in that case the workflow offers Original or Inspired Rebuild instead of pretending the clone is exact.
+
 ## Continue a website later
 
 Open the same website folder and return to the same Codex task. The project keeps its workflow record under `.inspiration`, so the workbench and prior decisions remain available.
@@ -133,6 +144,7 @@ cd C:\Users\hrose\Desktop\website-inspiration-library
 git pull
 npm install
 npm run setup:codex
+npm run check:codex
 ```
 
 Then restart Codex Desktop. Rerunning setup safely replaces only the Design Taste Injection installation managed by this library.
@@ -147,6 +159,8 @@ Open PowerShell in the library’s new location and run:
 cd "NEW\LOCATION\website-inspiration-library"
 npm install
 npm run setup:codex
+npm run check:codex
+npm run doctor
 ```
 
 Replace `NEW\LOCATION` with the real location where you moved the folder.
@@ -154,6 +168,12 @@ Replace `NEW\LOCATION` with the real location where you moved the folder.
 This does **not** install a second copy of Design Taste Injection. Setup replaces the existing library-managed skill in Codex’s global skill folder and records the new library location in that same installation. The old location is removed from its configuration, so it does not remain as trash. Your independent website projects and their saved `.inspiration` work are not moved or deleted.
 
 Completely close and reopen Codex Desktop afterward.
+
+## macOS and Linux
+
+Windows is the primary supported setup, but the skill also discovers Chrome, Edge, or Chromium on macOS and Linux. Use the same Git and npm commands in Terminal, replacing the Windows `cd` path with the folder where you cloned the library. If the browser is in a custom location, set `DESIGN_TASTE_BROWSER_PATH` to its executable before starting Codex.
+
+The portal's working images and videos are ordinary files under `public/assets`. Git LFS is optional and stores historical capture evidence only; it is not required to run the portal or design a website.
 
 ## Common problems
 
@@ -174,6 +194,7 @@ Run setup again from the library folder, wait for the success message, then comp
 ```powershell
 cd C:\Users\hrose\Desktop\website-inspiration-library
 npm run setup:codex
+npm run check:codex
 ```
 
 ### Setup refuses to replace an existing skill
@@ -186,7 +207,8 @@ Try the same command with `.cmd`, for example:
 
 ```powershell
 npm.cmd run setup:codex
-npx.cmd impeccable skills install -y --providers=codex --scope=global
+npm.cmd run check:codex
+npx.cmd impeccable install --providers=codex --scope=global
 ```
 
 ### The Design Workbench is empty

@@ -469,7 +469,7 @@ export default function App() {
 
   return (
     <>
-      <main className="library-shell">
+      <main className="library-shell" inert={selected ? true : undefined} aria-hidden={selected ? true : undefined}>
         <nav className="filters" aria-label="Reference categories">
           {categories.map((category) => (
             <button
@@ -485,7 +485,10 @@ export default function App() {
           ))}
         </nav>
 
-        <section className="reference-grid" aria-live="polite" aria-label={`${activeFilter} references`}>
+        <p className="filter-status" role="status" aria-live="polite">
+          {visibleReferences.length} {activeFilter === 'All' ? 'total' : activeFilter} references shown.
+        </p>
+        <section className="reference-grid" aria-label={`${activeFilter} references`}>
           {visibleReferences.map((reference) => (
             <ReferenceCard
               key={reference.id}

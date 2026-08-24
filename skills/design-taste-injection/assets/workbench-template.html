@@ -3,52 +3,89 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="design-taste-workbench-version" content="3" />
   <title>Design Taste Injection Workbench</title>
   <style>
     :root { color-scheme: light; --paper: #f3ebdd; --ink: #171612; --muted: #746e64; --rule: #26231d; --accent: #9c4b37; }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body { margin: 0; background: var(--paper); color: var(--ink); font-family: Georgia, 'Times New Roman', serif; }
     header { border-top: 3px solid var(--rule); border-bottom: 3px solid var(--rule); padding: 24px clamp(18px, 4vw, 58px); display: flex; gap: 24px; justify-content: space-between; align-items: end; }
     h1 { margin: 0; font-size: clamp(30px, 5vw, 66px); font-weight: 400; letter-spacing: -.035em; }
-    header p, .meta, .empty, .chip { font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; text-transform: uppercase; letter-spacing: .045em; }
+    header p, .meta, .empty, .chip, label, select { font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; text-transform: uppercase; letter-spacing: .045em; }
     header p { max-width: 42ch; margin: 0; color: var(--muted); }
     main { padding: 24px clamp(18px, 4vw, 58px) 72px; }
-    #summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
-    .chip { border: 2px solid var(--rule); padding: 7px 9px; background: #f9f4eb; }
+    #summary, #filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    #filters { margin-bottom: 24px; }
+    .chip, .control { border: 2px solid var(--rule); padding: 7px 9px; background: #f9f4eb; }
+    .control { display: flex; align-items: center; gap: 8px; }
+    select { border: 0; background: transparent; color: inherit; min-width: 13ch; }
     .lineage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
-    article { border: 2px solid var(--rule); background: #f9f4eb; min-width: 0; }
+    article { border: 2px solid var(--rule); background: #f9f4eb; min-width: 0; scroll-margin-top: 18px; }
+    article:target { outline: 4px solid var(--accent); outline-offset: 3px; }
     .preview { aspect-ratio: 8 / 5; border-bottom: 2px solid var(--rule); background: var(--paper); overflow: hidden; display: grid; place-items: center; }
     iframe { width: 100%; height: 100%; border: 0; background: white; }
-    .preview span { max-width: 30ch; text-align: center; color: var(--muted); font: 12px/1.5 ui-monospace, monospace; text-transform: uppercase; }
     .body { padding: 16px; }
     h2 { margin: 0 0 10px; font-weight: 400; font-size: 25px; }
+    p { overflow-wrap: anywhere; }
     .meta { color: var(--muted); margin: 5px 0; }
+    .meta a { color: inherit; text-underline-offset: 3px; }
     .status-selected { color: #2b6b42; } .status-rejected { color: #9b352c; } .status-superseded { color: #8a6b20; }
-    .empty { border: 2px solid var(--rule); padding: 42px; text-align: center; background: #f9f4eb; }
+    .empty { grid-column: 1 / -1; border: 2px solid var(--rule); padding: 42px; text-align: center; background: #f9f4eb; }
     @media (max-width: 980px) { .lineage { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 640px) { header { display: block; } header p { margin-top: 12px; } .lineage { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
 </head>
 <body>
   <header><h1>Design Workbench</h1><p>One project history. Every direction, variant, build path, and hero remains reviewable.</p></header>
-  <main><section id="summary"></section><section id="lineage" class="lineage"><div class="empty">Loading project state…</div></section></main>
+  <main>
+    <section id="summary" aria-label="Workflow summary"></section>
+    <section id="filters" aria-label="Workbench filters">
+      <label class="control">Stage <select id="stage-filter"><option value="all">All</option></select></label>
+      <label class="control">Category <select id="category-filter"><option value="all">All</option></select></label>
+    </section>
+    <section id="lineage" class="lineage"><div class="empty">Loading project state…</div></section>
+  </main>
   <script>
     const esc = (value = '') => String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
-    const render = (state) => {
+    const option = (value) => `<option value="${esc(value)}">${esc(value)}</option>`;
+    let projectState = null;
+    const render = () => {
+      const state = projectState;
       const summary = document.querySelector('#summary');
       summary.innerHTML = [`Status ${state.status}`, `${state.generations.length} generations`, `${state.references.pinned.length} pinned`, `${state.references.excluded.length} excluded`, `Hero ${state.heroProvider}`].map((item) => `<span class="chip">${esc(item)}</span>`).join('');
+      const stage = document.querySelector('#stage-filter').value;
+      const category = document.querySelector('#category-filter').value;
+      const children = new Map();
+      for (const item of state.generations) if (item.parent) children.set(item.parent, [...(children.get(item.parent) || []), item.id]);
+      const visible = [...state.generations].reverse().filter((item) => (stage === 'all' || item.stage === stage) && (category === 'all' || (item.category || 'Uncategorized') === category));
       const lineage = document.querySelector('#lineage');
-      if (!state.generations.length) { lineage.innerHTML = '<div class="empty">The workflow is ready. Approved directions will appear here without replacing earlier work.</div>'; return; }
-      lineage.innerHTML = [...state.generations].reverse().map((item) => `<article>
-        <div class="preview">${item.preview ? `<iframe src="${esc(item.preview)}" title="${esc(item.label || item.id)}"></iframe>` : '<span>Preview will appear here when this generation is rendered.</span>'}</div>
-        <div class="body"><h2>${esc(item.id)} · ${esc(item.label || item.stage)}</h2>
-        <p class="meta status-${esc(item.status)}">${esc(item.status)} · ${esc(item.category || 'No category')}</p>
-        <p class="meta">Parent ${esc(item.parent || 'root')}</p>
-        <p>${esc(item.thesis || '')}</p>
-        <p class="meta">${esc((item.references || []).map((ref) => `${ref.id}: ${ref.role}`).join(' · '))}</p></div>
-      </article>`).join('');
+      if (!visible.length) { lineage.innerHTML = `<div class="empty">${state.generations.length ? 'No generations match these filters.' : 'The workflow is ready. Approved directions will appear here without replacing earlier work.'}</div>`; return; }
+      lineage.innerHTML = visible.map((item) => {
+        const parent = item.parent ? `<a href="#generation-${esc(item.parent)}">${esc(item.parent)}</a>` : 'root';
+        const childLinks = (children.get(item.id) || []).map((id) => `<a href="#generation-${esc(id)}">${esc(id)}</a>`).join(' · ') || 'none';
+        return `<article id="generation-${esc(item.id)}" data-stage="${esc(item.stage)}" data-category="${esc(item.category || 'Uncategorized')}">
+          <div class="preview"><iframe src="${esc(item.preview)}" title="${esc(item.label || item.id)}" sandbox="allow-scripts" referrerpolicy="no-referrer" loading="lazy"></iframe></div>
+          <div class="body"><h2>${esc(item.id)} · ${esc(item.label || item.stage)}</h2>
+          <p class="meta status-${esc(item.status)}">${esc(item.status)} · ${esc(item.category || 'No category')}</p>
+          <p class="meta">Parent ${parent}</p><p class="meta">Children ${childLinks}</p>
+          <p>${esc(item.thesis || '')}</p>
+          <p class="meta">${esc((item.references || []).map((ref) => `${ref.id}: ${ref.role}`).join(' · '))}</p></div>
+        </article>`;
+      }).join('');
     };
-    fetch('../state.json', { cache: 'no-store' }).then((response) => { if (!response.ok) throw new Error('state unavailable'); return response.json(); }).then(render).catch((error) => { document.querySelector('#lineage').innerHTML = `<div class="empty">${esc(error.message)}. Start the workbench through its loopback server.</div>`; });
+    const load = (state) => {
+      projectState = state;
+      const stages = [...new Set(state.generations.map((item) => item.stage))].sort();
+      const categories = [...new Set(state.generations.map((item) => item.category || 'Uncategorized'))].sort();
+      document.querySelector('#stage-filter').insertAdjacentHTML('beforeend', stages.map(option).join(''));
+      document.querySelector('#category-filter').insertAdjacentHTML('beforeend', categories.map(option).join(''));
+      document.querySelector('#stage-filter').addEventListener('change', render);
+      document.querySelector('#category-filter').addEventListener('change', render);
+      render();
+    };
+    fetch('../state.json', { cache: 'no-store' }).then((response) => { if (!response.ok) throw new Error('state unavailable'); return response.json(); }).then(load).catch((error) => { document.querySelector('#lineage').innerHTML = `<div class="empty">${esc(error.message)}. Start the workbench through its loopback server.</div>`; });
   </script>
 </body>
 </html>

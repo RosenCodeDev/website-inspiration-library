@@ -90,10 +90,24 @@ describe('reference manifest', () => {
     for (const entry of references) {
       expect(entry.workflow.roles.length, entry.id).toBeGreaterThanOrEqual(2);
       expect(entry.workflow.pageUses.length, entry.id).toBeGreaterThanOrEqual(1);
-      expect(entry.workflow.cloneStrategy, entry.id).toBe(entry.source.url ? 'verified-live' : 'reference-only');
+      expect(entry.workflow.anchorUses.length, entry.id).toBeGreaterThanOrEqual(1);
+      expect(entry.workflow.anchorUses.every((pageUse) => entry.workflow.pageUses.includes(pageUse)), entry.id).toBe(true);
+      expect(entry.workflow.cloneReason.split(/\s+/).length, `${entry.id} cloneReason`).toBeLessThanOrEqual(24);
       expect(entry.workflow.bestFor.split(/\s+/).length, `${entry.id} bestFor`).toBeLessThanOrEqual(24);
       expect(entry.workflow.cautions.split(/\s+/).length, `${entry.id} cautions`).toBeLessThanOrEqual(24);
     }
+  });
+
+  it('uses an explicit conservative clone-remix allowlist rather than URL presence', () => {
+    const approved = [
+      'site-spade', 'site-igloo', 'site-lusion', 'site-aside', 'site-jitter',
+      'site-coda', 'site-paper', 'site-cursor', 'site-plinth', 'site-fin',
+    ];
+    expect(references.filter((entry) => entry.workflow.cloneMode === 'verified-clone-remix').map((entry) => entry.id)).toEqual(approved);
+    expect(references.find((entry) => entry.id === 'site-apple')?.workflow.cloneMode).toBe('inspired-rebuild');
+    expect(references.find((entry) => entry.id === 'site-notion')?.workflow.cloneMode).toBe('inspired-rebuild');
+    expect(references.find((entry) => entry.id === 'site-x-intro')?.workflow.cloneMode).toBe('inspired-rebuild');
+    expect(references.filter((entry) => !entry.source.url).every((entry) => entry.workflow.cloneMode === 'reference-only')).toBe(true);
   });
 
   it('requires intentional acknowledgement when card intelligence changes', () => {
@@ -369,7 +383,10 @@ describe('reference manifest', () => {
       expect(buildBriefCopy(entry)).toContain(entry.brief);
       const prompt = buildImagePromptCopy(entry);
       if (entry.imageRecipe.kind === 'none') expect(prompt).toBeNull();
-      else expect(prompt).toContain('Higgsfield or another image-generation model');
+      else {
+        expect(prompt).toContain('Use Codex image generation by default');
+        expect(prompt).toContain('Higgsfield or another capable image model is optional');
+      }
     }
   });
 
@@ -379,5 +396,13 @@ describe('reference manifest', () => {
       expect(entry.quality.reliableFor).not.toContain('typography');
       expect(entry.quality.note.toLowerCase()).toContain('youtube');
     }
+  });
+
+  it('keeps modal background inert and announces only concise filter counts', () => {
+    const app = readFileSync(resolve(process.cwd(), 'src', 'App.tsx'), 'utf8');
+    expect(app).toContain('inert={selected ? true : undefined}');
+    expect(app).toContain('aria-hidden={selected ? true : undefined}');
+    expect(app).toContain('className="filter-status" role="status" aria-live="polite"');
+    expect(app).not.toMatch(/className="reference-grid"[^>]*aria-live/);
   });
 });
