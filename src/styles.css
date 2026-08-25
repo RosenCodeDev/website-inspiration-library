@@ -453,6 +453,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   display: grid;
   place-items: center;
   min-height: 290px;
+  overflow: hidden;
   padding: 0 34px;
   border-bottom: 2px solid var(--rule);
   background: var(--detail-fill);
@@ -472,11 +473,21 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 
 .detail-visual > video {
   pointer-events: none;
+  transform: scaleY(1.002);
+  transform-origin: center bottom;
+}
+
+.detail-visual > img,
+.detail-visual > .image-fallback {
+  opacity: 1;
+  transition: opacity .12s ease;
 }
 
 .detail-visual.is-playing.is-frame-ready > img,
 .detail-visual.is-playing.is-frame-ready > .image-fallback {
+  opacity: 0;
   visibility: hidden;
+  transition: opacity .12s ease, visibility 0s linear .12s;
 }
 
 .detail-content { padding: 27px 30px 29px; }

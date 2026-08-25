@@ -148,7 +148,8 @@ const sizeContentViewport = async (page, width = targetWidth, height = targetHei
   return {
     ...finalMetrics,
     captureX: Math.round(finalMetrics.screenX + sideBorder),
-    captureY: Math.round(finalMetrics.screenY + finalMetrics.outerHeight - finalMetrics.innerHeight - sideBorder),
+    // GDI includes the one-pixel Chrome app-window frame above the content viewport.
+    captureY: Math.round(finalMetrics.screenY + finalMetrics.outerHeight - finalMetrics.innerHeight - sideBorder) + 1,
   };
 };
 
