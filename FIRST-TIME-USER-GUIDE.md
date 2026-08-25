@@ -83,36 +83,41 @@ A project may be an empty local folder or a Git repository. Git is recommended b
 
 1. Create or choose a dedicated website folder.
 2. Open that folder in Codex Desktop. Do not open the inspiration-library folder.
-3. In **Codex chat**, send:
+3. Open the project’s **Codex terminal** and run:
+
+   ```powershell
+   npx --yes impeccable install --providers=codex --scope=project
+   ```
+
+4. Close and reopen the project in Codex Desktop.
+5. In **Codex chat**, send:
 
    ```text
    $impeccable hooks on
    ```
 
-4. In **Codex chat**, open:
+6. In **Codex chat**, open:
 
    ```text
    /hooks
    ```
 
-5. Approve the Impeccable design detector if it appears.
-6. In **Codex chat**, send your project brief beginning with:
+7. Approve the Impeccable design detector.
+8. In **Codex chat**, send your project brief beginning with:
 
    ```text
    $design-taste-injection
    ```
 
-Do not run `npm install` or `npm run setup:codex` in a new website folder. Those commands belong to the inspiration-library repository.
+Do not run `npm install` or `npm run setup:codex` in a new website folder. The one project command above is the only installation step needed there.
 
 ### Why the hook needs a separate step
 
-Impeccable is installed globally once, but its automatic checker is enabled per project.
+The global Impeccable installation gives Codex the design skill. The project installation adds the hook scripts and `.codex/hooks.json` to that website folder.
 
-`$impeccable hooks on` creates the project connection at `.codex/hooks.json`. `/hooks` then lets you approve it. After approval, Impeccable checks relevant UI edits and reports issues such as broken images, overflow, weak contrast, or design drift.
+`$impeccable hooks on` enables that project connection. `/hooks` then lets you approve it. After approval, Impeccable checks relevant UI edits and reports issues such as broken images, overflow, weak contrast, or design drift.
 
 The hook is recommended, not required. Design Taste Injection and Impeccable still work without it, but quality checks must run manually.
-
-If `$impeccable hooks on` reports that no provider skill folder is installed, restart Codex Desktop and try once more.
 
 ## Normal workflow
 
@@ -185,13 +190,19 @@ Clone Remix is limited to approved, measurable references. If a site blocks insp
 
 ### `/hooks` is empty
 
-Open the website project in Codex chat and send:
+Open the website project’s **Codex terminal** and run:
+
+```powershell
+npx --yes impeccable install --providers=codex --scope=project
+```
+
+Close and reopen the project. Then, in **Codex chat**, send:
 
 ```text
 $impeccable hooks on
 ```
 
-Then open `/hooks` and approve the detector.
+Open `/hooks` and approve the detector. If `/hooks` is still empty, confirm that the project contains `.codex/hooks.json`.
 
 ### Codex does not recognize `$design-taste-injection`
 
@@ -221,6 +232,7 @@ Use the `.cmd` form:
 npm.cmd run setup:codex
 npm.cmd run check:codex
 npx.cmd impeccable install --providers=codex --scope=global
+npx.cmd --yes impeccable install --providers=codex --scope=project
 ```
 
 ### The Design Workbench is empty
