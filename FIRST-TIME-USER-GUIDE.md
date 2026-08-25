@@ -1,35 +1,32 @@
 # First-Time User Guide
 
-This guide is written for someone who does not code. Follow it from top to bottom. You only need to complete the installation sections once.
+Use this guide to install the system once, then start any website project.
 
-## The three folders
+## What the system contains
 
-You will work with three separate things:
+- **Website Inspiration Library:** the permanent design-reference collection.
+- **Design Taste Injection:** the Codex workflow that uses the library.
+- **Impeccable:** the design-quality and accessibility reviewer.
+- **Website project:** a separate folder for one website and its decisions.
 
-1. **Website Inspiration Library:** your permanent collection of design references.
-2. **Design Taste Injection:** instructions installed in Codex so it knows how to use the library.
-3. **Your website project:** a separate folder containing one website you are creating.
+Keep project work outside the library. The library portal does not need to be running while Codex designs a website.
 
-The first two stay clean and reusable. Your project-specific writing, mockups, images, decisions, and code stay in the third folder.
+## One-time setup
 
-You do **not** copy the inspiration library into every website. You do **not** need to keep the visual library portal running while Codex designs a website.
+### 1. Check Node.js and Git
 
-## Before you begin
-
-Open PowerShell and check that Node.js and Git are installed:
+Run in **PowerShell**:
 
 ```powershell
 node --version
 git --version
 ```
 
-Node.js 22.12 or newer is required; 22.18 or newer is recommended. If either command says it is not recognized, install that program before continuing.
+Node.js 22.12 or newer is required. Install any missing program, then reopen PowerShell.
 
-## Install the library and Design Taste Injection
+### 2. Install the library and Design Taste Injection
 
-### If this computer does not have the library yet
-
-Paste these commands into **PowerShell**:
+If the library is not on this computer, run in **PowerShell**:
 
 ```powershell
 cd C:\Users\hrose\Desktop
@@ -41,9 +38,7 @@ npm run check:codex
 npm run doctor
 ```
 
-### If the library is already at `C:\Users\hrose\Desktop\website-inspiration-library`
-
-Paste these commands into **PowerShell**:
+If the library already exists, update it instead:
 
 ```powershell
 cd C:\Users\hrose\Desktop\website-inspiration-library
@@ -54,27 +49,27 @@ npm run check:codex
 npm run doctor
 ```
 
-The setup command automatically installs the skill and remembers where the library lives. You do not manually copy any skill files.
+Setup installs Design Taste Injection globally and records the library location. Restart Codex Desktop afterward.
 
-When setup finishes, completely close and reopen Codex Desktop.
+### 3. Install Impeccable globally
 
-## Install Impeccable
-
-Impeccable performs the final design-quality and accessibility pass. Install it globally so every website project can use it.
-
-Paste into **PowerShell**:
+Run in **PowerShell**:
 
 ```powershell
 npx impeccable install --providers=codex --scope=global
 ```
 
-For future updates, use `npx impeccable update`. In each website project, open `/hooks` in Codex after install or update and approve the Impeccable project hook when Codex asks. Then completely close and reopen Codex Desktop.
+For future updates:
 
-## Optional: install Higgsfield
+```powershell
+npx impeccable update
+```
 
-Skip this section unless you have a Higgsfield account and want to use its credits. Codex image generation is the normal default, and Design Taste Injection works without Higgsfield.
+Restart Codex Desktop after installation or an update.
 
-Paste these commands into **PowerShell**, one at a time:
+### 4. Optional Higgsfield setup
+
+Skip this section unless you have a Higgsfield account. Codex image generation is the default.
 
 ```powershell
 npm install -g @higgsfield/cli
@@ -82,129 +77,125 @@ higgsfield auth login
 npx skills add higgsfield-ai/skills --global --agent codex --yes
 ```
 
-The sign-in command opens your browser. Finish signing in, then restart Codex Desktop.
+## Start a website project
 
-## Browse the inspiration library
+A project may be an empty local folder or a Git repository. Git is recommended but not required.
 
-Browsing is optional, but useful when you want to see the cards yourself.
+1. Create or choose a dedicated website folder.
+2. Open that folder in Codex Desktop. Do not open the inspiration-library folder.
+3. In **Codex chat**, send:
 
-Paste into **PowerShell**:
+   ```text
+   $impeccable hooks on
+   ```
+
+4. In **Codex chat**, open:
+
+   ```text
+   /hooks
+   ```
+
+5. Approve the Impeccable design detector if it appears.
+6. In **Codex chat**, send your project brief beginning with:
+
+   ```text
+   $design-taste-injection
+   ```
+
+Do not run `npm install` or `npm run setup:codex` in a new website folder. Those commands belong to the inspiration-library repository.
+
+### Why the hook needs a separate step
+
+Impeccable is installed globally once, but its automatic checker is enabled per project.
+
+`$impeccable hooks on` creates the project connection at `.codex/hooks.json`. `/hooks` then lets you approve it. After approval, Impeccable checks relevant UI edits and reports issues such as broken images, overflow, weak contrast, or design drift.
+
+The hook is recommended, not required. Design Taste Injection and Impeccable still work without it, but quality checks must run manually.
+
+If `$impeccable hooks on` reports that no provider skill folder is installed, restart Codex Desktop and try once more.
+
+## Normal workflow
+
+Codex will inspect the project and ask for any missing information. It then guides you through structure, aesthetic directions, references, variants, build path, hero, implementation, and final polish.
+
+Common replies:
+
+1. Approve structure: `APPROVE AND CONTINUE`
+2. Choose a direction: `APPROVE AND CONTINUE - choose D03`
+3. Approve references: `ACCEPT ALL`
+4. Choose a variant: `APPROVE AND CONTINUE - choose D03-B`
+5. Choose the build path: `APPROVE AND CONTINUE - use Original`
+6. Choose the hero: `APPROVE AND CONTINUE - keep H0`
+
+At any checkpoint:
+
+- `REVISE` changes the current option.
+- `TRY ANOTHER` produces another option.
+- `GO BACK` returns to the prior checkpoint.
+
+During reference review, you can also use `SWAP`, `SHOW ANOTHER SET`, `PIN THIS CARD`, and `DO NOT USE THIS CARD`.
+
+The Design Workbench preserves every direction and later variation in one local project page.
+
+## Continue a project later
+
+Open the same folder and return to the same Codex task.
+
+In a new Codex task, send:
+
+```text
+$design-taste-injection Resume this website from its saved workflow state.
+```
+
+Project decisions remain under `.inspiration` inside that website folder.
+
+## Browse the library
+
+Browsing is optional. Run in **PowerShell**:
 
 ```powershell
 cd C:\Users\hrose\Desktop\website-inspiration-library
 npm run dev
 ```
 
-Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Leave that PowerShell window open while browsing. Press `Ctrl+C` in PowerShell when you want to stop the portal.
+Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Keep PowerShell open. Press `Ctrl+C` there to stop the portal.
 
-## Start a new website
+## Update or move the library
 
-1. Create a new empty folder with File Explorer, for example:
-
-   ```text
-   C:\Users\hrose\Desktop\my-new-website
-   ```
-
-2. Open Codex Desktop.
-3. Choose **Open folder** and select that website folder. Do not select the `website-inspiration-library` folder.
-4. Paste this into the **Codex chat**, not PowerShell:
-
-   ```text
-   $design-taste-injection
-   ```
-
-5. Answer the short questions Codex asks about the website, its purpose, its audience, and any files or requirements.
-6. When visual directions are ready, Codex will give you a local Design Workbench link. Open it and choose using the options Codex presents; you do not need to locate the HTML file yourself.
-
-That single skill invocation starts the complete workflow. You do not invoke separate commands for reference selection, hero images, variants, clone remix, or Impeccable.
-
-## Happy path in Codex chat
-
-Codex accepts ordinary language. The phrases below are concise examples, not rigid commands.
-
-1. **Start:** `$design-taste-injection`
-2. **Approve the website structure:** `APPROVE AND CONTINUE`
-3. **Choose an aesthetic direction:** `APPROVE AND CONTINUE — choose D03.`
-4. **Approve its references:** `ACCEPT ALL`
-5. **Choose a developed variant:** `APPROVE AND CONTINUE — choose D03-B.`
-6. **Choose how to build:** `APPROVE AND CONTINUE — use Original.`
-7. **Choose the hero:** `APPROVE AND CONTINUE — keep H0.`
-8. **Approve the integrated site:** `APPROVE AND CONTINUE`
-9. **Approve final polish:** `APPROVE AND CONTINUE`
-
-At any checkpoint, use `REVISE` with the change you want, `TRY ANOTHER` for a new option, or `GO BACK` to revisit the previous decision. During reference review, you can also use `SWAP`, `SHOW ANOTHER SET`, `PIN THIS CARD`, or `DO NOT USE THIS CARD`.
-
-Design Taste Injection already includes the approved Site Clone analysis, reconstruction, remix, and visual-comparison mechanics. There is no separate Site Clone command or installation. Normal website cloning uses the packages installed by the library's `npm install` command.
-
-Rare websites use an advanced technology called WebGPU. If Codex detects WebGPU and needs deeper inspection, it may ask you to install the WebGPU Inspector browser extension. This is not required for ordinary websites, so there is no extra first-time setup. Higgsfield is unrelated to cloning and remains optional.
-
-Clone Remix is intended for approved, measurable public references with human review. Some websites block measurement or use effects that cannot be reconstructed reliably; in that case the workflow offers Original or Inspired Rebuild instead of pretending the clone is exact.
-
-## Continue a website later
-
-Open the same website folder and return to the same Codex task. The project keeps its workflow record under `.inspiration`, so the workbench and prior decisions remain available.
-
-If you start a new Codex task in the same website folder, paste:
-
-```text
-$design-taste-injection Resume this website from its saved workflow state.
-```
-
-## Update the library or skill
-
-Paste into **PowerShell**:
+After updating or moving the library, run these commands from its current location:
 
 ```powershell
-cd C:\Users\hrose\Desktop\website-inspiration-library
+cd "CURRENT\LOCATION\website-inspiration-library"
 git pull
-npm install
-npm run setup:codex
-npm run check:codex
-```
-
-Then restart Codex Desktop. Rerunning setup safely replaces only the Design Taste Injection installation managed by this library.
-
-## If you move the library folder
-
-The installed skill remembers the library’s exact folder location. If you move the `website-inspiration-library` folder, an independent website project cannot use the library again until you update that saved location.
-
-Open PowerShell in the library’s new location and run:
-
-```powershell
-cd "NEW\LOCATION\website-inspiration-library"
 npm install
 npm run setup:codex
 npm run check:codex
 npm run doctor
 ```
 
-Replace `NEW\LOCATION` with the real location where you moved the folder.
+Replace `CURRENT\LOCATION` with the real path. Setup replaces the managed skill and records the new library location; it does not leave an obsolete second copy. Restart Codex Desktop afterward.
 
-This does **not** install a second copy of Design Taste Injection. Setup replaces the existing library-managed skill in Codex’s global skill folder and records the new library location in that same installation. The old location is removed from its configuration, so it does not remain as trash. Your independent website projects and their saved `.inspiration` work are not moved or deleted.
+## Clone Remix
 
-Completely close and reopen Codex Desktop afterward.
+Design Taste Injection already includes Site Clone and Remix mechanics. No separate Site Clone installation is needed.
 
-## macOS and Linux
+Clone Remix is limited to approved, measurable references. If a site blocks inspection or cannot be reconstructed reliably, the workflow offers Original or Inspired Rebuild instead. A rare WebGPU site may require the WebGPU Inspector browser extension.
 
-Windows is the primary supported setup, but the skill also discovers Chrome, Edge, or Chromium on macOS and Linux. Use the same Git and npm commands in Terminal, replacing the Windows `cd` path with the folder where you cloned the library. If the browser is in a custom location, set `DESIGN_TASTE_BROWSER_PATH` to its executable before starting Codex.
+## Quick fixes
 
-The portal's working images and videos are ordinary files under `public/assets`. Git LFS is optional and stores historical capture evidence only; it is not required to run the portal or design a website.
+### `/hooks` is empty
 
-## Common problems
+Open the website project in Codex chat and send:
 
-### “Could not read package.json”
-
-PowerShell is in the wrong folder. Run:
-
-```powershell
-cd C:\Users\hrose\Desktop\website-inspiration-library
+```text
+$impeccable hooks on
 ```
 
-Then run the command again. `package.json` must be visible inside that folder.
+Then open `/hooks` and approve the detector.
 
 ### Codex does not recognize `$design-taste-injection`
 
-Run setup again from the library folder, wait for the success message, then completely close and reopen Codex Desktop:
+Run in **PowerShell**:
 
 ```powershell
 cd C:\Users\hrose\Desktop\website-inspiration-library
@@ -212,13 +203,19 @@ npm run setup:codex
 npm run check:codex
 ```
 
-### Setup refuses to replace an existing skill
+Restart Codex Desktop.
 
-Setup found a different, manually installed skill with the same name. Do not delete it blindly. Ask Codex to inspect the message and help you preserve or rename the older installation.
+### PowerShell cannot find `package.json`
 
-### PowerShell blocks an `npm` or `npx` script
+You are in the wrong folder. Installation commands must run from:
 
-Try the same command with `.cmd`, for example:
+```powershell
+cd C:\Users\hrose\Desktop\website-inspiration-library
+```
+
+### PowerShell blocks `npm` or `npx`
+
+Use the `.cmd` form:
 
 ```powershell
 npm.cmd run setup:codex
@@ -228,8 +225,14 @@ npx.cmd impeccable install --providers=codex --scope=global
 
 ### The Design Workbench is empty
 
-Return to the Codex task and continue the intake or direction stage. The workbench begins empty and adds each direction without deleting earlier work.
+Continue the project intake in Codex. Directions appear after the content structure is approved.
 
 ### Higgsfield is unavailable
 
-Choose Codex image generation. Higgsfield is optional and never blocks the workflow.
+Choose Codex image generation. Higgsfield is optional.
+
+## Platform notes
+
+Windows is the primary supported setup. On macOS or Linux, use the same Git and npm commands with your own library path. If browser discovery fails, set `DESIGN_TASTE_BROWSER_PATH` to Chrome, Edge, or Chromium.
+
+Runtime portal media uses ordinary Git files. Git LFS is optional and stores historical capture evidence only.

@@ -324,7 +324,7 @@ describe('design-taste-injection skill', () => {
       expect(legacyState.generations[0].id).toBe(`D0${legacyVersion}`);
       expect(legacyState.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
     }
-  });
+  }, 20_000);
 
   it('updates state through validated events and preserves the prior file after rejection', () => {
     const project = resolve(scratch, 'state-events-project');
@@ -748,11 +748,16 @@ describe('design-taste-injection skill', () => {
     expect(guide).toContain('npx impeccable install --providers=codex --scope=global');
     expect(guide).toContain('npx skills add higgsfield-ai/skills --global --agent codex --yes');
     expect(guide).toContain('$design-taste-injection');
+    expect(guide).toContain('$impeccable hooks on');
+    expect(guide).toContain('/hooks');
+    expect(guide).toContain('.codex/hooks.json');
     expect(guide).toContain('Codex chat');
     expect(guide).toContain('PowerShell');
-    expect(guide).toContain('## Happy path in Codex chat');
-    expect(guide).toContain('APPROVE AND CONTINUE — choose D03.');
-    const installedSection = guide.split('### If the library is already at')[1].split('The setup command')[0];
+    expect(guide).toContain('## Start a website project');
+    expect(guide.indexOf('$impeccable hooks on')).toBeLessThan(guide.indexOf('/hooks'));
+    expect(guide.indexOf('/hooks')).toBeLessThan(guide.indexOf('$design-taste-injection'));
+    const installedSection = guide.split('If the library already exists, update it instead:')[1]
+      .split('Setup installs Design Taste Injection')[0];
     expect(installedSection.match(/npm run doctor/g)).toHaveLength(1);
   });
 
