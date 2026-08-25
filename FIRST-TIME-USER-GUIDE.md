@@ -96,13 +96,8 @@ A project may be an empty local folder or a Git repository. Git is recommended b
    $impeccable hooks on
    ```
 
-6. In **Codex chat**, open:
-
-   ```text
-   /hooks
-   ```
-
-7. Approve the Impeccable design detector.
+6. Open **Codex Settings → Hooks**.
+7. Under **From Projects**, select your website project and trust its hooks. Confirm both **PostToolUse** and **Stop** are switched on.
 8. In **Codex chat**, send your project brief beginning with:
 
    ```text
@@ -115,7 +110,9 @@ Do not run `npm install` or `npm run setup:codex` in a new website folder. The o
 
 The global Impeccable installation gives Codex the design skill. The project installation adds the hook scripts and `.codex/hooks.json` to that website folder.
 
-`$impeccable hooks on` enables that project connection. `/hooks` then lets you approve it. After approval, Impeccable checks relevant UI edits and reports issues such as broken images, overflow, weak contrast, or design drift.
+`$impeccable hooks on` enables that project connection. **Settings → Hooks** then lets you trust it. After approval, Impeccable checks relevant UI edits and reports issues such as broken images, overflow, weak contrast, or design drift.
+
+The `/hooks` command belongs to the Codex CLI. In Codex Desktop, use **Settings → Hooks** instead.
 
 The hook is recommended, not required. Design Taste Injection and Impeccable still work without it, but quality checks must run manually.
 
@@ -188,9 +185,11 @@ Clone Remix is limited to approved, measurable references. If a site blocks insp
 
 ## Quick fixes
 
-### `/hooks` is empty
+### `/hooks` does nothing
 
-Open the website project’s **Codex terminal** and run:
+That command is for the Codex CLI. In Codex Desktop, open **Settings → Hooks**.
+
+If your project is not listed there, open the website project’s **Codex terminal** and run:
 
 ```powershell
 npx --yes impeccable install --providers=codex --scope=project
@@ -202,7 +201,7 @@ Close and reopen the project. Then, in **Codex chat**, send:
 $impeccable hooks on
 ```
 
-Open `/hooks` and approve the detector. If `/hooks` is still empty, confirm that the project contains `.codex/hooks.json`.
+Return to **Settings → Hooks**, select the project, and trust its hooks. Confirm both **PostToolUse** and **Stop** are switched on. If the project is still missing, confirm that it contains `.codex/hooks.json`.
 
 ### Codex does not recognize `$design-taste-injection`
 

@@ -749,13 +749,15 @@ describe('design-taste-injection skill', () => {
     expect(guide).toContain('npx skills add higgsfield-ai/skills --global --agent codex --yes');
     expect(guide).toContain('$design-taste-injection');
     expect(guide).toContain('$impeccable hooks on');
-    expect(guide).toContain('/hooks');
+    expect(guide).toContain('Settings → Hooks');
+    expect(guide).toContain('PostToolUse');
+    expect(guide).toContain('Stop');
     expect(guide).toContain('.codex/hooks.json');
     expect(guide).toContain('Codex chat');
     expect(guide).toContain('PowerShell');
     expect(guide).toContain('## Start a website project');
-    expect(guide.indexOf('$impeccable hooks on')).toBeLessThan(guide.indexOf('/hooks'));
-    expect(guide.indexOf('/hooks')).toBeLessThan(guide.indexOf('$design-taste-injection'));
+    expect(guide.indexOf('$impeccable hooks on')).toBeLessThan(guide.indexOf('Settings → Hooks'));
+    expect(guide.indexOf('Settings → Hooks')).toBeLessThan(guide.indexOf('$design-taste-injection'));
     const installedSection = guide.split('If the library already exists, update it instead:')[1]
       .split('Setup installs Design Taste Injection')[0];
     expect(installedSection.match(/npm run doctor/g)).toHaveLength(1);
