@@ -278,7 +278,7 @@ describe('inspiration-controlled design workflow', () => {
     expect(existsSync(resolve(project, '.agents', 'skills', 'impeccable', 'SKILL.md'))).toBe(true);
     const config = JSON.parse(readFileSync(resolve(destination, 'config', 'library.json'), 'utf8'));
     expect(config.scope).toBe('project');
-    expect(config.projectRoot).toBe(realpathSync(project));
+    expect(config.projectRoot).toBe(realpathSync.native(project));
     expect(runNode(resolve(root, 'scripts', 'check-project.mjs'), [project]).status).toBe(0);
     writeFileSync(resolve(destination, 'scripts', 'reference-selection.mjs'), '// stale');
     expect(runNode(resolve(root, 'scripts', 'check-project.mjs'), [project]).status).not.toBe(0);
