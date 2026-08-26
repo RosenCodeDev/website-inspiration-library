@@ -20,7 +20,7 @@ const finite = (value) => typeof value === 'number' && Number.isFinite(value);
 const safeGenerationId = (value) => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value);
 
 const installedConfig = async () => {
-  if (!existsSync(configPath)) throw new Error('Missing installed library configuration. Run npm run setup:codex from the library repository.');
+  if (!existsSync(configPath)) throw new Error('Missing project-installed library configuration. Run npm run setup:project -- <website-project-root> from the library repository.');
   return readJson(configPath);
 };
 

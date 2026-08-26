@@ -42,6 +42,7 @@ const loadCatalog = async () => {
         brief: reference.brief,
         imageRecipe: reference.imageRecipe,
         source: reference.source,
+        sourceIdentity: reference.sourceIdentity,
         media: reference.media,
         quality: reference.quality,
         workflow: reference.workflow,
@@ -49,7 +50,7 @@ const loadCatalog = async () => {
       return { ...card, fingerprint: fingerprint(card) };
     });
     const core = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       libraryRoot: root,
       publicAssetRoot: resolve(root, 'public'),
       categories: categories.filter((category) => category !== 'All'),

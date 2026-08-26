@@ -60,4 +60,4 @@ python C:\Users\hrose\.codex\skills\.system\skill-creator\scripts\quick_validate
 npm test
 ```
 
-Test setup in an isolated Codex home before replacing the global installation. Rerun `npm run setup:codex` only after validation.
+Test setup in a temporary website project before replacing any project installation. Rerun `npm run setup:project -- <website-project-root>` only after validation.

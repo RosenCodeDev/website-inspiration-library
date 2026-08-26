@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This repository contains two maintained products: the browse-only Website Inspiration Library and the source for the globally installed `design-taste-injection` Codex skill. Website-project output belongs in independent repositories, never here.
+This repository contains two maintained products: the browse-only Website Inspiration Library and the source for the project-installed `design-taste-injection` Codex skill. Website-project output belongs in independent repositories, never here.
 
 ## Reference maintenance
 
@@ -32,4 +32,4 @@ Vendored files under `skills/design-taste-injection/vendor` retain their license
 
 Every visual generation must be rendered at `.inspiration/previews/<generation-id>/index.html` before it is appended to project state. Update workflow state through `project-state.mjs apply-event`, never by direct JSON editing. Preserve schema migration, atomic writes, project-root matching, preview containment, and existence checks.
 
-Selection changes must preserve exploratory versus implementation fit, cumulative usage, current-set actions, unique cards, one anchor, and validated pins/exclusions. Installation changes must preserve full catalog, skill, and vendor fingerprints plus staged rollback. Clone QA changes must preserve preflight matching, exact three-width coverage, mask limits, unmasked denominators, and inconclusive handling for permissive thresholds.
+Selection changes must preserve context-free eligibility, user-level shuffle-bag rotation, current-card actions, one anchor with no supports, and validated pins/exclusions. Installation changes must preserve full catalog, skill, and vendor fingerprints plus staged rollback. Clone QA changes must preserve preflight matching, exact three-width coverage, mask limits, unmasked denominators, and inconclusive handling for permissive thresholds.

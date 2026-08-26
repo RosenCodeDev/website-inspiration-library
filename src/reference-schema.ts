@@ -93,6 +93,16 @@ export const ImageRecipeSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
+export const SourceIdentitySchema = z.object({
+  sourceNames: z.array(z.string().min(1)),
+  aliases: z.array(z.string().min(1)),
+  domains: z.array(z.string().min(1)),
+  exactCopy: z.array(z.string().min(1)),
+  distinctiveClaims: z.array(z.string().min(1)),
+  knownMarkAssetIds: z.array(z.string().min(1)),
+  sourceSpecificExclusions: z.array(z.string().min(1)),
+});
+
 export const ReferenceEntrySchema = z.object({
   id: z.string().min(1),
   order: z.number().int().positive(),
@@ -129,6 +139,7 @@ export const ReferenceEntrySchema = z.object({
     sourceGroupId: z.string().min(1),
     originalAsset: z.string().min(1),
   }),
+  sourceIdentity: SourceIdentitySchema,
   media: z.object({
     poster: z.string().min(1),
     detailImage: z.string().min(1),
@@ -150,6 +161,7 @@ export const ReferenceManifestSchema = z.array(ReferenceEntrySchema).length(63);
 
 export type Category = z.infer<typeof CategorySchema>;
 export type ImageRecipe = z.infer<typeof ImageRecipeSchema>;
+export type SourceIdentity = z.infer<typeof SourceIdentitySchema>;
 export type ReferenceWorkflow = z.infer<typeof ReferenceWorkflowSchema>;
 export type CategoryProfile = z.infer<typeof CategoryProfileSchema>;
 export type ReferenceEntry = z.infer<typeof ReferenceEntrySchema>;

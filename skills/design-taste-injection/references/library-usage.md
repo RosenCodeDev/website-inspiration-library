@@ -1,42 +1,46 @@
 # Library Usage
 
-## Access
+## Access boundary
 
-The installed `config/library.json` contains:
+The project-installed `config/library.json` identifies the protected Website Inspiration Library and its read-only catalog command. Do not scrape the portal or modify library files during website work.
 
-- `libraryRoot`: protected website-inspiration-library repository.
-- `catalogCommand`: read-only command that exports the current validated catalog.
-- `libraryVersion`: source revision recorded at installation.
+Selection may read the catalog, but visual generation receives only the selected-card payload and a staged still. Never serialize the full catalog, category profiles, siblings, rejected cards, or motion into a visual run.
 
-Use `node scripts/library.mjs catalog` from the installed skill. Do not scrape the portal UI, copy runtime assets into the target project without need, or modify library files during a website workflow.
+## Eligible evidence
 
-## Evidence to read
+An automatic anchor must:
 
-For every candidate consider:
+- Use the requested category as its primary category.
+- List the requested page role in `anchorUses`.
+- Have usable or canonical still evidence with positive dimensions.
+- Have a valid image recipe or reviewed `kind:none` reason.
 
-- Visible image and motion.
-- Description, scope, interface inventory, category, and tags.
-- Structured design brief and image recipe.
-- Workflow moment type, roles, page uses, strengths, best use, and caution.
-- Source quality, confidence, reliable fields, and limitation note.
-- Source group and shared design-system context.
+`limited` evidence is not eligible for automatic anchoring. `kind:none` remains eligible when its reason gives usable code-native or authorized-media direction.
 
-`canonical` supports close layout, type, spacing, palette, texture, and hierarchy study. `usable` supports composition, palette, imagery, and broad hierarchy. `limited` supports concept, rough composition, and broad color only.
+## Selection and rotation
 
-## Category constitutions
+Score only anchor strength, source/still quality, and page-role reproducibility. Build a ten-point quality band and rotate through it with the user-level shuffle bag. Prior exposure changes which eligible card appears next; it never changes suitability.
 
-Use the category profile as the binding system around each direction. It defines thesis, composition, typography, palette, texture, motion, a code-built hero strategy, and avoid rules. Individual cards contribute specific evidence; they do not replace the constitution.
+Pins and exclusions are explicit user controls. Directions contain one anchor and no supports.
 
-## Roles
+## Still resolver
 
-Use one anchor for composition and hierarchy. Supporting references must have distinct jobs. Never use more than two supports unless the user explicitly expands the set after seeing the rationale.
+Resolve media by stable card ID. Copy the canonical detail still into `.inspiration/evidence` under a checksum-based filename and record card ID, name, checksum, dimensions, quality tier, and inspection state. Stage a separate copy for isolation. Prompt paths are relative to the isolated workspace; never expose a hard-coded source-library path.
 
-The same card may serve different roles in different projects. Do not default to the highest anchor score: project fit comes first, and usage diversity breaks close ties.
+Motion is excluded from visual generation even when the card owns a clip. Motion remains available only to a separately approved clone/mechanical analysis route.
 
-## Grouped references
+## Category profiles
 
-Cards sharing a design system are related moments, not duplicates. Reuse the shared shell only when helpful, then preserve each moment’s page-specific structure. Notion homepage and releases are one product ecosystem with different jobs. The eight X Business cards share a documentation shell but retain distinct layouts, evidence, and recipes.
+Category profiles remain visible in the browse library and may help humans understand the collection. They are retrieval/UI material only. They do not enter anchor selection, sealed payloads, visual prompts, H0, or the frozen anchor system.
+
+Tests check provenance: no profile object or namespace, no profile dependency in the payload builder, and no exact constitution sentences. Card-authored fields named `Composition` or `Avoid` remain valid.
+
+## Identity metadata
+
+Every card exports reviewed `sourceIdentity` metadata: names, aliases, domains, exact copy, distinctive claims, known mark asset IDs, and source-specific exclusions. Automatic scans use only these reviewed exact signals and hashes.
+
+Runtime code does not infer identity through OCR, logo shapes, colors, or approximate resemblance. Human visual review may compare the result with the still and flag ambiguity without changing metadata or automatically deleting content.
 
 ## Maintenance boundary
 
-If the catalog command reports missing intelligence, stale acknowledgement, invalid schema, or unavailable media, stop the workflow and report the library maintenance error. Do not invent replacement metadata inside the target project.
+If card intelligence, schema, fingerprints, or canonical media are invalid, stop and report a library-maintenance error. Do not invent replacement metadata inside a website project.

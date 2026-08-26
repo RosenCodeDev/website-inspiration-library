@@ -14,16 +14,17 @@
     "verify:archive": "node scripts/verify-archive.mjs",
     "verify:archive-pointers": "node scripts/verify-archive.mjs --allow-pointers",
     "verify:vendor": "node scripts/skill-integrity.mjs verify-vendor skills/design-taste-injection/vendor/site-clone",
-    "check:scripts": "node --check scripts/setup-codex.mjs && node --check scripts/check-codex.mjs && node --check scripts/doctor.mjs && node --check scripts/export-workflow-catalog.mjs && node --check scripts/skill-integrity.mjs && node --check scripts/validate-skill.mjs && node --check scripts/verify-temp-install.mjs && node --check scripts/controlled-clone-fixture.mjs && node --check scripts/clone-plumbing-smoke.mjs && node --check scripts/public-clone-pilot.mjs && node --check skills/design-taste-injection/scripts/browser-discovery.mjs && node --check skills/design-taste-injection/scripts/path-safety.mjs && node --check skills/design-taste-injection/scripts/project-state.mjs && node --check skills/design-taste-injection/scripts/reference-selection.mjs && node --check skills/design-taste-injection/scripts/clone-runtime.mjs && node --check skills/design-taste-injection/scripts/serve-workbench.mjs && node --check skills/design-taste-injection/scripts/build-probe-bundle.mjs",
+    "check:scripts": "node --check scripts/setup-project.mjs && node --check scripts/check-project.mjs && node --check scripts/doctor-project.mjs && node --check scripts/export-workflow-catalog.mjs && node --check scripts/skill-integrity.mjs && node --check scripts/validate-skill.mjs && node --check scripts/verify-temp-install.mjs && node --check scripts/inspiration-workflow-fixture.mjs && node --check scripts/controlled-clone-fixture.mjs && node --check scripts/clone-plumbing-smoke.mjs && node --check scripts/public-clone-pilot.mjs && node --check skills/design-taste-injection/scripts/browser-discovery.mjs && node --check skills/design-taste-injection/scripts/path-safety.mjs && node --check skills/design-taste-injection/scripts/project-state.mjs && node --check skills/design-taste-injection/scripts/reference-selection.mjs && node --check skills/design-taste-injection/scripts/rotation-ledger.mjs && node --check skills/design-taste-injection/scripts/visual-contract.mjs && node --check skills/design-taste-injection/scripts/isolation-runner.mjs && node --check skills/design-taste-injection/scripts/clone-runtime.mjs && node --check skills/design-taste-injection/scripts/serve-workbench.mjs && node --check skills/design-taste-injection/scripts/build-probe-bundle.mjs",
     "catalog:workflow": "node scripts/export-workflow-catalog.mjs",
-    "setup:codex": "node scripts/setup-codex.mjs",
-    "check:codex": "node scripts/check-codex.mjs",
-    "doctor": "node scripts/doctor.mjs",
+    "setup:project": "node scripts/setup-project.mjs",
+    "check:project": "node scripts/check-project.mjs",
+    "doctor:project": "node scripts/doctor-project.mjs",
     "validate:skill": "node scripts/validate-skill.mjs",
     "verify:temp-install": "node scripts/verify-temp-install.mjs",
+    "test:inspiration-fixture": "node scripts/inspiration-workflow-fixture.mjs",
     "test:clone-fixture": "node scripts/controlled-clone-fixture.mjs",
     "test:public-clone": "node scripts/public-clone-pilot.mjs",
-    "release:check": "npm run check:scripts && npm run validate:skill && npm run verify:vendor && npm run verify:archive-pointers && npm test && npm run build && npm run verify:temp-install && npm run test:clone-fixture"
+    "release:check": "npm run check:scripts && npm run validate:skill && npm run verify:vendor && npm run verify:archive-pointers && npm test && npm run build && npm run verify:temp-install && npm run test:inspiration-fixture && npm run test:clone-fixture"
   },
   "dependencies": {
     "react": "19.2.6",

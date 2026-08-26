@@ -4,13 +4,7 @@ Impeccable is the final quality pass inside this workflow, not a competing taste
 
 ## Check
 
-Confirm Impeccable is available. If absent, tell the user to run:
-
-```powershell
-npx impeccable install --providers=codex --scope=global
-```
-
-Then restart Codex and resume this project. Preserve workflow state.
+Confirm Impeccable exists under the website project's `.agents/skills`. If absent, stop and ask the user to rerun the library's project-scoped installer for this website, then restart Codex in the project. Preserve workflow state.
 
 ## Apply
 
@@ -25,6 +19,6 @@ Run this sequence inside the current workflow:
 
 Do not blindly apply stylistic defaults.
 
-Protect the approved category constitution, reference roles, chosen hero, and distinctive composition. Reject suggestions that homogenize the design, introduce unsupported visual fashions, or undo explicit user decisions.
+Protect the frozen anchor system, chosen hero, and distinctive composition. Reject suggestions that homogenize the design, introduce unsupported visual fashions, import category-profile guidance, or undo explicit user decisions.
 
 Show material visual changes in the workbench. Checkpoint before accepting them. Then run production tests and remove development-only tweak controls.

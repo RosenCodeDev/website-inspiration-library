@@ -30,19 +30,19 @@ Open `http://127.0.0.1:4173/`. The app has no login, database, tracking, or remo
 
 ## Design Taste Injection
 
-The repository contains the reusable Codex skill under `skills/design-taste-injection`. Install or update it globally with:
+The repository contains the reusable Codex skill under `skills/design-taste-injection`. Install or update it inside an independent website project with:
 
 ```powershell
-npm run setup:codex
-npm run check:codex
-npm run doctor
+npm run setup:project -- C:\path\to\website-project
+npm run check:project -- C:\path\to\website-project
+npm run doctor:project -- C:\path\to\website-project
 ```
 
 Restart Codex Desktop, open an independent website project folder, and paste `$design-taste-injection` into the Codex chat. The skill reads this library in place and stores all project-specific state under the target project’s `.inspiration` folder. It never writes website work into this repository.
 
-The workflow uses schema-v5 state, validated saved reference actions, project-wide usage diversity, and `diverse` shared-system selection by default. The schema limits the initial category comparison to one focused hero-and-opening-module preview per direction, preventing seven complete sites from being built before category approval. `system-depth` is available when several Notion, X, or other grouped moments need distinct jobs. Clone Remix is supported for curated, measurable references with human approval; it is not presented as a guarantee for arbitrary websites. After installing the current skill, `npm run test:public-clone` runs the network-dependent Aside clean-room clone and identity-safe remix pilot; it remains outside CI because public availability and bot protection are nondeterministic. The latest measured result is recorded in [docs/validation/PUBLIC-CLONE-PILOT.md](docs/validation/PUBLIC-CLONE-PILOT.md). The original-design path is validated by deterministic tests and build checks, but a supervised first-time non-coder pilot remains an empirical release exercise rather than a claim made by the repository.
+The workflow uses schema-v6 state, one context-free anchor per direction, a user-level seeded shuffle bag, still-only sealed visual payloads, and a verified isolation ladder. Initial category previews contain only a hero and opening module. Project context enters only after the selected anchor's visual contract is frozen. Clone Remix remains available for curated, measurable references with human approval; it is not a guarantee for arbitrary websites. `npm run test:public-clone` runs the network-dependent Aside pilot outside CI because public availability and bot protection are nondeterministic.
 
-Run `npm run release:check` before a release. It validates scripts and the skill, checks the pinned vendor and archive pointers, runs tests and the portal build, verifies a temporary global installation, and reconstructs a controlled responsive fixture that must remain functional after its source server stops.
+Run `npm run release:check` before a release. It validates scripts and the skill, checks pinned vendor and archive pointers, runs tests and the portal build, verifies a temporary project-scoped installation, and reconstructs a controlled responsive fixture that must remain functional after its source server stops.
 
 ## Media and provenance
 

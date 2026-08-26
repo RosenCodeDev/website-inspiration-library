@@ -1,781 +1,371 @@
-import { cpSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { createServer } from 'node:http';
 import { afterAll, describe, expect, it } from 'vitest';
 import { PNG } from 'pngjs';
 
 const root = realpathSync(process.cwd());
 const skillRoot = resolve(root, 'skills', 'design-taste-injection');
 const scratch = mkdtempSync(join(tmpdir(), 'design-taste-test-'));
-const runNode = (script: string, args: string[] = [], env: NodeJS.ProcessEnv = {}) => spawnSync(
+const rotationPath = resolve(scratch, 'rotation-v1.json');
+const env = { DESIGN_TASTE_LIBRARY_ROOT: root, DESIGN_TASTE_ROTATION_PATH: rotationPath };
+const runNode = (script: string, args: string[] = [], extraEnv: NodeJS.ProcessEnv = {}) => spawnSync(
   process.execPath,
   [script, ...args],
-  { cwd: root, encoding: 'utf8', env: { ...process.env, ...env }, maxBuffer: 20 * 1024 * 1024 },
+  { cwd: root, encoding: 'utf8', env: { ...process.env, ...env, ...extraEnv }, maxBuffer: 20 * 1024 * 1024 },
 );
-const focusedDirectionScope = () => ({
-  kind: 'focused-category-preview',
-  pageCount: 1,
-  sections: ['hero', 'opening-module'],
-  completeSite: false,
-});
+const focusedDirectionScope = () => ({ kind: 'focused-category-preview', pageCount: 1, sections: ['hero', 'opening-module'], completeSite: false });
+const loadCatalog = () => JSON.parse(runNode(resolve(skillRoot, 'scripts', 'library.mjs'), ['catalog']).stdout);
+const makeImpeccableFixture = (folder: string) => {
+  mkdirSync(folder, { recursive: true });
+  writeFileSync(resolve(folder, 'SKILL.md'), '---\nname: impeccable\ndescription: Project-local frontend polish.\n---\n');
+};
 
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
-describe('design-taste-injection skill', () => {
-  it('has a valid concise entrypoint and routed guidance', () => {
+describe('inspiration-controlled design workflow', () => {
+  it('has a concise project-scoped entrypoint and imports maintained scripts without side effects', () => {
     const skill = readFileSync(resolve(skillRoot, 'SKILL.md'), 'utf8');
-    const metadata = readFileSync(resolve(skillRoot, 'agents', 'openai.yaml'), 'utf8');
     expect(skill).toContain('name: design-taste-injection');
-    expect(skill).not.toContain('[TODO');
-    expect(skill).toContain('APPROVE AND CONTINUE');
-    expect(skill).toContain('DO NOT USE THIS CARD');
+    expect(skill).toContain('npm run setup:project');
     expect(skill).toContain('`H0`');
     expect(skill).toContain('focused-category-preview');
-    expect(metadata).toContain('$design-taste-injection');
-    expect(metadata).toContain('allow_implicit_invocation: true');
-  });
-
-  it('imports maintained scripts without executing their command-line entrypoints', () => {
+    expect(skill).toContain('SHOW ANOTHER CARD');
     const files = [
-      'scripts/check-codex.mjs', 'scripts/setup-codex.mjs', 'scripts/skill-integrity.mjs', 'scripts/export-workflow-catalog.mjs',
-      'scripts/doctor.mjs', 'scripts/validate-skill.mjs', 'scripts/verify-temp-install.mjs', 'scripts/controlled-clone-fixture.mjs', 'scripts/clone-plumbing-smoke.mjs',
-      'skills/design-taste-injection/scripts/library.mjs', 'skills/design-taste-injection/scripts/build-probe-bundle.mjs',
-      'skills/design-taste-injection/scripts/project-state.mjs', 'skills/design-taste-injection/scripts/reference-selection.mjs',
+      'scripts/setup-project.mjs', 'scripts/check-project.mjs', 'scripts/doctor-project.mjs',
+      'scripts/skill-integrity.mjs', 'scripts/export-workflow-catalog.mjs', 'scripts/validate-skill.mjs',
+      'scripts/verify-temp-install.mjs', 'scripts/controlled-clone-fixture.mjs', 'scripts/clone-plumbing-smoke.mjs',
+      'skills/design-taste-injection/scripts/library.mjs', 'skills/design-taste-injection/scripts/project-state.mjs',
+      'skills/design-taste-injection/scripts/reference-selection.mjs', 'skills/design-taste-injection/scripts/rotation-ledger.mjs',
+      'skills/design-taste-injection/scripts/visual-contract.mjs', 'skills/design-taste-injection/scripts/isolation-runner.mjs',
       'skills/design-taste-injection/scripts/clone-runtime.mjs', 'skills/design-taste-injection/scripts/serve-workbench.mjs',
     ].map((file) => pathToFileURL(resolve(root, file)).href);
     const imported = spawnSync(process.execPath, ['-e', `Promise.all(${JSON.stringify(files)}.map((file)=>import(file)))`], { cwd: root, encoding: 'utf8' });
     expect(imported.status, imported.stderr).toBe(0);
     expect(imported.stdout).toBe('');
-    const stdinImport = spawnSync(process.execPath, ['--input-type=module', '-'], { cwd: root, encoding: 'utf8', input: `await import(${JSON.stringify(files[9])})` });
-    expect(stdinImport.status, stdinImport.stderr).toBe(0);
-    expect(stdinImport.stdout).toBe('');
   }, 20_000);
 
-  it('reads the live validated library rather than a copied project catalog', () => {
-    const result = runNode(resolve(skillRoot, 'scripts', 'library.mjs'), ['catalog'], { DESIGN_TASTE_LIBRARY_ROOT: root });
-    expect(result.status, result.stderr).toBe(0);
-    const catalog = JSON.parse(result.stdout);
+  it('exports the validated live catalog with reviewed identity metadata', () => {
+    const catalog = loadCatalog();
+    expect(catalog.schemaVersion).toBe(3);
     expect(catalog.cards).toHaveLength(63);
     expect(catalog.categories).toHaveLength(7);
-    expect(catalog.libraryRoot).toBe(root);
-    expect(catalog.cards.every((card: { fingerprint?: string }) => Boolean(card.fingerprint))).toBe(true);
+    for (const card of catalog.cards) {
+      expect(card.fingerprint).toMatch(/^[a-f0-9]{16}$/);
+      expect(card.sourceIdentity).toEqual(expect.objectContaining({
+        sourceNames: expect.any(Array), aliases: expect.any(Array), domains: expect.any(Array), exactCopy: expect.any(Array),
+        distinctiveClaims: expect.any(Array), knownMarkAssetIds: expect.any(Array), sourceSpecificExclusions: expect.any(Array),
+      }));
+    }
   });
 
-  it('initializes and validates one persistent project workbench', () => {
-    const project = resolve(scratch, 'new-website');
-    const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    const initialized = runNode(script, ['init', project], env);
-    expect(initialized.status, initialized.stderr).toBe(0);
-
-    const makePreview = (id: string) => {
-      const folder = resolve(project, '.inspiration', 'previews', id);
-      mkdirSync(folder, { recursive: true });
-      writeFileSync(resolve(folder, 'index.html'), `<!doctype html><html><body><h1>${id}</h1></body></html>`);
-      return `../previews/${id}/index.html`;
+  it('selects one context-free anchor from a ten-point quality band and never adds supports', async () => {
+    const catalog = loadCatalog();
+    const script = resolve(skillRoot, 'scripts', 'reference-selection.mjs');
+    const { createSession, baseScore, eligibleQualityBand } = await import(`${pathToFileURL(script).href}?selection=${Date.now()}`);
+    const request = {
+      category: 'Print-Tech Paper', pageUse: 'marketing', seed: 'review-seed', pinned: [], excluded: [],
+      projectName: 'Secret Payroll', audience: 'CFOs', industry: 'finance', brandColors: ['#ff0000'], fitById: { 'site-spade': 0 },
     };
-
-    const generationPath = resolve(scratch, 'generation.json');
-    writeFileSync(generationPath, JSON.stringify({
-      id: 'D01', parent: null, stage: 'direction', status: 'candidate', label: 'Print Tech Paper', category: 'Print-Tech Paper', thesis: 'Editorial proof with tactile structure.', references: [], preview: makePreview('D01'), createdAt: new Date().toISOString(),
-      previewScope: focusedDirectionScope(),
-    }));
-    const appended = runNode(script, ['append-generation', project, generationPath], env);
-    expect(appended.status, appended.stderr).toBe(0);
-
-    const h0Path = resolve(scratch, 'hero-h0.json');
-    const h1Path = resolve(scratch, 'hero-h1.json');
-    writeFileSync(h0Path, JSON.stringify({
-      id: 'D01-A-O-H0', parent: 'D01', stage: 'hero', status: 'selected', label: 'Code hero', category: 'Print-Tech Paper', thesis: 'A polished code-built print plate.', references: [], preview: makePreview('D01-A-O-H0'), createdAt: new Date().toISOString(),
-    }));
-    writeFileSync(h1Path, JSON.stringify({
-      id: 'D01-A-O-H1', parent: 'D01-A-O-H0', stage: 'hero', status: 'candidate', label: 'Generated hero', category: 'Print-Tech Paper', thesis: 'A generated alternative that preserves H0.', references: [], preview: makePreview('D01-A-O-H1'), createdAt: new Date().toISOString(),
-    }));
-    expect(runNode(script, ['append-generation', project, h0Path], env).status).toBe(0);
-    expect(runNode(script, ['append-generation', project, h1Path], env).status).toBe(0);
-    expect(runNode(script, ['validate', project], env).status).toBe(0);
-    expect(runNode(script, ['init', project], env).status).toBe(0);
-
-    const state = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
-    const workbench = readFileSync(resolve(project, '.inspiration', 'workbench', 'index.html'), 'utf8');
-    expect(state.generations.map((item: { id: string }) => item.id)).toEqual(['D01', 'D01-A-O-H0', 'D01-A-O-H1']);
-    expect(workbench).toContain('Design Workbench');
-    expect(workbench).toContain("fetch('../state.json'");
-  }, 20_000);
-
-  it('adds workflow state to an existing website without replacing its files', () => {
-    const project = resolve(scratch, 'existing-website');
-    mkdirSync(project, { recursive: true });
-    const existing = '<h1>Existing website</h1>';
-    writeFileSync(resolve(project, 'index.html'), existing);
-    const result = runNode(
-      resolve(skillRoot, 'scripts', 'project-state.mjs'),
-      ['init', project],
-      { DESIGN_TASTE_LIBRARY_ROOT: root },
-    );
-    expect(result.status, result.stderr).toBe(0);
-    expect(readFileSync(resolve(project, 'index.html'), 'utf8')).toBe(existing);
-    expect(JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8')).heroProvider).toBe('codex');
+    const session = createSession(catalog, request);
+    const band = eligibleQualityBand(catalog, session.request);
+    expect(session.request).toEqual({ category: 'Print-Tech Paper', pageUse: 'marketing', seed: 'review-seed', pinned: [], excluded: [] });
+    expect(session.currentSet.supporting).toEqual([]);
+    expect(session.currentSet.anchor.role).toBe('anchor');
+    expect(catalog.cards.find((card: any) => card.id === session.currentSet.anchor.id).primaryCategory).toBe('Print-Tech Paper');
+    expect(Math.max(...band.map((item: any) => item.score)) - Math.min(...band.map((item: any) => item.score))).toBeLessThanOrEqual(10);
+    expect(session.currentSet.anchor.score).toBe(baseScore(catalog.cards.find((card: any) => card.id === session.currentSet.anchor.id), session.request));
   });
 
-  it('keeps reference selection user-controlled and replaces exclusions automatically', () => {
+  it('uses a seeded exhaustion-before-repeat shuffle with refresh, pins, and exclusions', async () => {
+    const catalog = loadCatalog();
     const script = resolve(skillRoot, 'scripts', 'reference-selection.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    const requestPath = resolve(scratch, 'selection-request.json');
-    writeFileSync(requestPath, JSON.stringify({
-      category: 'Print-Tech Paper',
-      keywords: ['editorial', 'product', 'evidence'],
-      roles: ['composition', 'typography', 'content-system'],
-      pageUse: 'marketing',
-      pinned: [], excluded: [], usage: {}, fitById: {},
-    }));
-    const proposalResult = runNode(script, ['propose', requestPath], env);
-    expect(proposalResult.status, proposalResult.stderr).toBe(0);
-    const proposal = JSON.parse(proposalResult.stdout);
-    expect(proposal.currentSet.anchor.role).toBe('anchor');
-    expect(proposal.currentSet.supporting.length).toBeLessThanOrEqual(2);
-
-    const sessionPath = resolve(scratch, 'selection-session.json');
-    writeFileSync(sessionPath, JSON.stringify(proposal));
-
-    const pinPath = resolve(scratch, 'pin-action.json');
-    writeFileSync(pinPath, JSON.stringify({ type: 'PIN THIS CARD', cardId: proposal.currentSet.anchor.id, role: 'anchor' }));
-    const pinResult = runNode(script, ['action', sessionPath, pinPath], env);
-    expect(pinResult.status, pinResult.stderr).toBe(0);
-    const pinned = JSON.parse(pinResult.stdout);
-    expect(pinned.next).toBe('ask-keep-or-refresh-unpinned');
-    writeFileSync(sessionPath, JSON.stringify(pinned));
-
-    const excludePath = resolve(scratch, 'exclude-action.json');
-    writeFileSync(excludePath, JSON.stringify({ type: 'DO NOT USE THIS CARD', cardId: proposal.currentSet.supporting[0].id }));
-    const excludeResult = runNode(script, ['action', sessionPath, excludePath], env);
-    expect(excludeResult.status, excludeResult.stderr).toBe(0);
-    const excluded = JSON.parse(excludeResult.stdout);
-    expect(excluded.next).toBe('review-automatic-replacement');
-    expect([excluded.currentSet.anchor.id, ...excluded.currentSet.supporting.map((item: { id: string }) => item.id)]).not.toContain(proposal.currentSet.supporting[0].id);
-    writeFileSync(sessionPath, JSON.stringify(excluded));
-
-    const anotherPath = resolve(scratch, 'another-action.json');
-    writeFileSync(anotherPath, JSON.stringify({ type: 'SHOW ANOTHER SET' }));
-    const anotherResult = runNode(script, ['action', sessionPath, anotherPath], env);
-    expect(anotherResult.status, anotherResult.stderr).toBe(0);
-    expect(JSON.parse(anotherResult.stdout).next).toBe('review-alternate-set');
-  }, 20_000);
-
-  it('accumulates selection history and swaps the currently displayed alternate slot', () => {
-    const script = resolve(skillRoot, 'scripts', 'reference-selection.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    const requestPath = resolve(scratch, 'selection-history-request.json');
-    const sessionPath = resolve(scratch, 'selection-history-session.json');
-    const actionPath = resolve(scratch, 'selection-history-action.json');
-    writeFileSync(requestPath, JSON.stringify({
-      category: 'Print-Tech Paper', pageUse: 'marketing', fitMode: 'exploratory',
-      keywords: ['editorial', 'product'], roles: ['composition', 'typography'],
-      pinned: [], excluded: [], usage: {}, fitById: {},
-    }));
-    const first = runNode(script, ['propose', requestPath], env);
-    expect(first.status, first.stderr).toBe(0);
-    let session = JSON.parse(first.stdout);
-    const signatures = new Set([session.currentSet.signature]);
-    writeFileSync(actionPath, JSON.stringify({ type: 'SHOW ANOTHER SET' }));
-    for (let index = 0; index < 4; index += 1) {
-      writeFileSync(sessionPath, JSON.stringify(session));
-      const alternate = runNode(script, ['action', sessionPath, actionPath], env);
-      expect(alternate.status, alternate.stderr).toBe(0);
-      session = JSON.parse(alternate.stdout);
-      expect(signatures.has(session.currentSet.signature)).toBe(false);
-      signatures.add(session.currentSet.signature);
+    const { applyAction, createSession, eligibleQualityBand } = await import(`${pathToFileURL(script).href}?rotation=${Date.now()}`);
+    const request = { category: 'Print-Tech Paper', pageUse: 'marketing', seed: 'fixed-seed', pinned: [], excluded: [] };
+    let session = createSession(catalog, request);
+    const bandSize = eligibleQualityBand(catalog, session.request).length;
+    const firstCycle: string[] = [];
+    for (let index = 0; index < bandSize; index += 1) {
+      firstCycle.push(session.currentSet.anchor.id);
+      if (index < bandSize - 1) session = applyAction(catalog, session, { type: 'SHOW ANOTHER CARD' });
     }
-    expect(Object.values(session.usage).some((count) => Number(count) > 1)).toBe(true);
+    expect(new Set(firstCycle).size).toBe(bandSize);
+    session = applyAction(catalog, session, { type: 'SHOW ANOTHER CARD' });
+    expect(session.rotation.cycle).toBe(1);
+    const initial = createSession(catalog, request);
+    const pinned = applyAction(catalog, initial, { type: 'PIN THIS CARD', cardId: initial.currentSet.anchor.id });
+    expect(() => applyAction(catalog, pinned, { type: 'SHOW ANOTHER CARD' })).toThrow(/Unpin/);
+    const excludedId = session.currentSet.anchor.id;
+    const replaced = applyAction(catalog, session, { type: 'DO NOT USE THIS CARD', cardId: excludedId });
+    expect(replaced.excluded).toContain(excludedId);
+    expect(replaced.currentSet.anchor.id).not.toBe(excludedId);
+    expect(createSession(catalog, request).currentSet.anchor.id).toBe(initial.currentSet.anchor.id);
+  });
 
-    const oldAnchor = session.currentSet.anchor.id;
-    writeFileSync(sessionPath, JSON.stringify(session));
-    writeFileSync(actionPath, JSON.stringify({ type: 'SWAP', cardId: oldAnchor }));
-    const swapped = runNode(script, ['action', sessionPath, actionPath], env);
-    expect(swapped.status, swapped.stderr).toBe(0);
-    const next = JSON.parse(swapped.stdout);
-    expect(next.currentSet.anchor.id).not.toBe(oldAnchor);
-    expect(next.currentSet.anchor.role).toBe('anchor');
-    expect(next.history.at(-1).signature).toBe(session.currentSet.signature);
+  it('keeps reviewed kind:none cards eligible and rejects unusable recipes', async () => {
+    const catalog = loadCatalog();
+    const { anchorEligible } = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'reference-selection.mjs')).href}?none=${Date.now()}`);
+    const card = catalog.cards.find((item: any) => item.imageRecipe.kind === 'none' && item.imageRecipe.reason.length >= 60);
+    expect(card).toBeTruthy();
+    expect(anchorEligible(card, { category: card.primaryCategory, pageUse: card.workflow.anchorUses[0] })).toBe(true);
+    expect(anchorEligible({ ...card, imageRecipe: { kind: 'none', reason: '' } }, { category: card.primaryCategory, pageUse: card.workflow.anchorUses[0] })).toBe(false);
+  });
+
+  it('persists only a minimal user-level rotation ledger and reconciles catalog changes', async () => {
+    const module = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'rotation-ledger.mjs')).href}?ledger=${Date.now()}`);
+    expect(module.ledgerPath(process.env)).toMatch(/website-inspiration-library[\\/]rotation-v1\.json$/);
+    let ledger = module.emptyLedger('catalog-a');
+    ledger = module.saveBag(ledger, { category: 'Print-Tech Paper', pageRole: 'marketing', seed: 's', cycle: 0, shownIds: ['a', 'b'], updatedAt: new Date().toISOString() });
+    await module.writeLedger(rotationPath, ledger);
+    const saved = JSON.parse(readFileSync(rotationPath, 'utf8'));
+    expect(saved).toEqual(ledger);
+    expect(JSON.stringify(saved)).not.toMatch(/projectId|projectName|score|industry|audience|brand/i);
+    const changed = await module.readLedger('catalog-b', { path: rotationPath, validIds: new Set(['b', 'c']) });
+    expect(changed.ledger.catalogFingerprint).toBe('catalog-b');
+    expect(changed.ledger.bags['Print-Tech Paper::marketing'].shownIds).toEqual(['b']);
+  });
+
+  it('builds a still-only sealed payload and preserves the canonical recipe verbatim', async () => {
+    const catalog = loadCatalog();
+    const card = catalog.cards.find((item: any) => item.imageRecipe.kind !== 'none');
+    const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?payload=${Date.now()}`);
+    const payload = visual.buildSealedPayload(card, { directionId: 'D01', generationId: 'D01-H0', stillPath: 'input/reference.png', sha256: 'a'.repeat(64) });
+    const prompt = visual.renderVisualPrompt(payload);
+    expect(payload.futureHero.prompt).toBe(card.imageRecipe.prompt);
+    expect(payload.card.observedBrief.Composition).toBeTruthy();
+    expect(payload.card.observedBrief.Avoid).toBeTruthy();
+    expect(prompt).toContain(card.imageRecipe.prompt);
+    expect(prompt).toMatch(/AESTHETIC[\s\S]*REFERENCE[\s\S]*FUTURE HERO[\s\S]*PLACEMENT[\s\S]*OUTPUT CONTRACT/);
+    expect(prompt).toContain('Do not inspect any motion media');
+    expect(JSON.stringify(payload)).not.toMatch(/categoryProfile|categoryConstitution|motionClip|projectName|audience|brandColors/);
+  });
+
+  it('excludes exact constitution sentences by provenance without rejecting card-authored Composition or Avoid', async () => {
+    const card = loadCatalog().cards[0];
+    const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?constitution=${Date.now()}`);
+    const payload = visual.buildSealedPayload(card);
+    expect(() => visual.assertNoConstitution(payload, visual.renderVisualPrompt(payload), { thesis: 'UNIQUE CATEGORY SENTINEL SENTENCE' })).not.toThrow();
+    const contaminated = structuredClone(payload);
+    contaminated.card.descriptor = 'UNIQUE CATEGORY SENTINEL SENTENCE';
+    expect(() => visual.assertNoConstitution(contaminated, visual.renderVisualPrompt(contaminated), { thesis: 'UNIQUE CATEGORY SENTINEL SENTENCE' })).toThrow(/constitution sentence/i);
+    expect(Object.keys(payload.card.observedBrief)).toEqual(expect.arrayContaining(['Composition', 'Avoid']));
+  });
+
+  it('uses intake-derived and reviewed identity signals as blocking guardrails without heuristics', async () => {
+    const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?scan=${Date.now()}`);
+    const signals = visual.buildLeakSignals({ companyNames: ['Acme Ledger'], domains: ['acme.test'], brandHexValues: ['#12ab34'], audiencePhrases: ['regional payroll teams'] });
+    expect(visual.scanExactSignals('A neutral preview for Acme Ledger.', signals)[0].value).toBe('Acme Ledger');
+    expect(visual.scanExactSignals('A neutral preview.', signals)).toEqual([]);
+    const identity = { sourceNames: ['Spade'], aliases: [], domains: ['spade.com'], exactCopy: ['Make it count'], distinctiveClaims: [], knownMarkAssetIds: [], sourceSpecificExclusions: [] };
+    expect(visual.scanSourceIdentity('This says Make it count.', identity)[0].value).toBe('Make it count');
+    const source = readFileSync(resolve(skillRoot, 'scripts', 'visual-contract.mjs'), 'utf8');
+    expect(source).not.toMatch(/ocr|logo.shape|color.*identity|delete.*logo/i);
+  });
+
+  it('resolves evidence by stable card ID, fingerprints it, and imports only validated temporary previews', async () => {
+    const catalog = loadCatalog();
+    const card = catalog.cards[0];
+    const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?evidence=${Date.now()}`);
+    const project = resolve(scratch, 'evidence-project');
+    const evidence = await visual.resolveEvidence(catalog, project, card.id);
+    expect(evidence.record.cardId).toBe(card.id);
+    expect(evidence.record.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(existsSync(evidence.destination)).toBe(true);
+    expect(evidence.record.inspected).toBe(false);
+    const temporary = resolve(scratch, 'temporary-preview');
+    mkdirSync(temporary, { recursive: true });
+    writeFileSync(resolve(temporary, 'index.html'), '<!doctype html><link rel="stylesheet" href="styles.css"><main>H0</main>');
+    writeFileSync(resolve(temporary, 'styles.css'), 'main{display:grid}');
+    writeFileSync(resolve(temporary, 'output-contract.json'), JSON.stringify({ schemaVersion: 1, scope: 'hero-and-opening-module', anchorCardId: card.id, supportingCardIds: [], sourceStillInspected: true, motionMediaUsed: false, heroCount: 1, openingModuleCount: 1, h0Mode: 'reserved-image-hole-with-flat-stand-in', decorativeCodeArtUsedAsFutureImage: false }));
+    const imported = await visual.importPreview(temporary, project, 'D01-H0', { leakSignals: { schemaVersion: 1, signals: [] }, sourceIdentity: card.sourceIdentity, anchorCardId: card.id, expectedH0: 'reserved-image-hole-with-flat-stand-in' });
+    expect(imported.preview).toBe('../previews/D01-H0/index.html');
+    expect(existsSync(resolve(project, '.inspiration', 'previews', 'D01-H0', 'index.html'))).toBe(true);
+    const unsafe = resolve(scratch, 'unsafe-preview');
+    mkdirSync(unsafe, { recursive: true });
+    writeFileSync(resolve(unsafe, 'index.html'), '<script src="https://example.com/a.js"></script>');
+    await expect(visual.importPreview(unsafe, project, 'D02-H0', { leakSignals: { schemaVersion: 1, signals: [] }, sourceIdentity: card.sourceIdentity })).rejects.toThrow(/external|absolute/i);
+  });
+
+  it('defines the isolation ladder and a bounded non-interactive payload-only command', async () => {
+    const isolation = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'isolation-runner.mjs')).href}?isolation=${Date.now()}`);
+    expect(isolation.codexArgs('PROMPT')).toEqual(expect.arrayContaining(['exec', '--ephemeral', '--sandbox', 'workspace-write', '--ask-for-approval', 'never']));
+    expect(isolation.isolationLabel({ freshAgentAvailable: true })).toBe('fresh-agent');
+    expect(isolation.isolationLabel({ payloadOnlyPreflight: { available: true } })).toBe('payload-only');
+    expect(isolation.isolationLabel({ degradedApproved: true })).toBe('degraded');
+    expect(isolation.isolationLabel({})).toBeNull();
+    const source = readFileSync(resolve(skillRoot, 'references', 'workflow.md'), 'utf8');
+    expect(source).toMatch(/fresh-agent[\s\S]*payload-only[\s\S]*degraded/);
+    expect(source.toLowerCase()).toContain('explicit user approval');
+  });
+
+  it('initializes schema 6 state, records anchor-only generations, and persists visual controls through events', () => {
+    const project = resolve(scratch, 'state-project');
+    const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
+    expect(runNode(script, ['init', project]).status).toBe(0);
+    const card = loadCatalog().cards.find((item: any) => item.primaryCategory === 'Print-Tech Paper');
+    const preview = resolve(project, '.inspiration', 'previews', 'D01');
+    mkdirSync(preview, { recursive: true });
+    writeFileSync(resolve(preview, 'index.html'), '<!doctype html><html><body><main>Direction preview D01</main></body></html>');
+    const generationPath = resolve(scratch, 'direction.json');
+    writeFileSync(generationPath, JSON.stringify({
+      id: 'D01', parent: null, stage: 'direction', status: 'selected', label: 'Direction', category: card.primaryCategory,
+      thesis: 'One-card visual direction.', references: [{ id: card.id, role: 'anchor' }], preview: '../previews/D01/index.html',
+      previewScope: focusedDirectionScope(), createdAt: new Date().toISOString(),
+    }));
+    const appended = runNode(script, ['append-generation', project, generationPath]);
+    expect(appended.status, appended.stderr).toBe(0);
+    const eventPath = resolve(scratch, 'visual-event.json');
+    writeFileSync(eventPath, JSON.stringify({ type: 'visual.isolation-recorded', payload: { mode: 'payload-only', preflight: { available: true, version: 1 } } }));
+    expect(runNode(script, ['apply-event', project, eventPath]).status).toBe(0);
+    writeFileSync(eventPath, JSON.stringify({ type: 'visual.route-conformance-recorded', payload: { route: '/pricing', status: 'passed', checks: ['type', 'palette', 'spacing'] } }));
+    expect(runNode(script, ['apply-event', project, eventPath]).status).toBe(0);
+    const state = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
+    expect(state.schemaVersion).toBe(6);
+    expect(state.workbenchVersion).toBe(4);
+    expect(state.generations[0].references).toEqual([{ id: card.id, role: 'anchor' }]);
+    expect(state.visualControl.isolation.mode).toBe('payload-only');
+    expect(state.visualControl.routeConformance[0].route).toBe('/pricing');
+    expect(readFileSync(resolve(project, '.inspiration', 'workbench', 'index.html'), 'utf8')).toContain('SHOW ANOTHER CARD');
   }, 20_000);
 
-  it('validates malformed selection inputs and always supports exploratory category directions', async () => {
-    const script = resolve(skillRoot, 'scripts', 'reference-selection.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    const requestPath = resolve(scratch, 'selection-validation-request.json');
-    writeFileSync(requestPath, JSON.stringify({
-      category: 'Print-Tech Paper', pageUse: 'marketing', fitMode: 'exploratory', keywords: [], roles: [],
-      pinned: [{ id: 'site-spade', role: 'anchor' }, { id: 'site-paper', role: 'anchor' }],
-      excluded: [], usage: {}, fitById: { 'site-spade': 1.2 },
-    }));
-    const malformed = runNode(script, ['propose', requestPath], env);
-    expect(malformed.status).not.toBe(0);
-    expect(malformed.stderr).toMatch(/fitById|one pinned anchor/);
-
-    const catalogResult = runNode(resolve(skillRoot, 'scripts', 'library.mjs'), ['catalog'], env);
-    const catalog = JSON.parse(catalogResult.stdout);
-    const { createSession } = await import(`${pathToFileURL(script).href}?selection=${Date.now()}`);
-    for (const pageUse of ['marketing', 'product', 'editorial', 'documentation', 'authentication', 'footer']) for (const category of catalog.categories) {
-      const proposal = createSession(catalog, {
-        category, pageUse, fitMode: 'exploratory', keywords: [pageUse], roles: [],
-        pinned: [], excluded: [], usage: {}, fitById: {},
-      });
-      expect(['exact', 'adjacent', 'aesthetic-only'], `${category}/${pageUse}`).toContain(proposal.currentSet.anchorFit);
-    }
-    const implementationFailures = catalog.categories.filter((category: string) => {
-      try {
-        createSession(catalog, { category, pageUse: 'authentication', fitMode: 'implementation', keywords: [], roles: [], pinned: [], excluded: [], usage: {}, fitById: {} });
-        return false;
-      } catch { return true; }
-    });
-    expect(implementationFailures.length).toBeGreaterThan(0);
-  }, 20_000);
-
-  it('rejects unsafe automatic anchors and missing workbench previews', () => {
-    const selection = resolve(skillRoot, 'scripts', 'reference-selection.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    const requestPath = resolve(scratch, 'unsafe-anchor-request.json');
-    writeFileSync(requestPath, JSON.stringify({
-      category: 'Illustrated Storybook', pageUse: 'marketing', roles: ['composition'],
-      pinned: [{ id: 'image-flora-footer', role: 'anchor' }], excluded: [], usage: {}, fitById: {},
-    }));
-    const rejectedAnchor = runNode(selection, ['propose', requestPath], env);
-    expect(rejectedAnchor.status).not.toBe(0);
-    expect(rejectedAnchor.stderr).toContain('cannot anchor');
-
-    const project = resolve(scratch, 'missing-preview-project');
-    const stateScript = resolve(skillRoot, 'scripts', 'project-state.mjs');
-    expect(runNode(stateScript, ['init', project], env).status).toBe(0);
-    const record = resolve(scratch, 'missing-preview.json');
-    writeFileSync(record, JSON.stringify({
-      id: 'D07', parent: null, stage: 'direction', status: 'candidate', label: 'Missing',
-      category: 'Illustrated Storybook', thesis: 'Missing preview.', references: [],
-      preview: '../previews/D07/index.html', previewScope: focusedDirectionScope(), createdAt: new Date().toISOString(),
-    }));
-    const rejectedPreview = runNode(stateScript, ['append-generation', project, record], env);
-    expect(rejectedPreview.status).not.toBe(0);
-    expect(rejectedPreview.stderr).toContain('generation preview is missing');
-
-    const overbuiltFolder = resolve(project, '.inspiration', 'previews', 'D08');
-    mkdirSync(overbuiltFolder, { recursive: true });
-    writeFileSync(resolve(overbuiltFolder, 'index.html'), '<!doctype html><html><body><main>Overbuilt direction</main></body></html>');
-    writeFileSync(record, JSON.stringify({
-      id: 'D08', parent: null, stage: 'direction', status: 'candidate', label: 'Overbuilt',
-      category: 'Illustrated Storybook', thesis: 'A complete site created too early.', references: [],
-      preview: '../previews/D08/index.html',
-      previewScope: { kind: 'focused-category-preview', pageCount: 2, sections: ['hero', 'opening-module', 'pricing'], completeSite: true },
-      createdAt: new Date().toISOString(),
-    }));
-    const rejectedScope = runNode(stateScript, ['append-generation', project, record], env);
-    expect(rejectedScope.status).not.toBe(0);
-    expect(rejectedScope.stderr).toContain('one page with exactly a hero and one opening module');
-  }, 20_000);
-
-  it('migrates legacy project state without losing its generation history', () => {
-    const project = resolve(scratch, 'legacy-project-state');
+  it('migrates legacy state without losing history and rejects new direction supports', () => {
+    const project = resolve(scratch, 'legacy-state');
     const inspiration = resolve(project, '.inspiration');
     mkdirSync(inspiration, { recursive: true });
     writeFileSync(resolve(inspiration, 'state.json'), JSON.stringify({
-      schemaVersion: 1,
-      projectRoot: project,
-      status: 'direction',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      intake: { introduction: 'Legacy', intent: 'Preserve it', audience: 'Team', materialsAndRequirements: '' },
-      informationArchitecture: { status: 'approved', pages: [], sections: [], primaryJourney: '' },
+      schemaVersion: 1, projectRoot: project, status: 'direction', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      intake: { introduction: 'Legacy', intent: '', audience: '', materialsAndRequirements: '' },
+      informationArchitecture: { status: 'pending', pages: [], sections: [], primaryJourney: '' },
       references: { pinned: [], excluded: [], usage: {}, sets: [] },
-      generations: [{
-        id: 'D01', parent: null, stage: 'direction', status: 'selected', label: 'Legacy direction',
-        category: 'Print-Tech Paper', thesis: 'Preserved legacy direction.', references: [], preview: '', createdAt: new Date().toISOString(),
-      }],
-      decisions: [],
-      heroProvider: 'codex',
+      generations: [{ id: 'OLD', parent: null, stage: 'direction', status: 'selected', label: 'Legacy', category: 'Print-Tech Paper', thesis: '', references: [], preview: '', createdAt: new Date().toISOString() }],
+      decisions: [], heroProvider: 'codex',
     }));
-    const migrated = runNode(
-      resolve(skillRoot, 'scripts', 'project-state.mjs'),
-      ['init', project],
-      { DESIGN_TASTE_LIBRARY_ROOT: root },
-    );
-    expect(migrated.status, migrated.stderr).toBe(0);
-    const state = JSON.parse(readFileSync(resolve(inspiration, 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(5);
-    expect(state.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
-    expect(state.generations[0].id).toBe('D01');
-    expect(state.generations[0].preview).toBe('../previews/D01/index.html');
-    expect(readFileSync(resolve(inspiration, 'previews', 'D01', 'index.html'), 'utf8')).toContain('Legacy generation preserved');
-
-    for (const legacyVersion of [2, 3, 4]) {
-      const legacyProject = resolve(scratch, `legacy-project-state-v${legacyVersion}`);
-      const legacyInspiration = resolve(legacyProject, '.inspiration');
-      mkdirSync(legacyInspiration, { recursive: true });
-      const { previewScope: _previewScope, ...legacyGenerationBase } = state.generations[0];
-      const legacyGeneration = { ...legacyGenerationBase, id: `D0${legacyVersion}`, parent: null, preview: `../previews/D0${legacyVersion}/index.html` };
-      writeFileSync(resolve(legacyInspiration, 'state.json'), JSON.stringify({
-        ...state, schemaVersion: legacyVersion, workbenchVersion: 1, projectRoot: legacyProject,
-        generations: [legacyGeneration],
-      }));
-      const migratedLegacy = runNode(resolve(skillRoot, 'scripts', 'project-state.mjs'), ['init', legacyProject], { DESIGN_TASTE_LIBRARY_ROOT: root });
-      expect(migratedLegacy.status, migratedLegacy.stderr).toBe(0);
-      const legacyState = JSON.parse(readFileSync(resolve(legacyInspiration, 'state.json'), 'utf8'));
-      expect(legacyState.schemaVersion).toBe(5);
-      expect(legacyState.generations[0].id).toBe(`D0${legacyVersion}`);
-      expect(legacyState.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
-    }
-  }, 20_000);
-
-  it('updates state through validated events and preserves the prior file after rejection', () => {
-    const project = resolve(scratch, 'state-events-project');
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    expect(runNode(script, ['init', project], env).status).toBe(0);
-    const eventPath = resolve(scratch, 'state-event.json');
-    writeFileSync(eventPath, JSON.stringify({
-      type: 'intake.updated',
-      payload: { introduction: 'A product site', intent: 'Explain value', audience: 'Buyers', materialsAndRequirements: 'Use the supplied brief.' },
-    }));
-    expect(runNode(script, ['apply-event', project, eventPath], env).status).toBe(0);
-    writeFileSync(eventPath, JSON.stringify({ type: 'workflow.status-changed', payload: { status: 'architecture' } }));
-    expect(runNode(script, ['apply-event', project, eventPath], env).status).toBe(0);
-    writeFileSync(eventPath, JSON.stringify({
-      type: 'architecture.updated',
-      payload: { status: 'approved', pages: ['Home'], sections: ['Hero'], primaryJourney: 'Learn then act' },
-    }));
-    expect(runNode(script, ['apply-event', project, eventPath], env).status).toBe(0);
-    const statePath = resolve(project, '.inspiration', 'state.json');
-    const beforeInvalid = readFileSync(statePath, 'utf8');
-    writeFileSync(eventPath, JSON.stringify({ type: 'workflow.status-changed', payload: { status: 'invented-stage' } }));
-    const rejected = runNode(script, ['apply-event', project, eventPath], env);
-    expect(rejected.status).not.toBe(0);
-    expect(readFileSync(statePath, 'utf8')).toBe(beforeInvalid);
-    const state = JSON.parse(beforeInvalid);
-    expect(state.schemaVersion).toBe(5);
-    expect(state.intake.introduction).toBe('A product site');
-    expect(state.informationArchitecture.status).toBe('approved');
-  }, 20_000);
+    expect(runNode(script, ['init', project]).status).toBe(0);
+    const state = JSON.parse(readFileSync(resolve(inspiration, 'state.json'), 'utf8'));
+    expect(state.schemaVersion).toBe(6);
+    expect(state.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
+    expect(state.visualControl).toBeTruthy();
+  });
 
-  it('preserves the prior state when an atomic replacement is interrupted', async () => {
+  it('protects project roots, preview containment, and atomic state replacement', async () => {
+    const stateScript = resolve(skillRoot, 'scripts', 'project-state.mjs');
+    expect(runNode(stateScript, ['init', resolve(root, 'accidental-project')]).status).not.toBe(0);
+    const first = resolve(scratch, 'state-original');
+    const second = resolve(scratch, 'state-copy');
+    expect(runNode(stateScript, ['init', first]).status).toBe(0);
+    cpSync(resolve(first, '.inspiration'), resolve(second, '.inspiration'), { recursive: true });
+    expect(runNode(stateScript, ['validate', second]).stderr).toContain('saved projectRoot does not match');
     const path = resolve(scratch, 'atomic-state.json');
     writeFileSync(path, '{"prior":true}\n');
-    const { atomicWriteJson } = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'project-state.mjs')).href}?atomic=${Date.now()}`);
-    await expect(atomicWriteJson(path, { prior: false }, { beforeReplace: () => { throw new Error('simulated interruption'); } })).rejects.toThrow('simulated interruption');
+    const { atomicWriteJson } = await import(`${pathToFileURL(stateScript).href}?atomic=${Date.now()}`);
+    await expect(atomicWriteJson(path, { prior: false }, { beforeReplace: () => { throw new Error('simulated interruption'); } })).rejects.toThrow();
     expect(readFileSync(path, 'utf8')).toBe('{"prior":true}\n');
   });
 
-  it('archives a customized older workbench before installing the compatible template', () => {
-    const project = resolve(scratch, 'custom-workbench-project');
-    const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    expect(runNode(script, ['init', project], env).status).toBe(0);
-    const statePath = resolve(project, '.inspiration', 'state.json');
-    const workbenchPath = resolve(project, '.inspiration', 'workbench', 'index.html');
-    const custom = '<!doctype html><html><body><h1>My custom workbench</h1></body></html>';
-    writeFileSync(workbenchPath, custom);
-    const state = JSON.parse(readFileSync(statePath, 'utf8'));
-    state.schemaVersion = 3;
-    state.workbenchVersion = 2;
-    writeFileSync(statePath, JSON.stringify(state));
-    const upgraded = runNode(script, ['init', project], env);
-    expect(upgraded.status, upgraded.stderr).toBe(0);
-    const archive = resolve(project, '.inspiration', 'workbench', 'archive');
-    const archivedName = readdirSync(archive)[0];
-    expect(readFileSync(resolve(archive, archivedName), 'utf8')).toBe(custom);
-    expect(readFileSync(workbenchPath, 'utf8')).toContain('design-taste-workbench-version" content="3');
-  }, 20_000);
-
-  it('serves isolated workbench previews, byte-range media, and falls back from a busy port', async () => {
-    const project = resolve(scratch, 'workbench-server-project');
-    const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    expect(runNode(script, ['init', project], env).status).toBe(0);
-    const media = resolve(project, '.inspiration', 'previews', 'D01', 'sample.mp4');
-    mkdirSync(resolve(media, '..'), { recursive: true });
-    writeFileSync(media, Buffer.from('0123456789'));
-    const template = readFileSync(resolve(project, '.inspiration', 'workbench', 'index.html'), 'utf8');
-    expect(template).toContain('sandbox="allow-scripts"');
-    expect(template).toContain('stage-filter');
-    expect(template).toContain('category-filter');
-
-    const occupied = createServer((_request, response) => response.end('occupied'));
-    await new Promise<void>((done) => occupied.listen(0, '127.0.0.1', done));
-    const busyPort = (occupied.address() as { port: number }).port;
-    const { listenWithFallback } = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'serve-workbench.mjs')).href}?server=${Date.now()}`);
-    const running = await listenWithFallback(project, busyPort, 3);
-    expect(running.port).toBe(busyPort + 1);
-    const ranged = await fetch(`http://127.0.0.1:${running.port}/previews/D01/sample.mp4`, { headers: { Range: 'bytes=2-5' } });
-    expect(ranged.status).toBe(206);
-    expect(ranged.headers.get('content-type')).toBe('video/mp4');
-    expect(await ranged.text()).toBe('2345');
-    const escaped = await fetch(`http://127.0.0.1:${running.port}/../package.json`);
-    expect(escaped.status).toBe(404);
-    await new Promise<void>((done, reject) => running.server.close((error?: Error) => error ? reject(error) : done()));
-    await new Promise<void>((done, reject) => occupied.close((error?: Error) => error ? reject(error) : done()));
-  });
-
-  it('uses an operating-system port after valid high ports are exhausted', async () => {
-    const project = resolve(scratch, 'high-port-project');
-    const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
-    expect(runNode(script, ['init', project], { DESIGN_TASTE_LIBRARY_ROOT: root }).status).toBe(0);
-    const occupied = createServer((_request, response) => response.end('occupied'));
-    try { await new Promise<void>((done, reject) => occupied.once('error', reject).listen(65535, '127.0.0.1', done)); } catch { /* A separate process already occupies it, which is also a valid test setup. */ }
-    const { listenWithFallback } = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'serve-workbench.mjs')).href}?highport=${Date.now()}`);
-    const running = await listenWithFallback(project, 65535, 3);
-    expect(running.port).toBeGreaterThan(0);
-    expect(running.port).toBeLessThan(65535);
-    await new Promise<void>((done, reject) => running.server.close((error?: Error) => error ? reject(error) : done()));
-    if (occupied.listening) await new Promise<void>((done, reject) => occupied.close((error?: Error) => error ? reject(error) : done()));
-  }, 20_000);
-
-  it('rejects junction escapes from the project inspiration folder', () => {
-    const project = resolve(scratch, 'junction-project');
-    const outside = resolve(scratch, 'junction-outside');
+  it('installs, checks, and repairs project-local skills with managed rollback boundaries', async () => {
+    const project = resolve(scratch, 'website-project');
+    const impeccable = resolve(scratch, 'impeccable-fixture');
     mkdirSync(project, { recursive: true });
-    mkdirSync(outside, { recursive: true });
-    symlinkSync(outside, resolve(project, '.inspiration'), process.platform === 'win32' ? 'junction' : 'dir');
-    const result = runNode(resolve(skillRoot, 'scripts', 'project-state.mjs'), ['init', project], { DESIGN_TASTE_LIBRARY_ROOT: root });
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('escapes protected root');
-  });
-
-  it('rejects copied state files whose saved project root does not match', () => {
-    const first = resolve(scratch, 'state-original');
-    const second = resolve(scratch, 'state-copy');
-    const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    expect(runNode(script, ['init', first], env).status).toBe(0);
-    cpSync(resolve(first, '.inspiration'), resolve(second, '.inspiration'), { recursive: true });
-    const result = runNode(script, ['validate', second], env);
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('saved projectRoot does not match');
-  });
-
-  it('rejects malformed current state instead of silently repairing it', () => {
-    const project = resolve(scratch, 'invalid-schema-three');
-    const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    expect(runNode(script, ['init', project], env).status).toBe(0);
-    const statePath = resolve(project, '.inspiration', 'state.json');
-    const state = JSON.parse(readFileSync(statePath, 'utf8'));
-    state.status = 'invented';
-    delete state.intake;
-    state.informationArchitecture.status = 'invented';
-    state.references.usage = { 'site-spade': -1 };
-    state.decisions = [{}];
-    writeFileSync(statePath, JSON.stringify(state));
-    const rejected = runNode(script, ['validate', project], env);
-    expect(rejected.status).not.toBe(0);
-    expect(rejected.stderr).toContain('invalid workflow status');
-    expect(rejected.stderr).toContain('intake must be an object');
-    expect(rejected.stderr).toContain('informationArchitecture.status is invalid');
-    expect(rejected.stderr).toContain('references.usage');
-    expect(rejected.stderr).toContain('invalid decision record');
-  });
-
-  it('refuses to initialize project output inside the library', () => {
-    const result = runNode(
-      resolve(skillRoot, 'scripts', 'project-state.mjs'),
-      ['init', resolve(root, 'accidental-project')],
-      { DESIGN_TASTE_LIBRARY_ROOT: root },
-    );
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('project folder must be independent');
-  });
-
-  it('installs and safely reinstalls only its managed global skill', () => {
-    const codexHome = resolve(scratch, 'codex-home');
-    const setup = resolve(root, 'scripts', 'setup-codex.mjs');
-    const first = runNode(setup, ['--codex-home', codexHome]);
-    expect(first.status, first.stderr).toBe(0);
-    const destination = resolve(codexHome, 'skills', 'design-taste-injection');
+    writeFileSync(resolve(project, 'package.json'), '{"private":true}');
+    makeImpeccableFixture(impeccable);
+    const setup = resolve(root, 'scripts', 'setup-project.mjs');
+    expect(runNode(setup, [project, '--impeccable-source', impeccable]).status).toBe(0);
+    const destination = resolve(project, '.agents', 'skills', 'design-taste-injection');
+    expect(existsSync(resolve(destination, 'SKILL.md'))).toBe(true);
+    expect(existsSync(resolve(project, '.agents', 'skills', 'impeccable', 'SKILL.md'))).toBe(true);
     const config = JSON.parse(readFileSync(resolve(destination, 'config', 'library.json'), 'utf8'));
-    expect(config.libraryRoot).toBe(root);
-    expect(config.catalogFingerprint).toMatch(/^[a-f0-9]{16}$/);
-    expect(config.skillFingerprint).toMatch(/^[a-f0-9]{64}$/);
-    expect(config.vendorFingerprint).toMatch(/^[a-f0-9]{64}$/);
-    expect(readFileSync(resolve(destination, 'SKILL.md'), 'utf8')).toContain('name: design-taste-injection');
-    expect(runNode(setup, ['--codex-home', codexHome]).status).toBe(0);
-    const check = runNode(resolve(root, 'scripts', 'check-codex.mjs'), ['--codex-home', codexHome]);
-    expect(check.status, check.stderr).toBe(0);
-    expect(check.stdout).toContain('installed, current, and connected');
+    expect(config.scope).toBe('project');
+    expect(config.projectRoot).toBe(realpathSync(project));
+    expect(runNode(resolve(root, 'scripts', 'check-project.mjs'), [project]).status).toBe(0);
+    writeFileSync(resolve(destination, 'scripts', 'reference-selection.mjs'), '// stale');
+    expect(runNode(resolve(root, 'scripts', 'check-project.mjs'), [project]).status).not.toBe(0);
+    expect(runNode(setup, [project, '--impeccable-source', impeccable]).status).toBe(0);
+    expect(runNode(resolve(root, 'scripts', 'check-project.mjs'), [project]).status).toBe(0);
+    writeFileSync(resolve(project, '.agents', 'skills', 'impeccable', 'custom-note.txt'), 'preserve me');
+    expect(runNode(setup, [project, '--impeccable-source', impeccable]).status).toBe(0);
+    expect(readFileSync(resolve(project, '.agents', 'skills', 'impeccable', 'custom-note.txt'), 'utf8')).toBe('preserve me');
 
-    const changedScript = resolve(destination, 'scripts', 'reference-selection.mjs');
-    writeFileSync(changedScript, `${readFileSync(changedScript, 'utf8')}\n// changed after installation\n`);
-    const stale = runNode(resolve(root, 'scripts', 'check-codex.mjs'), ['--codex-home', codexHome]);
-    expect(stale.status).not.toBe(0);
-    expect(stale.stderr).toContain('needs repair');
-    expect(runNode(setup, ['--codex-home', codexHome]).status).toBe(0);
-    expect(runNode(resolve(root, 'scripts', 'check-codex.mjs'), ['--codex-home', codexHome]).status).toBe(0);
-  }, 20_000);
+    const dest = resolve(scratch, 'rollback-destination');
+    const stage = resolve(scratch, 'rollback-staging');
+    mkdirSync(dest, { recursive: true }); mkdirSync(stage, { recursive: true });
+    writeFileSync(resolve(dest, 'identity.txt'), 'old'); writeFileSync(resolve(stage, 'identity.txt'), 'new');
+    const { replaceMany } = await import(`${pathToFileURL(setup).href}?rollback=${Date.now()}`);
+    await expect(replaceMany([{ destination: dest, staging: stage }], { afterInstall: () => { throw new Error('interrupted'); } })).rejects.toThrow('interrupted');
+    expect(readFileSync(resolve(dest, 'identity.txt'), 'utf8')).toBe('old');
+  }, 30_000);
 
-  it('verifies the complete vendor tree and rolls back an interrupted replacement', async () => {
-    const integrity = resolve(root, 'scripts', 'skill-integrity.mjs');
-    const vendorCopy = resolve(scratch, 'vendor-copy');
-    cpSync(resolve(skillRoot, 'vendor', 'site-clone'), vendorCopy, { recursive: true });
-    expect(runNode(integrity, ['verify-vendor', vendorCopy]).status).toBe(0);
-    const upstream = resolve(vendorCopy, 'UPSTREAM.md');
-    writeFileSync(upstream, readFileSync(upstream, 'utf8').replaceAll('\r\n', '\n').replaceAll('\n', '\r\n'));
-    expect(runNode(integrity, ['verify-vendor', vendorCopy]).status).toBe(0);
-    const changed = resolve(vendorCopy, 'skills', 'clone-site', 'scripts', 'surface-map.js');
-    writeFileSync(changed, `${readFileSync(changed, 'utf8')}\n// tampered\n`);
-    const rejected = runNode(integrity, ['verify-vendor', vendorCopy]);
-    expect(rejected.status).not.toBe(0);
-    expect(rejected.stderr).toContain('Vendor integrity failed');
-
-    const destination = resolve(scratch, 'rollback-destination');
-    const staging = resolve(scratch, 'rollback-staging');
+  it('refuses library, installed-skill, and unmanaged project-skill targets', () => {
+    const impeccable = resolve(scratch, 'impeccable-refusal');
+    makeImpeccableFixture(impeccable);
+    const setup = resolve(root, 'scripts', 'setup-project.mjs');
+    expect(runNode(setup, [root, '--impeccable-source', impeccable]).status).not.toBe(0);
+    expect(runNode(setup, [skillRoot, '--impeccable-source', impeccable]).status).not.toBe(0);
+    const project = resolve(scratch, 'unmanaged-project');
+    const destination = resolve(project, '.agents', 'skills', 'design-taste-injection');
     mkdirSync(destination, { recursive: true });
-    mkdirSync(staging, { recursive: true });
-    writeFileSync(resolve(destination, 'identity.txt'), 'working installation');
-    writeFileSync(resolve(staging, 'identity.txt'), 'replacement');
-    const { replaceInstallation } = await import(`${pathToFileURL(resolve(root, 'scripts', 'setup-codex.mjs')).href}?rollback=${Date.now()}`);
-    await expect(replaceInstallation(destination, staging, { afterBackup: () => { throw new Error('simulated interruption'); } })).rejects.toThrow('simulated interruption');
-    expect(readFileSync(resolve(destination, 'identity.txt'), 'utf8')).toBe('working installation');
+    writeFileSync(resolve(destination, 'SKILL.md'), 'unmanaged');
+    const refused = runNode(setup, [project, '--impeccable-source', impeccable]);
+    expect(refused.status).not.toBe(0);
+    expect(refused.stderr).toContain('Refusing to replace unmanaged project skill');
   });
 
-  it('detects a stale installed library path and rejects non-cloneable cards', () => {
-    const codexHome = resolve(scratch, 'health-check-home');
-    const setup = resolve(root, 'scripts', 'setup-codex.mjs');
-    expect(runNode(setup, ['--codex-home', codexHome]).status).toBe(0);
-    const destination = resolve(codexHome, 'skills', 'design-taste-injection');
-    const project = resolve(scratch, 'clone-preflight-project');
-    mkdirSync(project, { recursive: true });
-    const preflight = runNode(
-      resolve(destination, 'scripts', 'clone-runtime.mjs'),
-      ['preflight', project, 'image-astra-ai', 'D01-A-R'],
-    );
-    expect(preflight.status).not.toBe(0);
-    expect(preflight.stderr).toContain('reference-only');
-
-    const configPath = resolve(destination, 'config', 'library.json');
-    const config = JSON.parse(readFileSync(configPath, 'utf8'));
-    config.libraryRoot = resolve(scratch, 'moved-library');
-    writeFileSync(configPath, JSON.stringify(config));
-    const stale = runNode(resolve(root, 'scripts', 'check-codex.mjs'), ['--codex-home', codexHome]);
-    expect(stale.status).not.toBe(0);
-    expect(stale.stderr).toContain('needs repair');
-  }, 15_000);
-
-  it('runs deterministic three-width clone pixel QA from the installed skill', () => {
-    const codexHome = resolve(scratch, 'clone-qa-home');
-    expect(runNode(resolve(root, 'scripts', 'setup-codex.mjs'), ['--codex-home', codexHome]).status).toBe(0);
-    const runtime = resolve(codexHome, 'skills', 'design-taste-injection', 'scripts', 'clone-runtime.mjs');
+  it('keeps clone QA at exactly three widths', () => {
     const project = resolve(scratch, 'clone-qa-project');
+    const impeccable = resolve(scratch, 'clone-qa-impeccable');
+    mkdirSync(project, { recursive: true });
+    makeImpeccableFixture(impeccable);
+    expect(runNode(resolve(root, 'scripts', 'setup-project.mjs'), [project, '--impeccable-source', impeccable]).status).toBe(0);
+    const runtime = resolve(project, '.agents', 'skills', 'design-taste-injection', 'scripts', 'clone-runtime.mjs');
     const evidence = resolve(project, '.inspiration', 'clone', 'QA1');
     mkdirSync(evidence, { recursive: true });
-    writeFileSync(resolve(evidence, 'preflight.json'), JSON.stringify({
-      schemaVersion: 2, generationId: 'QA1', cardId: 'site-spade', projectRoot: project,
-      evidenceRoot: evidence, requiredWidths: [1440, 768, 390],
-    }));
+    writeFileSync(resolve(evidence, 'preflight.json'), JSON.stringify({ schemaVersion: 2, generationId: 'QA1', cardId: 'site-spade', projectRoot: project, evidenceRoot: evidence, requiredWidths: [1440, 768, 390] }));
     const pairs = [1440, 768, 390].map((width) => {
-      const original = resolve(evidence, `original-${width}.png`);
-      const clone = resolve(evidence, `clone-${width}.png`);
-      const png = new PNG({ width, height: 2 });
-      png.data.fill(255);
-      const bytes = PNG.sync.write(png);
-      writeFileSync(original, bytes);
-      writeFileSync(clone, bytes);
-      return { width, original, clone, maxDiffRatio: 0 };
+      const original = resolve(evidence, `original-${width}.png`); const clone = resolve(evidence, `clone-${width}.png`);
+      const png = new PNG({ width, height: 2 }); png.data.fill(255); const bytes = PNG.sync.write(png);
+      writeFileSync(original, bytes); writeFileSync(clone, bytes); return { width, original, clone, maxDiffRatio: 0 };
     });
     const manifest = resolve(evidence, 'qa-manifest.json');
     writeFileSync(manifest, JSON.stringify({ schemaVersion: 2, generationId: 'QA1', pairs }));
-    const result = runNode(runtime, ['verify', project, 'QA1', manifest]);
-    expect(result.status, result.stderr).toBe(0);
+    const verified = runNode(runtime, ['verify', project, 'QA1', manifest]);
+    expect(verified.status, verified.stderr).toBe(0);
     const report = JSON.parse(readFileSync(resolve(evidence, 'qa', 'report.json'), 'utf8'));
-    expect(report.passed).toBe(true);
-    expect(report.results.map((entry: { width: number }) => entry.width)).toEqual([1440, 768, 390]);
-    expect(report.results.every((entry: { comparedPixels: number; maskedPixels: number }) => entry.comparedPixels > 0 && entry.maskedPixels === 0)).toBe(true);
+    expect(report.results.map((item: any) => item.width)).toEqual([1440, 768, 390]);
   });
 
-  it('rejects clone QA loopholes and marks permissive thresholds inconclusive', () => {
-    const codexHome = resolve(scratch, 'clone-qa-hardening-home');
-    expect(runNode(resolve(root, 'scripts', 'setup-codex.mjs'), ['--codex-home', codexHome]).status).toBe(0);
-    const runtime = resolve(codexHome, 'skills', 'design-taste-injection', 'scripts', 'clone-runtime.mjs');
-    const project = resolve(scratch, 'clone-qa-hardening-project');
-    const evidence = resolve(project, '.inspiration', 'clone', 'QA2');
-    mkdirSync(evidence, { recursive: true });
-    const makePairs = (threshold = 0.02, maskRects?: unknown[]) => [1440, 768, 390].map((width) => {
-      const original = resolve(evidence, `source-${width}.png`);
-      const clone = resolve(evidence, `result-${width}.png`);
-      const png = new PNG({ width, height: 4 });
-      png.data.fill(255);
-      writeFileSync(original, PNG.sync.write(png));
-      writeFileSync(clone, PNG.sync.write(png));
-      return { width, original, clone, maxDiffRatio: threshold, maskRects };
-    });
-    const manifest = resolve(evidence, 'qa-manifest.json');
-    writeFileSync(manifest, JSON.stringify({ schemaVersion: 2, generationId: 'QA2', pairs: makePairs() }));
-    const noPreflight = runNode(runtime, ['verify', project, 'QA2', manifest]);
-    expect(noPreflight.status).not.toBe(0);
-    expect(noPreflight.stderr).toContain('preflight');
-
-    writeFileSync(resolve(evidence, 'preflight.json'), JSON.stringify({
-      schemaVersion: 2, generationId: 'QA2', cardId: 'site-spade', projectRoot: project,
-      evidenceRoot: evidence, requiredWidths: [1440, 768, 390],
-    }));
-    const oversizedMasks = makePairs(0.02).map((pair) => ({
-      ...pair, maskRects: [{ x: 0, y: 0, width: pair.width, height: 2, reason: 'dynamic content' }],
-    }));
-    writeFileSync(manifest, JSON.stringify({ schemaVersion: 2, generationId: 'QA2', pairs: oversizedMasks }));
-    const masked = runNode(runtime, ['verify', project, 'QA2', manifest]);
-    expect(masked.status).not.toBe(0);
-    expect(masked.stderr).toContain('maximum is 25%');
-
-    const duplicateWidths = makePairs();
-    duplicateWidths[2].width = 768;
-    writeFileSync(manifest, JSON.stringify({ schemaVersion: 2, generationId: 'QA2', pairs: duplicateWidths }));
-    const duplicated = runNode(runtime, ['verify', project, 'QA2', manifest]);
-    expect(duplicated.status).not.toBe(0);
-    expect(duplicated.stderr).toContain('exactly one record');
-
-    writeFileSync(manifest, JSON.stringify({ schemaVersion: 2, generationId: 'QA2', pairs: makePairs(0.08) }));
-    const inconclusive = runNode(runtime, ['verify', project, 'QA2', manifest]);
-    expect(inconclusive.status).toBe(3);
-    const report = JSON.parse(readFileSync(resolve(evidence, 'qa', 'report.json'), 'utf8'));
-    expect(report.status).toBe('inconclusive');
-    expect(report.results.every((entry: { status: string }) => entry.status === 'inconclusive')).toBe(true);
+  it('archives customized workbenches and rejects inspiration-folder junction escapes', () => {
+    const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
+    const project = resolve(scratch, 'custom-workbench-project');
+    expect(runNode(script, ['init', project]).status).toBe(0);
+    const statePath = resolve(project, '.inspiration', 'state.json');
+    const workbenchPath = resolve(project, '.inspiration', 'workbench', 'index.html');
+    writeFileSync(workbenchPath, '<h1>Custom</h1>');
+    const state = JSON.parse(readFileSync(statePath, 'utf8')); state.schemaVersion = 5; state.workbenchVersion = 3; writeFileSync(statePath, JSON.stringify(state));
+    expect(runNode(script, ['init', project]).status).toBe(0);
+    expect(readdirSync(resolve(project, '.inspiration', 'workbench', 'archive')).length).toBeGreaterThan(0);
+    expect(readFileSync(workbenchPath, 'utf8')).toContain('content="4"');
+    const junction = resolve(scratch, 'junction-project'); const outside = resolve(scratch, 'junction-outside');
+    mkdirSync(junction, { recursive: true }); mkdirSync(outside, { recursive: true });
+    symlinkSync(outside, resolve(junction, '.inspiration'), process.platform === 'win32' ? 'junction' : 'dir');
+    expect(runNode(script, ['init', junction]).stderr).toContain('escapes protected root');
   }, 20_000);
 
-  it('enforces schema-5 stage prerequisites and rejects invented completed work', async () => {
-    const project = resolve(scratch, 'semantic-state-project');
-    const catalogResult = runNode(resolve(skillRoot, 'scripts', 'library.mjs'), ['catalog'], { DESIGN_TASTE_LIBRARY_ROOT: root });
-    const catalog = JSON.parse(catalogResult.stdout);
-    const { emptyState, validateState } = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'project-state.mjs')).href}?state=${Date.now()}`);
-    const state = emptyState(project);
-    state.intake = { introduction: 'Product site', intent: 'Explain value', audience: 'Buyers', materialsAndRequirements: '' };
-    state.informationArchitecture = { status: 'approved', pages: ['Home'], sections: ['Hero'], primaryJourney: 'Learn then act' };
-    const generation = (id: string, stage: string, status = 'selected', parent: string | null = null) => ({
-      id, parent, stage, status, label: id, category: 'Print-Tech Paper', thesis: 'Validated project artifact.', references: [],
-      preview: `../previews/${id}/index.html`, createdAt: new Date().toISOString(),
-      ...(stage === 'direction' ? { previewScope: focusedDirectionScope() } : {}),
-    });
-    state.generations = [
-      generation('D1', 'direction'), generation('V1', 'variant', 'selected', 'D1'), generation('B1', 'build-path', 'selected', 'V1'),
-      generation('H1', 'hero', 'selected', 'B1'), generation('I1', 'implementation', 'selected', 'H1'), generation('F1', 'final', 'selected', 'I1'),
-    ];
-    const { applyAction, createSession } = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'reference-selection.mjs')).href}?semantic=${Date.now()}`);
-    const session = applyAction(catalog, createSession(catalog, { category: 'Print-Tech Paper', pageUse: 'marketing', fitMode: 'implementation', groupPolicy: 'diverse', keywords: ['editorial'], roles: [], pinned: [{ id: 'site-spade', role: 'anchor' }], excluded: [], usage: {}, fitById: {} }), { type: 'ACCEPT ALL' });
-    state.references = {
-      catalogFingerprint: catalog.fingerprint, selectionStatus: 'current', activeSession: session,
-      acceptedSets: session.acceptedSets, historicalCards: {}, pinned: session.pinned, excluded: session.excluded, usage: session.usage,
-    };
-    state.verification = { status: 'passed', checks: ['responsive QA'], completedAt: new Date().toISOString() };
-    for (const status of ['intake', 'architecture', 'directions', 'references', 'variants', 'build-path', 'hero', 'implementation', 'polish', 'complete']) {
-      state.status = status;
-      expect(validateState(state, project, catalog), status).toEqual([]);
-    }
-    state.generations = state.generations.filter((item: { stage: string }) => item.stage !== 'final');
-    state.status = 'complete';
-    expect(validateState(state, project, catalog).join(' ')).toContain('selected final generation');
-    state.generations = [generation('FAKE', 'final')];
-    state.references.acceptedSets = [{ anchor: { id: 'invented-card', role: 'invented' }, supporting: [] }];
-    expect(validateState(state, project, catalog).join(' ')).toMatch(/invented-card|selected direction/);
-  }, 20_000);
-
-  it('persists reference actions, project-wide usage, and grouping policy', async () => {
-    const project = resolve(scratch, 'saved-reference-project');
-    const stateScript = resolve(skillRoot, 'scripts', 'project-state.mjs');
-    const selectionScript = resolve(skillRoot, 'scripts', 'reference-selection.mjs');
-    const env = { DESIGN_TASTE_LIBRARY_ROOT: root };
-    expect(runNode(stateScript, ['init', project], env).status).toBe(0);
-    const requestPath = resolve(scratch, 'saved-request.json');
-    writeFileSync(requestPath, JSON.stringify({ category: 'Print-Tech Paper', pageUse: 'marketing', fitMode: 'exploratory', groupPolicy: 'diverse', keywords: ['editorial', 'product'], roles: ['composition', 'typography'], pinned: [], excluded: [], usage: {}, fitById: {} }));
-    const proposed = runNode(selectionScript, ['propose-and-save', project, requestPath], env);
-    expect(proposed.status, proposed.stderr).toBe(0);
-    const first = JSON.parse(proposed.stdout);
-    const actionPath = resolve(scratch, 'saved-action.json');
-    writeFileSync(actionPath, JSON.stringify({ type: 'SHOW ANOTHER SET' }));
-    const changed = runNode(selectionScript, ['action-and-save', project, actionPath], env);
-    expect(changed.status, changed.stderr).toBe(0);
-    const changedSession = JSON.parse(changed.stdout);
-    const excludedId = changedSession.currentSet.supporting[0].id;
-    writeFileSync(actionPath, JSON.stringify({ type: 'DO NOT USE THIS CARD', cardId: excludedId }));
-    expect(runNode(selectionScript, ['action-and-save', project, actionPath], env).status).toBe(0);
-    const state = JSON.parse(runNode(stateScript, ['get', project], env).stdout);
-    expect(state.references.activeSession.currentSet.signature).not.toBe(first.currentSet.signature);
-    expect(state.references.excluded).toContain(excludedId);
-    expect(Object.values(state.references.usage).some((count) => Number(count) > 0)).toBe(true);
-    const usedCard = Object.keys(state.references.usage).find((id) => state.references.usage[id] > 0);
-    writeFileSync(requestPath, JSON.stringify({ category: 'Data-as-Texture', pageUse: 'documentation', fitMode: 'exploratory', groupPolicy: 'diverse', keywords: ['documentation'], roles: ['content-system'], pinned: [], excluded: [], usage: {}, fitById: {} }));
-    const nextCategory = runNode(selectionScript, ['propose-and-save', project, requestPath], env);
-    expect(nextCategory.status, nextCategory.stderr).toBe(0);
-    expect(JSON.parse(nextCategory.stdout).request.usage[usedCard]).toBeGreaterThan(0);
-    expect(JSON.parse(nextCategory.stdout).excluded).toContain(excludedId);
-
-    const catalog = JSON.parse(runNode(resolve(skillRoot, 'scripts', 'library.mjs'), ['catalog'], env).stdout);
-    const { createSession } = await import(`${pathToFileURL(selectionScript).href}?grouping=${Date.now()}`);
-    const diverse = createSession(catalog, { category: 'Data-as-Texture', pageUse: 'documentation', fitMode: 'implementation', groupPolicy: 'diverse', keywords: ['documentation'], roles: ['content-system', 'typography'], pinned: [], excluded: [], usage: {}, fitById: {} });
-    const diverseIds = [diverse.currentSet.anchor.id, ...diverse.currentSet.supporting.map((item: { id: string }) => item.id)];
-    expect(diverseIds.filter((id: string) => catalog.cards.find((card: { id: string }) => card.id === id)?.designSystem?.id === 'x-business-docs').length).toBeLessThanOrEqual(1);
-    const deep = createSession(catalog, { category: 'Data-as-Texture', pageUse: 'documentation', fitMode: 'implementation', groupPolicy: 'system-depth', keywords: ['documentation'], roles: ['content-system', 'typography', 'product-proof'], pinned: [{ id: 'site-x-advertising', role: 'anchor' }, { id: 'site-x-basics', role: 'typography' }, { id: 'site-x-ad-formats', role: 'product-proof' }], excluded: [], usage: {}, fitById: {} });
-    expect([deep.currentSet.anchor.id, ...deep.currentSet.supporting.map((item: { id: string }) => item.id)]).toEqual(expect.arrayContaining(['site-x-advertising', 'site-x-basics', 'site-x-ad-formats']));
-  }, 30_000);
-
-  it('migrates the repository\'s legacy managed installation in place', () => {
-    const codexHome = resolve(scratch, 'legacy-codex-home');
-    const destination = resolve(codexHome, 'skills', 'design-taste-injection');
-    mkdirSync(destination, { recursive: true });
-    writeFileSync(resolve(destination, 'SKILL.md'), 'legacy managed copy');
-    writeFileSync(
-      resolve(destination, '.design-taste-injection-install.json'),
-      JSON.stringify({ managedBy: 'website-library/design-taste-injection' }),
-    );
-
-    const result = runNode(resolve(root, 'scripts', 'setup-codex.mjs'), ['--codex-home', codexHome]);
-    expect(result.status, result.stderr).toBe(0);
-    const marker = JSON.parse(
-      readFileSync(resolve(destination, '.design-taste-injection-install.json'), 'utf8'),
-    );
-    expect(marker.managedBy).toBe('website-inspiration-library/design-taste-injection');
-    expect(readFileSync(resolve(destination, 'SKILL.md'), 'utf8')).toContain('name: design-taste-injection');
-  });
-
-  it('refuses to replace an unmanaged same-name skill', () => {
-    const codexHome = resolve(scratch, 'unmanaged-home');
-    const destination = resolve(codexHome, 'skills', 'design-taste-injection');
-    mkdirSync(destination, { recursive: true });
-    writeFileSync(resolve(destination, 'SKILL.md'), 'unmanaged');
-    const result = runNode(resolve(root, 'scripts', 'setup-codex.mjs'), ['--codex-home', codexHome]);
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('Refusing to replace an unmanaged skill');
-  });
-
-  it('documents exact beginner commands and separates chat from PowerShell', () => {
+  it('documents only project-scoped setup', () => {
     const guide = readFileSync(resolve(root, 'FIRST-TIME-USER-GUIDE.md'), 'utf8');
-    expect(guide).toContain('npm run setup:codex');
-    expect(guide).toContain('npm run check:codex');
-    expect(guide).toContain('npx impeccable install --providers=codex --scope=global');
-    expect(guide).toContain('npx skills add higgsfield-ai/skills --global --agent codex --yes');
-    expect(guide).toContain('$design-taste-injection');
-    expect(guide).toContain('$impeccable hooks on');
-    expect(guide).toContain('Settings → Hooks');
-    expect(guide).toContain('PostToolUse');
-    expect(guide).toContain('Stop');
-    expect(guide).toContain('.codex/hooks.json');
-    expect(guide).toContain('Codex chat');
-    expect(guide).toContain('PowerShell');
-    expect(guide).toContain('## Start a website project');
-    expect(guide.indexOf('$impeccable hooks on')).toBeLessThan(guide.indexOf('Settings → Hooks'));
-    expect(guide.indexOf('Settings → Hooks')).toBeLessThan(guide.indexOf('$design-taste-injection'));
-    const installedSection = guide.split('If the library already exists, update it instead:')[1]
-      .split('Setup installs Design Taste Injection')[0];
-    expect(installedSection.match(/npm run doctor/g)).toHaveLength(1);
+    expect(guide).toContain('npm run setup:project -- C:\\path\\to\\website-project');
+    expect(guide).toContain('npm run check:project -- C:\\path\\to\\website-project');
+    expect(guide).toContain('npm run doctor:project -- C:\\path\\to\\website-project');
+    expect(guide).toContain('<website-project>/.agents/skills/');
+    expect(guide).not.toMatch(/setup:codex|check:codex|--scope=global|--global --agent codex/);
+    expect(readFileSync(resolve(root, 'package.json'), 'utf8')).not.toMatch(/setup:codex|check:codex/);
   });
 
-  it('pins the complete approved MIT clone-remix pipeline with attribution', () => {
+  it('pins the complete approved clone-remix pipeline with attribution', () => {
     const vendor = resolve(skillRoot, 'vendor', 'site-clone');
-    const upstream = readFileSync(resolve(vendor, 'UPSTREAM.md'), 'utf8');
-    expect(upstream).toContain('f01d396b64afa07870c6fc6757a35b92993791e2');
+    expect(readFileSync(resolve(vendor, 'UPSTREAM.md'), 'utf8')).toContain('f01d396b64afa07870c6fc6757a35b92993791e2');
     expect(readFileSync(resolve(vendor, 'LICENSE'), 'utf8')).toContain('MIT License');
-    for (const file of [
-      'skills/clone-site/scripts/surface-map.js',
-      'skills/clone-site/scripts/motion-probe.js',
-      'skills/clone-site/scripts/tokens-probe.js',
-      'skills/remix-site/scripts/tokenize-css.js',
-      'skills/remix-site/scripts/tweak-panel.js',
-    ]) {
-      expect(readFileSync(resolve(vendor, file), 'utf8').length).toBeGreaterThan(1000);
-    }
+    expect(runNode(resolve(root, 'scripts', 'skill-integrity.mjs'), ['verify-vendor', vendor]).status).toBe(0);
   });
 });

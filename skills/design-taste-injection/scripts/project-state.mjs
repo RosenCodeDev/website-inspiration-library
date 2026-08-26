@@ -10,11 +10,12 @@ import { assertContainedPath, assertIndependentPath, canonicalPath } from './pat
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
 const templatePath = resolve(skillRoot, 'assets', 'workbench-template.html');
-const currentSchemaVersion = 5;
-const currentWorkbenchVersion = 3;
+const currentSchemaVersion = 6;
+const currentWorkbenchVersion = 4;
 const legacyWorkbenchHashes = new Set([
   '90d7b70ac826a8955583e5f09d5ccb198e1d2a85e27e49b07391e23255d91b5d',
   '5304288a5c7048ebae565f16489c278a194b9cac16184a24090fddd0e70ebf0a',
+  '548eabeda7755bdf4db5d20cec87c1f262ee2047f352de3b40bc899b8ad94506',
 ]);
 const workflowStatuses = new Set(['intake', 'architecture', 'directions', 'references', 'variants', 'build-path', 'hero', 'implementation', 'polish', 'complete']);
 const generationStages = new Set(['direction', 'variant', 'build-path', 'hero', 'implementation', 'final']);
@@ -63,7 +64,15 @@ const emptyState = (projectRoot) => {
       historicalCards: {},
       pinned: [],
       excluded: [],
-      usage: {},
+    },
+    visualControl: {
+      evidence: {},
+      isolation: { mode: null, preflight: null, recordedAt: null },
+      leakScans: [],
+      identityScans: [],
+      anchorContract: null,
+      routeConformance: [],
+      designGate: { status: 'pending', homepageGenerationId: null, densePageGenerationId: null, decidedAt: null },
     },
     generations: [],
     decisions: [],
@@ -86,13 +95,13 @@ const validateReferenceSet = (set, label, catalog = null) => {
   if (all.some((item) => !isRecord(item) || typeof item.id !== 'string' || typeof item.role !== 'string')) errors.push(`${label} references need id and role`);
   const ids = all.map((item) => item?.id);
   if (new Set(ids).size !== ids.length) errors.push(`${label} contains duplicate cards`);
-  if (set.supporting.length > 2) errors.push(`${label} supports at most two cards`);
+  if (set.supporting.length !== 0) errors.push(`${label} must contain no supporting cards`);
   if (catalog) for (const item of all) {
     const card = catalog.cards.find((entry) => entry.id === item?.id);
     if (card && item.role !== 'anchor' && !card.workflow.roles.includes(item.role)) errors.push(`${label} assigns an unsupported role to ${item.id}`);
   }
   if (typeof set.signature === 'string') {
-    const expected = `${set.anchor.id}|${set.supporting.map((item) => `${item.id}:${item.role}`).sort().join('|')}`;
+    const expected = set.anchor.id;
     if (set.signature !== expected) errors.push(`${label} signature does not match its cards and roles`);
   }
   return errors;
@@ -151,11 +160,11 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
       const ids = state.references.pinned.map((pin) => pin?.id);
       if (new Set(ids).size !== ids.length) errors.push('references.pinned contains duplicates');
       if (state.references.pinned.some((pin) => !isRecord(pin) || typeof pin.id !== 'string' || typeof pin.role !== 'string')) errors.push('references.pinned records need id and role');
-      if (state.references.pinned.length > 3) errors.push('references.pinned supports at most three cards');
+      if (state.references.pinned.length > 1) errors.push('references.pinned supports at most one anchor');
       if (state.references.pinned.filter((pin) => pin.role === 'anchor').length > 1) errors.push('references.pinned contains multiple anchors');
       if (catalog && state.references.selectionStatus === 'current') for (const pin of state.references.pinned) {
         if (!catalogIds.has(pin.id)) errors.push(`references.pinned contains unknown card: ${pin.id}`);
-        if (pin.role !== 'anchor' && !catalogRoles.has(pin.role)) errors.push(`references.pinned contains unknown role: ${pin.role}`);
+        if (pin.role !== 'anchor') errors.push(`references.pinned contains unsupported role: ${pin.role}`);
       }
     }
     if (!Array.isArray(state.references.excluded) || state.references.excluded.some((id) => typeof id !== 'string') || new Set(state.references.excluded).size !== state.references.excluded.length) errors.push('references.excluded must contain unique strings');
@@ -163,7 +172,6 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
       const excluded = new Set(state.references.excluded);
       for (const pin of state.references.pinned) if (excluded.has(pin.id)) errors.push(`reference cannot be pinned and excluded: ${pin.id}`);
     }
-    if (!isRecord(state.references.usage) || Object.values(state.references.usage).some((count) => !Number.isInteger(count) || count < 0)) errors.push('references.usage must contain nonnegative integers');
     if (catalog && state.references.selectionStatus === 'current') {
       if (state.references.catalogFingerprint !== catalog.fingerprint) errors.push('active references require revalidation against the current catalog');
       if (!state.references.activeSession) errors.push('current references require an active session');
@@ -174,11 +182,19 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
       const activeIds = state.references.activeSession ? [state.references.activeSession.currentSet?.anchor?.id, ...(state.references.activeSession.currentSet?.supporting ?? []).map((item) => item.id)] : [];
       for (const id of activeIds.filter(Boolean)) if (!catalogIds.has(id)) errors.push(`active session contains unknown card: ${id}`);
       for (const id of state.references.excluded ?? []) if (!catalogIds.has(id)) errors.push(`references.excluded contains unknown card: ${id}`);
-      for (const id of Object.keys(state.references.usage ?? {})) if (!catalogIds.has(id) && !state.references.historicalCards?.[id]) errors.push(`references.usage lacks a current card or historical snapshot: ${id}`);
     }
     if (catalog) for (const set of state.references.acceptedSets ?? []) for (const item of [set.anchor, ...set.supporting]) {
       if (!catalogIds.has(item.id) && !state.references.historicalCards?.[item.id]) errors.push(`accepted reference lacks a current card or historical snapshot: ${item.id}`);
     }
+  }
+  if (!isRecord(state.visualControl)) errors.push('visualControl must be an object');
+  else {
+    if (!isRecord(state.visualControl.evidence)) errors.push('visualControl.evidence must be an object');
+    if (!isRecord(state.visualControl.isolation) || ![null, 'fresh-agent', 'payload-only', 'degraded'].includes(state.visualControl.isolation.mode)) errors.push('visualControl.isolation is invalid');
+    if (!Array.isArray(state.visualControl.leakScans)) errors.push('visualControl.leakScans must be an array');
+    if (!Array.isArray(state.visualControl.identityScans)) errors.push('visualControl.identityScans must be an array');
+    if (!Array.isArray(state.visualControl.routeConformance)) errors.push('visualControl.routeConformance must be an array');
+    if (!isRecord(state.visualControl.designGate) || !['pending', 'passed', 'failed'].includes(state.visualControl.designGate.status)) errors.push('visualControl.designGate is invalid');
   }
   if (!Array.isArray(state.generations)) errors.push('generations must be an array');
   if (!Array.isArray(state.decisions)) errors.push('decisions must be an array');
@@ -204,7 +220,10 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
     else {
       const referenceIds = generation.references.map((item) => item?.id);
       if (new Set(referenceIds).size !== referenceIds.length) errors.push(`duplicate references for ${generation.id}`);
-      if (generation.references.filter((item) => item?.role === 'anchor').length > 1) errors.push(`multiple anchor references for ${generation.id}`);
+      if (generation.stage === 'direction'
+        && generation.previewScope?.kind !== 'legacy-unverified'
+        && (generation.references.length !== 1 || generation.references[0]?.role !== 'anchor')) errors.push(`direction ${generation.id} must contain exactly one anchor and no supports`);
+      else if (generation.references.filter((item) => item?.role === 'anchor').length > 1) errors.push(`multiple anchor references for ${generation.id}`);
       for (const item of generation.references) {
         if (!isRecord(item) || typeof item.id !== 'string' || typeof item.role !== 'string') { errors.push(`invalid reference record for ${generation.id}`); continue; }
         const card = catalog?.cards?.find((entry) => entry.id === item.id);
@@ -253,7 +272,7 @@ const legacyPreview = (generation) => `<!doctype html>\n<html lang="en"><meta ch
 
 const normalizeStatus = (status) => ({ direction: 'directions', reference: 'references', variant: 'variants', build: 'implementation' })[status] ?? (workflowStatuses.has(status) ? status : 'intake');
 const migrateState = async (state, paths, projectRoot, catalog) => {
-  if (![1, 2, 3, 4, 5].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
+  if (![1, 2, 3, 4, 5, 6].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
   if (state.schemaVersion === currentSchemaVersion) {
     if (state.references?.selectionStatus === 'current' && state.references.catalogFingerprint !== catalog.fingerprint) {
       state.references.historicalCards ??= {};
@@ -283,7 +302,15 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
   state.intake = { introduction: '', intent: '', audience: '', materialsAndRequirements: '', ...(isRecord(state.intake) ? state.intake : {}) };
   state.informationArchitecture = { status: 'pending', pages: [], sections: [], primaryJourney: '', ...(isRecord(state.informationArchitecture) ? state.informationArchitecture : {}) };
   const legacyReferences = isRecord(state.references) ? state.references : {};
-  const acceptedSets = Array.isArray(legacyReferences.acceptedSets) ? legacyReferences.acceptedSets : Array.isArray(legacyReferences.sets) ? legacyReferences.sets : [];
+  const legacyAcceptedSets = Array.isArray(legacyReferences.acceptedSets) ? legacyReferences.acceptedSets : Array.isArray(legacyReferences.sets) ? legacyReferences.sets : [];
+  const acceptedSets = legacyAcceptedSets.filter((set) => set?.anchor?.id).map((set) => ({
+    ...set,
+    fitMode: 'exploratory',
+    anchorFit: 'exact',
+    supporting: [],
+    score: set.anchor.score ?? set.score ?? 0,
+    signature: set.anchor.id,
+  }));
   const historicalCards = isRecord(legacyReferences.historicalCards) ? legacyReferences.historicalCards : {};
   for (const set of acceptedSets) for (const entry of [set?.anchor, ...(set?.supporting ?? [])]) {
     if (!entry?.id || historicalCards[entry.id]) continue;
@@ -298,9 +325,17 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
     activeSession: null,
     acceptedSets,
     historicalCards,
-    pinned: Array.isArray(legacyReferences.pinned) ? legacyReferences.pinned : [],
+    pinned: Array.isArray(legacyReferences.pinned) ? legacyReferences.pinned.filter((pin) => pin?.role === 'anchor').slice(0, 1) : [],
     excluded: Array.isArray(legacyReferences.excluded) ? legacyReferences.excluded : [],
-    usage: isRecord(legacyReferences.usage) ? legacyReferences.usage : {},
+  };
+  state.visualControl = {
+    evidence: isRecord(state.visualControl?.evidence) ? state.visualControl.evidence : {},
+    isolation: isRecord(state.visualControl?.isolation) ? state.visualControl.isolation : { mode: null, preflight: null, recordedAt: null },
+    leakScans: Array.isArray(state.visualControl?.leakScans) ? state.visualControl.leakScans : [],
+    identityScans: Array.isArray(state.visualControl?.identityScans) ? state.visualControl.identityScans : [],
+    anchorContract: isRecord(state.visualControl?.anchorContract) ? state.visualControl.anchorContract : null,
+    routeConformance: Array.isArray(state.visualControl?.routeConformance) ? state.visualControl.routeConformance : [],
+    designGate: isRecord(state.visualControl?.designGate) ? state.visualControl.designGate : { status: 'pending', homepageGenerationId: null, densePageGenerationId: null, decidedAt: null },
   };
   state.generations = Array.isArray(state.generations) ? state.generations : [];
   state.decisions = (Array.isArray(state.decisions) ? state.decisions : []).map((decision) => (
@@ -432,8 +467,6 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
   } else if (event.type === 'references.session-saved') {
     const { normalizeSession } = await import('./reference-selection.mjs');
     const session = normalizeSession(catalog, structuredClone(payload));
-    const usage = { ...state.references.usage };
-    for (const [id, count] of Object.entries(session.usage)) usage[id] = Math.max(usage[id] ?? 0, count);
     state.references = {
       ...state.references,
       catalogFingerprint: catalog.fingerprint,
@@ -441,7 +474,6 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
       activeSession: session,
       pinned: structuredClone(session.pinned),
       excluded: [...new Set([...state.references.excluded, ...session.excluded])],
-      usage,
     };
     if (session.accepted && !state.references.acceptedSets.some((set) => set.signature === session.currentSet.signature)) {
       state.references.acceptedSets.push(structuredClone(session.currentSet));
@@ -453,6 +485,42 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
     }
   } else if (event.type === 'workflow.status-changed') state.status = payload?.status;
   else if (event.type === 'hero.provider-selected') state.heroProvider = payload?.provider;
+  else if (event.type === 'visual.evidence-recorded') {
+    if (!isRecord(payload) || typeof payload.cardId !== 'string' || typeof payload.sha256 !== 'string' || typeof payload.file !== 'string') throw new Error('visual.evidence-recorded requires cardId, sha256, and file');
+    state.visualControl.evidence[payload.cardId] = { ...payload, inspected: payload.inspected === true, recordedAt: new Date().toISOString() };
+  }
+  else if (event.type === 'visual.evidence-inspected') {
+    const evidence = state.visualControl.evidence[payload?.cardId];
+    if (!evidence || evidence.sha256 !== payload?.sha256) throw new Error('visual.evidence-inspected requires matching recorded evidence');
+    evidence.inspected = true;
+    evidence.inspectedAt = new Date().toISOString();
+  }
+  else if (event.type === 'visual.isolation-recorded') {
+    if (!isRecord(payload) || !['fresh-agent', 'payload-only', 'degraded'].includes(payload.mode)) throw new Error('visual.isolation-recorded requires a valid mode');
+    if (payload.mode !== 'degraded' && payload.preflight?.available !== true) throw new Error('isolated modes require a passing preflight');
+    if (payload.mode === 'degraded' && payload.explicitApproval !== true) throw new Error('degraded isolation requires explicit approval');
+    state.visualControl.isolation = { ...payload, recordedAt: new Date().toISOString() };
+  }
+  else if (event.type === 'visual.leak-scan-recorded') {
+    if (!isRecord(payload) || !['passed', 'failed'].includes(payload.status) || !Array.isArray(payload.matches)) throw new Error('visual.leak-scan-recorded requires status and matches');
+    state.visualControl.leakScans.push({ ...payload, recordedAt: new Date().toISOString() });
+  }
+  else if (event.type === 'visual.identity-scan-recorded') {
+    if (!isRecord(payload) || !['passed', 'failed', 'needs-review'].includes(payload.status) || !Array.isArray(payload.matches)) throw new Error('visual.identity-scan-recorded requires status and matches');
+    state.visualControl.identityScans.push({ ...payload, recordedAt: new Date().toISOString() });
+  }
+  else if (event.type === 'visual.anchor-contract-frozen') {
+    if (!isRecord(payload) || typeof payload.cardId !== 'string' || typeof payload.fingerprint !== 'string') throw new Error('visual.anchor-contract-frozen requires cardId and fingerprint');
+    state.visualControl.anchorContract = { ...payload, frozenAt: new Date().toISOString() };
+  }
+  else if (event.type === 'visual.route-conformance-recorded') {
+    if (!isRecord(payload) || typeof payload.route !== 'string' || !['passed', 'failed'].includes(payload.status) || !Array.isArray(payload.checks)) throw new Error('visual.route-conformance-recorded requires route, status, and checks');
+    state.visualControl.routeConformance.push({ ...payload, recordedAt: new Date().toISOString() });
+  }
+  else if (event.type === 'visual.design-gate-recorded') {
+    if (!isRecord(payload) || !['passed', 'failed'].includes(payload.status) || typeof payload.homepageGenerationId !== 'string' || typeof payload.densePageGenerationId !== 'string') throw new Error('visual.design-gate-recorded requires status and both generation IDs');
+    state.visualControl.designGate = { ...payload, decidedAt: new Date().toISOString() };
+  }
   else if (event.type === 'verification.completed') {
     if (!isRecord(payload) || !Array.isArray(payload.checks) || !payload.checks.length || payload.checks.some((item) => typeof item !== 'string' || !item.trim())) throw new Error('verification.completed requires nonempty checks');
     state.verification = { status: 'passed', checks: [...new Set(payload.checks)], completedAt: new Date().toISOString() };

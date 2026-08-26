@@ -1,6 +1,6 @@
 ---
 name: design-taste-injection
-description: Guide a website from project brief through taste-library directions, reference selection, variants, hero exploration, implementation, and polish. Use when a user wants a new or existing website shaped by the installed Website Inspiration Library. Do not use for ordinary isolated UI edits or library maintenance.
+description: Guide a website from project brief through context-isolated taste-library directions, one-card reference selection, variants, implementation, and polish. Use when a website should be shaped by the project-installed Website Inspiration Library. Do not use for ordinary isolated UI edits or library maintenance.
 ---
 
 # Design Taste Injection
@@ -12,23 +12,16 @@ Explicit invocation: `$design-taste-injection`.
 ## Start
 
 1. Read [workflow.md](references/workflow.md) and [library-usage.md](references/library-usage.md).
-2. Locate the installed `config/library.json`. If absent or invalid, stop and ask the user to run `npm run setup:codex` from the website-inspiration-library repository, then restart Codex.
-3. Confirm the current workspace is the target website project, not the library or installed skill. Never place project output in either protected location.
-4. Treat every `scripts/...`, `references/...`, and `vendor/...` path in this skill as relative to the directory containing this installed `SKILL.md`, never the website project. Resolve the script to an absolute path before running it.
-5. Run `node <installed-skill-root>/scripts/project-state.mjs init <project-root>` to create or resume `.inspiration/state.json` and the single Design Workbench.
-6. Use `project-state.mjs apply-event`, `reference-selection.mjs propose-and-save`, and `reference-selection.mjs action-and-save` for persistent changes. Never edit state or translate a selection session by hand.
-7. Inspect the target project and any user-supplied materials before proposing structure.
+2. Locate this project-installed skill's `config/library.json`. If absent or invalid, stop and ask the user to run `npm run setup:project -- <website-project-root>` from the Website Inspiration Library, then restart Codex in the website project.
+3. Confirm the current workspace is the target website project, not the library or skill source. Never place website output in a protected location.
+4. Resolve every skill-relative script and reference from the directory containing this `SKILL.md`.
+5. Initialize or resume `.inspiration` with `project-state.mjs init`.
+6. Persist changes only through `project-state.mjs apply-event`, `reference-selection.mjs propose-and-save`, and `reference-selection.mjs action-and-save`.
+7. Inspect the project and supplied materials for content, structure, and functionality. Do not expose that intake to visual-direction generation.
 
 ## Intake
 
-Ask for missing information in one compact batch. Accept prose; do not force a form.
-
-- **Introduction:** what the website is. Example: "A website for a small payroll product that automates contractor payments."
-- **Intent:** what success should feel like and accomplish. Example: "Earn trust quickly and move qualified teams to a demo."
-- **Audience:** who must understand or act. Example: "Operations leaders at 20-200 person companies."
-- **Materials and Requirements:** optional files, required sections, brand rules, functionality, constraints, and existing code. Example: "Use the attached PDF for services, the deck for proof, and the company's navy and cream."
-
-Inspect referenced PDFs, presentations, spreadsheets, images, URLs, and project files. Let their content influence information architecture, not only styling. Separate observed requirements from assumptions.
+Collect Introduction, Intent, Audience, and optional Materials and Requirements. Inspect supplied files and separate confirmed requirements from assumptions. Intake controls information architecture, content, functionality, accessibility, and constraints after a visual direction is frozen; it does not control anchor selection or first-pass visual design.
 
 ## Control Model
 
@@ -39,38 +32,39 @@ At each important checkpoint offer exactly:
 - `TRY ANOTHER`
 - `GO BACK`
 
-For reference sets also support:
+For anchor review also support:
 
-- `ACCEPT ALL`: keep the proposed set.
-- `SWAP`: replace one named card; propose the replacement and remain at review.
-- `SHOW ANOTHER SET`: keep the same brief and category but propose a materially different valid set.
-- `PIN THIS CARD`: lock it, then ask whether to keep the remaining cards or refresh only the unpinned slots.
-- `DO NOT USE THIS CARD`: exclude it for this project, automatically propose a replacement, and remain at review.
+- `ACCEPT ALL`
+- `SWAP`
+- `SHOW ANOTHER CARD`
+- `PIN THIS CARD`
+- `DO NOT USE THIS CARD`
 
-Never interpret pin or exclusion as approval to advance.
+Pins and exclusions never imply approval to advance.
 
-## Workflow Rules
+## Invariants
 
-- Present one `D01-DNN` direction for every populated library category in exploratory fit mode; do not randomly omit categories. Disclose exact, adjacent, or aesthetic-only page fit.
-- Keep every first-pass direction to one page containing exactly a code-built hero and one opening module. Save `previewScope` as `focused-category-preview`; state validation rejects full-site direction records before category approval.
-- For each direction recommend one primary anchor and at most two supporting cards. Give each support one job: typography, hero art, motion, interaction, navigation, content system, data display, product proof, or conversion.
-- Explain selection with project fit, page fit, role fit, complementarity, quality, and prior usage. User intent controls the recommendation; diversity prevents the same references from dominating every project.
-- Use `diverse` grouping by default: at most one card from a shared system per set. Use `system-depth` only when several distinct moments from Notion, X, or another shared system materially serve different jobs. A user pin may override the default.
-- "Match feel, not content." Preserve relationships and behavior, not another brand's copy, identity, people, product imagery, claims, or licensed assets.
-- Keep a category-level Taste Constitution around every set so references from one category remain coherent.
-- After category approval, use implementation fit mode, which requires exact page fit unless the user explicitly approves a disclosed fallback. Create `Dxx-A-C` variants, then original/remix paths, then hero states `H0-H4`. Add every generation to the same workbench; never overwrite prior choices.
-- `H0` is a polished code-built CSS/SVG/canvas hero, never an empty placeholder. Preserve it when generating `H1-H4` image alternatives.
-- Codex image generation is the default. Offer Higgsfield only if installed and the user selects it. A missing Higgsfield account never blocks progress.
-- Keep observed evidence separate from recommendations. Respect each card's quality limits.
-- Keep all user-facing and authored language concise, direct, and information-dense.
+- Present one first-pass direction for every populated category.
+- Each direction has exactly one anchor and no supporting cards.
+- Automatic selection uses primary category, page-role eligibility, anchor strength, source/still quality, and verified usability only.
+- Never use project semantics, industry, audience, brand palette, category constitution, prior project usage, or cross-card complementarity to choose an anchor.
+- Inspect the selected still before writing first-pass HTML. Never inspect motion for visual-direction generation.
+- Generate through the isolation ladder in [workflow.md]. Never label a run isolated unless its preflight passed.
+- The first pass uses `previewScope: focused-category-preview` and is exactly a hero plus one opening module. For image-led cards `H0` reserves the future image geometry with a flat stand-in; decorative code art cannot substitute for the image.
+- Freeze an anchor-derived visual contract after direction approval. Project context can then fill content, architecture, and functionality but cannot average or replace the anchor's visual language.
+- Inner pages inherit the frozen system while using page-appropriate structures; they do not repeat the landing-page hero.
+- Render every generation at `.inspiration/previews/<generation-id>/index.html` before recording it.
+- Preserve source identity safely: exact reviewed metadata drives automatic scans; ambiguous resemblance receives human review and is never automatically deleted.
 
 ## Conditional Routes
 
-- For original construction and hero lineage, read [workbench.md](references/workbench.md).
-- If a `verified-clone-remix` source is selected for cloning, read [clone-remix.md](references/clone-remix.md). Ask for approval before cloning. Use the vendored mechanics only for the approved clone/remix route. Support curated, measurable references with human review; never promise that an arbitrary site can be cloned reliably.
+- For selection, sealed payloads, isolation, H0, content integration, and per-page checks, read [workflow.md](references/workflow.md).
+- For evidence resolution and catalog boundaries, read [library-usage.md](references/library-usage.md).
 - Before creating or revising imagery, read [image-generation.md](references/image-generation.md).
-- When the chosen implementation is ready for final refinement, read [polish.md](references/polish.md) and orchestrate Impeccable inside this workflow.
+- For workbench and preview import rules, read [workbench.md](references/workbench.md).
+- For an approved verified clone/remix, read [clone-remix.md](references/clone-remix.md) and obtain approval before cloning.
+- For final refinement, read [polish.md](references/polish.md); Impeccable polishes the frozen system and does not choose a new one.
 
 ## Finish
 
-Deliver the working site, preserve `.inspiration` as the decision record, remove development-only tweak controls from production, run relevant tests and responsive/accessibility checks, and summarize the references used, adaptations made, evidence limits, and final user decisions.
+Deliver the working site, retain `.inspiration` as the decision record, remove development-only controls, run responsive/accessibility checks and project tests, and summarize the anchor, evidence limits, isolation mode, adaptations, route-conformance results, and user decisions.

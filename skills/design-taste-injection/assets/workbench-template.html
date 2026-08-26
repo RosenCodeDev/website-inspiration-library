@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="design-taste-workbench-version" content="3" />
+  <meta name="design-taste-workbench-version" content="4" />
   <title>Design Taste Injection Workbench</title>
   <style>
     :root { color-scheme: light; --paper: #f3ebdd; --ink: #171612; --muted: #746e64; --rule: #26231d; --accent: #9c4b37; }
@@ -23,17 +23,23 @@
     .lineage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
     article { border: 2px solid var(--rule); background: #f9f4eb; min-width: 0; scroll-margin-top: 18px; }
     article:target { outline: 4px solid var(--accent); outline-offset: 3px; }
-    .preview { aspect-ratio: 8 / 5; border-bottom: 2px solid var(--rule); background: var(--paper); overflow: hidden; display: grid; place-items: center; }
+    .preview { border-bottom: 2px solid var(--rule); background: var(--paper); overflow: hidden; display: grid; grid-template-columns: minmax(150px, .42fr) minmax(0, 1fr); }
+    .source { min-width: 0; border-right: 2px solid var(--rule); background: #ddd4c6; display: grid; grid-template-rows: 1fr auto; }
+    .source img { width: 100%; height: 100%; min-height: 0; object-fit: cover; }
+    .source span { padding: 7px 9px; border-top: 1px solid var(--rule); font: 10px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; text-transform: uppercase; letter-spacing: .045em; }
+    .frame { aspect-ratio: 8 / 5; min-width: 0; }
     iframe { width: 100%; height: 100%; border: 0; background: white; }
     .body { padding: 16px; }
     h2 { margin: 0 0 10px; font-weight: 400; font-size: 25px; }
     p { overflow-wrap: anywhere; }
     .meta { color: var(--muted); margin: 5px 0; }
     .meta a { color: inherit; text-underline-offset: 3px; }
+    button { border: 2px solid var(--rule); background: var(--ink); color: var(--paper); padding: 9px 11px; font: 11px/1 ui-monospace, SFMono-Regular, Consolas, monospace; text-transform: uppercase; letter-spacing: .045em; cursor: pointer; }
+    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
     .status-selected { color: #2b6b42; } .status-rejected { color: #9b352c; } .status-superseded { color: #8a6b20; }
     .empty { grid-column: 1 / -1; border: 2px solid var(--rule); padding: 42px; text-align: center; background: #f9f4eb; }
     @media (max-width: 980px) { .lineage { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 640px) { header { display: block; } header p { margin-top: 12px; } .lineage { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) { header { display: block; } header p { margin-top: 12px; } .lineage { grid-template-columns: 1fr; } .preview { grid-template-columns: 1fr; } .source { border-right: 0; border-bottom: 2px solid var(--rule); max-height: 260px; } }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
 </head>
@@ -65,15 +71,24 @@
       lineage.innerHTML = visible.map((item) => {
         const parent = item.parent ? `<a href="#generation-${esc(item.parent)}">${esc(item.parent)}</a>` : 'root';
         const childLinks = (children.get(item.id) || []).map((id) => `<a href="#generation-${esc(id)}">${esc(id)}</a>`).join(' · ') || 'none';
+        const anchor = (item.references || []).find((reference) => reference.role === 'anchor');
+        const evidence = anchor ? state.visualControl?.evidence?.[anchor.id] : null;
+        const source = evidence?.file ? `<div class="source"><img src="../evidence/${esc(evidence.file)}" alt="Source still for ${esc(anchor.id)}"><span>Source still · ${esc(anchor.id)}</span></div>` : '<div class="source"><span>Source still not recorded</span></div>';
         return `<article id="generation-${esc(item.id)}" data-stage="${esc(item.stage)}" data-category="${esc(item.category || 'Uncategorized')}">
-          <div class="preview"><iframe src="${esc(item.preview)}" title="${esc(item.label || item.id)}" sandbox="allow-scripts" referrerpolicy="no-referrer" loading="lazy"></iframe></div>
+          <div class="preview">${source}<div class="frame"><iframe src="${esc(item.preview)}" title="${esc(item.label || item.id)}" sandbox="allow-scripts" referrerpolicy="no-referrer" loading="lazy"></iframe></div></div>
           <div class="body"><h2>${esc(item.id)} · ${esc(item.label || item.stage)}</h2>
           <p class="meta status-${esc(item.status)}">${esc(item.status)} · ${esc(item.category || 'No category')}</p>
           <p class="meta">Parent ${parent}</p><p class="meta">Children ${childLinks}</p>
           <p>${esc(item.thesis || '')}</p>
-          <p class="meta">${esc((item.references || []).map((ref) => `${ref.id}: ${ref.role}`).join(' · '))}</p></div>
+          <p class="meta">${esc((item.references || []).map((ref) => `${ref.id}: ${ref.role}`).join(' · '))}</p>
+          ${item.stage === 'direction' && anchor ? `<button type="button" data-another="${esc(anchor.id)}">Show another card</button>` : ''}</div>
         </article>`;
       }).join('');
+      lineage.querySelectorAll('[data-another]').forEach((button) => button.addEventListener('click', async () => {
+        const action = JSON.stringify({ type: 'SHOW ANOTHER CARD' }, null, 2);
+        try { await navigator.clipboard.writeText(action); button.textContent = 'Action copied'; }
+        catch { button.textContent = action; }
+      }));
     };
     const load = (state) => {
       projectState = state;

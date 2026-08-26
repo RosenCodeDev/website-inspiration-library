@@ -4,35 +4,40 @@ The workbench is the project's single visual decision record:
 
 ```text
 <project>/.inspiration/
+|-- evidence/<card-id>-<fingerprint>.<ext>
+|-- leak-signals.json
 |-- state.json
 |-- previews/<generation-id>/index.html
 `-- workbench/index.html
 ```
 
-Do not create unrelated mockup files. Write state through `node <installed-skill-root>/scripts/project-state.mjs apply-event <project-root> <event.json>`; never edit `state.json` by hand.
+Write state only through `project-state.mjs apply-event`. Start the loopback workbench server with `serve-workbench.mjs` and open the exact address it prints.
 
-When the first visual is ready, run `node <installed-skill-root>/scripts/serve-workbench.mjs <project-root> 4317` in the background. The server tries valid consecutive loopback ports, then asks the operating system for a free port. Report and open the exact address it prints.
+## Preview import
 
-## Preview contract
+Visual agents write only to an isolated temporary workspace. The coordinator validates output containment, permitted filenames, local references, intake leaks, exact source identity, renderability, and human identity review before atomically importing it to `.inspiration/previews/<generation-id>/`.
 
-Render every generation at `.inspiration/previews/<generation-id>/index.html`; set `preview` to `../previews/<generation-id>/index.html`. Keep assets inside `.inspiration`. The loopback server does not expose the rest of the project. Preview frames are sandboxed; verify each preview and its media before registering it.
+Every generation must resolve to `../previews/<generation-id>/index.html`. The state event is applied only after that file exists and renders.
 
-## Lineage
+## Direction display
 
-- `D01...DNN`: one direction per populated category.
-- `Dxx-A...C`: variants of an approved direction.
-- `Dxx-x-O`: original path.
-- `Dxx-x-R`: clone-remix path.
-- `...-H0`: polished code-built hero.
-- `...-H1...H4`: generated hero alternatives.
-- `FINAL`: approved production direction.
+Each first-pass direction shows:
 
-Every generation records ID, parent, stage, label, category, reference roles, preview, status, and creation time. Use `candidate`, `selected`, `rejected`, or `superseded`; retain history. The workbench provides stage/category filters and clickable parent/child navigation.
+- The selected source still.
+- The generated hero plus opening module.
+- Exactly one anchor ID and name.
+- Evidence quality and inspection status.
+- Recorded isolation mode.
+- `SHOW ANOTHER CARD` as a normal action.
+
+Focused category previews are direction-shopping artifacts, not complete sites.
 
 ## H0
 
-H0 is an intentional CSS, SVG, or justified canvas composition, never an empty rectangle. Use the category's `codeHero` guidance and approved references. Keep meaningful text and controls in HTML. Include a static or reduced-motion state.
+Image-led H0 reserves the correct future-media geometry with a flat quiet stand-in and type sized around it. It cannot fill the hole with decorative CSS, SVG, canvas, fog, dithering, gradients, crop marks, or generic scenery.
 
-## Presentation
+For `kind:none`, follow the reviewed reason. Code-native visuals may be built as real HTML/CSS/SVG/canvas geometry. Authorized-media cards use a neutral stand-in until owned media exists.
 
-Show newest work first without hiding earlier work. Support category overview, variant comparison, original versus remix, H0 versus generated heroes, status markers, references, roles, and concise rationale. New choices append to the same lineage.
+## Later lineage
+
+After direction approval, freeze the anchor contract, then preserve variants and implementation generations without overwriting history. The complete homepage and representative dense content page are the real design gate. Every later route records conformance to the same visual system while using page-appropriate structure.

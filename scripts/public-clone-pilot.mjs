@@ -66,7 +66,7 @@ const main = async () => {
   const installedRoot = resolve(homedir(), '.codex', 'skills', 'design-taste-injection');
   const stateScript = resolve(installedRoot, 'scripts', 'project-state.mjs');
   const cloneScript = resolve(installedRoot, 'scripts', 'clone-runtime.mjs');
-  if (!existsSync(stateScript) || !existsSync(cloneScript)) throw new Error('Install the current skill with npm run setup:codex before running the public pilot.');
+  if (!existsSync(stateScript) || !existsSync(cloneScript)) throw new Error('Install the current skill into the pilot website with npm run setup:project -- <website-project-root> before running the public pilot.');
 
   const work = await mkdtemp(resolve(tmpdir(), 'dti-public-clone-'));
   const projectRoot = resolve(work, 'aside-clean-room');

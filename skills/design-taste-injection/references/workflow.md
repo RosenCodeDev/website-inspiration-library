@@ -1,33 +1,78 @@
 # Workflow
 
-Keep one continuous task. Save state after every accepted, revised, replaced, pinned, or rejected decision. Never advance from a consequential choice without explicit approval. Resolve every script path from the installed skill root, not the website project.
+Keep one continuous user-facing task and save every consequential decision. Resolve scripts from the project-installed skill root. Never edit `.inspiration/state.json` directly.
 
-## 0. Understand the project
+## 0. Intake and architecture
 
-1. Inspect the existing project, if any.
-2. Collect Introduction, Intent, Audience, and optional Materials and Requirements.
-3. Read supplied files. Summarize confirmed content, required functions, brand constraints, and assumptions.
-4. Propose pages, sections, content ownership, and the primary user path.
-5. Checkpoint. Revise until approved.
+Inspect the project and collect Introduction, Intent, Audience, Materials, and Requirements. Use them to propose pages, sections, content ownership, functionality, and the primary journey. Save the approved architecture.
 
-Apply accepted changes with `node <installed-skill-root>/scripts/project-state.mjs apply-event <project-root> <event.json>`. Do not edit state JSON by hand.
+Intake is sealed away from steps 1–3. It cannot choose cards, alter their recipe, or influence the first-pass visual agent.
 
-## 1. Show the full aesthetic range
+## 1. Select one anchor per category
 
-Read the live catalog with `node <installed-skill-root>/scripts/library.mjs catalog`. Create one `D01...DNN` direction for every populated category, in catalog order.
+Read the catalog through `library.mjs catalog`, but pass selection only the requested category, page role, optional seed, pins, and exclusions:
 
-For initial selection requests, set `fitMode` to `exploratory`. Each direction contains:
+```json
+{
+  "category": "Print-Tech Paper",
+  "pageUse": "marketing",
+  "pinned": [],
+  "excluded": []
+}
+```
 
-- Category and one-sentence thesis.
-- One anchor and no more than two role-specific supports.
-- Page-fit label: `exact`, `adjacent`, or `aesthetic-only`.
-- Why the set fits, what transfers, and what does not.
-- A polished code-built `H0` hero aligned with the category constitution.
-- Real navigation and one opening body module based on the approved architecture.
+Run `reference-selection.mjs propose-and-save`. The selector:
 
-These are focused previews, not complete websites. Add all directions to the single workbench. Checkpoint.
+- Requires exact primary category and anchor page-role eligibility.
+- Rejects limited or missing still evidence and unusable recipes/reasons.
+- Scores anchor strength 45%, source/still quality 35%, and page-role reproducibility 20%.
+- Builds a band within ten points of the best eligible card.
+- Uses the user-level seeded shuffle bag so every band member appears once before repeat.
+- Produces one anchor and an empty `supporting` array.
 
-Each direction generation record must include this validated scope:
+Project keywords, semantic fit, industry, audience, brand compatibility, constitutions, supporting-card logic, and project usage are not accepted selection inputs.
+
+Use `SHOW ANOTHER CARD`, `PIN THIS CARD`, `DO NOT USE THIS CARD`, `SWAP`, and `ACCEPT ALL`. The legacy `SHOW ANOTHER SET` spelling is accepted only as a compatibility alias.
+
+## 2. Resolve and inspect the still
+
+Resolve the selected stable card ID with `visual-contract.mjs`. Copy the canonical still into `.inspiration/evidence`, record its checksum and dimensions through `visual.evidence-recorded`, inspect it, then record `visual.evidence-inspected` with the matching checksum.
+
+Never provide motion clips or frames to the visual agent. Never provide the catalog, other cards, prior directions, intake, project paths, or category profiles.
+
+## 3. Build the sealed brief
+
+Build the payload from the selected card alone with `buildSealedPayload`. It contains card identity, descriptors, tags, card-authored observed brief, staged still, canonical image recipe or reviewed `kind:none` reason, neutral copy envelopes, placement, reviewed source-identity exclusions, viewport, and output contract.
+
+Render the visual prompt in five blocks:
+
+1. Aesthetic.
+2. Reference.
+3. Future hero.
+4. Placement.
+5. Output contract.
+
+The card's `Composition:` and `Avoid:` guidance is allowed. The builder does not import or accept category profiles. A separate guard rejects exact category-constitution sentences and any constitution object/namespace without banning ordinary field names.
+
+Create `.inspiration/leak-signals.json` from exact intake-derived names, phrases, domains, claims, brand color names, and hex values. It is a guardrail, not proof of isolation.
+
+## 4. Isolate generation
+
+Use this ladder:
+
+1. `fresh-agent`: no history and a resource boundary that exposes only staged evidence, payload, scaffold, and output directory.
+2. `payload-only`: `codex exec --ephemeral` in a temporary workspace, `workspace-write`, non-interactive approvals, and no added project/library directories.
+3. `degraded`: the intake-aware thread, only after explicit user approval; never call it isolated.
+
+Before enabling either isolated mode, run `isolation-runner.mjs preflight`. It must prove staged reads and temporary writes succeed while project and library reads and enumeration fail. A fresh subagent without an enforced resource boundary is not `fresh-agent`.
+
+If a mode fails, mark it unavailable and try the next. Stop only when both isolated modes are unavailable and the user refuses degraded generation.
+
+Record the chosen mode with `visual.isolation-recorded`.
+
+## 5. Generate and import H0
+
+Every `D01…DNN` first pass contains exactly one page with a hero and opening module:
 
 ```json
 {
@@ -40,68 +85,24 @@ Each direction generation record must include this validated scope:
 }
 ```
 
-Do not build pricing, footer, secondary pages, or the remaining approved architecture during this pass. The state script rejects broader direction records.
+For image-led cards, H0 is the correct image hole, flat quiet stand-in, and type sized for the future image. It cannot use CSS/SVG/canvas scenery, fog, dithering, gradients, crop marks, or decorative geometry as the missing picture.
 
-## 2. Select references without surrendering control
+For `kind:none`, follow the reviewed reason: construct genuinely code-native visuals in code, or reserve neutral geometry for authorized media. Never invent a protected product, artwork, person, packaging, or interface.
 
-Use this decision rubric:
+The isolated agent writes only to its temporary output directory. It must include `output-contract.json`, asserting one anchor, no supports, still inspection, no motion use, one hero, one opening module, the required H0 mode, and no decorative code art used as the missing image. The coordinator validates that schema, containment, permitted files, paths, intake leaks, and exact source identity, renders the result, performs human identity review, atomically imports it, and only then appends the generation event. Show the source still beside the preview in the workbench.
 
-- Project, intent, and audience fit: 30%.
-- Page or section fit: 20%.
-- Requested role fit: 20%.
-- Complementarity: 15%.
-- Source quality: 10%.
-- Usage diversity: 5%.
+These focused directions are direction shopping, not the final design gate.
 
-Run `node <installed-skill-root>/scripts/reference-selection.mjs propose-and-save <project-root> <request.json>`. Supply `fitById` from evidence-based visual judgment. The script validates and atomically stores the active session, cumulative project usage, exclusions, pins, and accepted sets. For later choices, run `action-and-save <project-root> <action.json>`. Never copy session JSON into project state by hand.
+## 6. Freeze and integrate
 
-Use `groupPolicy: "diverse"` by default, allowing at most one card from a shared system in a set. Use `system-depth` only when multiple moments from that system have different declared jobs. A user pin can override the default.
+After the user selects a direction, write and fingerprint an anchor system sheet covering type, palette roles, spacing, layout grammar, surfaces, texture, image treatment, motion, components, and never rules. Record it through `visual.anchor-contract-frozen`.
 
-Reference actions remain at review:
+Only now use project context for real copy, information architecture, sections, routes, product data, functionality, accessibility, legal, and technical requirements. Copy may reflow within the frozen type system. It may not change the anchor subject, palette logic, typography, texture, spacing grammar, or image treatment.
 
-- `ACCEPT ALL`: accept the current set.
-- `SWAP`: replace one current slot and preserve its role.
-- `SHOW ANOTHER SET`: prefer an unseen valid set; disclose when reuse begins.
-- `PIN THIS CARD`: lock it, then retain or refresh unpinned slots.
-- `DO NOT USE THIS CARD`: exclude it and propose a nonduplicate replacement.
+Build one complete homepage and one representative dense content page. This is the actual design gate. Content pages use their correct functional structure and inherit the frozen system; they do not repeat the homepage hero or promotional pacing.
 
-Prefer canonical evidence when fit is comparable. Inspect each card's image, authored fields, workflow intelligence, group context, and motion evidence.
+At every route, record a lightweight conformance check for typography, palette, spacing, surfaces, texture, image treatment, and component behavior. Fail unexplained visual additions. Record the full-page gate with `visual.design-gate-recorded` before building remaining pages.
 
-After category approval, set `fitMode` to `implementation`. The anchor must use the category as primary, list the requested `pageUse` in `anchorUses`, and have usable or canonical evidence. If none exists, disclose the fallback and obtain permission before rerunning with `allowFallback: true`.
+## 7. Implement, polish, and finish
 
-## 3. Develop the chosen direction
-
-Create three compositionally distinct variants: `Dxx-A`, `Dxx-B`, and `Dxx-C`. Keep the approved constitution and references; change hierarchy, density, navigation, body format, or module progression. Do not present palette swaps. Checkpoint and preserve every variant.
-
-## 4. Choose the build path
-
-Offer eligible paths together:
-
-- **Original (`O`)**: build from the constitution and reference roles without copying a page.
-- **Clone remix (`R`)**: only for an approved `verified-clone-remix` card. Measure and verify the live page before removing identity and applying the brief.
-- **Inspired rebuild**: transfer observed structure without claiming a verified clone when the card says `inspired-rebuild`.
-
-The user chooses. Never clone merely because a URL exists.
-
-## 5. Resolve the hero
-
-Keep the selected code-built hero as `...-H0`. Ask whether image alternatives are wanted.
-
-- If no, refine H0.
-- If yes, preserve H0 and create `H1...H4` from approved composition, palette, role, and evidence.
-- Use Codex image generation by default. Offer Higgsfield only when installed and selected.
-- Present H0 and all alternatives together.
-
-Integrate the chosen hero with correct reading order, responsive behavior, contrast, and reduced motion.
-
-## 6. Implement and tune
-
-Build the approved site. Add only useful development controls for type, accent, spacing, density, surfaces, and meaningful motion. Save accepted values to source and remove controls from production. Checkpoint after the integrated page.
-
-## 7. Polish inside this workflow
-
-Run the Impeccable route in `polish.md`. Keep changes that improve clarity, hierarchy, accessibility, responsiveness, or deliberate character without erasing the chosen direction. Show material visual changes for approval.
-
-## 8. Finish
-
-Verify responsive widths, keyboard flow, focus, contrast, reduced motion, loading, media fallback, and production build. Record successful verification before setting state to `complete`; schema v5 rejects completion without a selected final generation and passed verification. Report final lineage, references and roles, build path, hero provider, adaptations, evidence limits, tests, and remaining constraints.
+Build the remaining site inside the frozen system. Apply the Impeccable route as polish, not new taste selection. Verify responsive widths, keyboard flow, focus, contrast, reduced motion, loading, media fallback, content-page conformance, and production build. Record successful verification before completion.

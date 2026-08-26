@@ -1,9 +1,24 @@
 import { ReferenceManifestSchema, type Category, type ReferenceEntry, } from './reference-schema';
 import { referenceContent } from './reference-content';
 import { getReferenceWorkflow } from './workflow-intelligence';
-type Seed = Omit<ReferenceEntry, 'brief' | 'imageRecipe' | 'filters' | 'cardDescriptor' | 'styleDescriptor' | 'description' | 'scope' | 'interfaceInventory' | 'designSystem' | 'tags' | 'media' | 'workflow'> & {
+type Seed = Omit<ReferenceEntry, 'brief' | 'imageRecipe' | 'filters' | 'cardDescriptor' | 'styleDescriptor' | 'description' | 'scope' | 'interfaceInventory' | 'designSystem' | 'tags' | 'media' | 'workflow' | 'sourceIdentity'> & {
     extraFilters?: Category[];
+    sourceIdentity?: Partial<ReferenceEntry['sourceIdentity']>;
     media: Omit<ReferenceEntry['media'], 'motionNotes'> & { motionNotes?: string };
+};
+const uniqueText = (values: Array<string | undefined>) => Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
+const sourceIdentityFor = (seed: Seed): ReferenceEntry['sourceIdentity'] => {
+    const domain = seed.source.url ? new URL(seed.source.url).hostname.replace(/^www\./, '') : undefined;
+    const titleName = seed.title.split(/\s+[—–-]\s+/)[0];
+    return {
+        sourceNames: uniqueText([seed.source.siteName, titleName]),
+        aliases: uniqueText(seed.sourceIdentity?.aliases ?? []),
+        domains: uniqueText([domain, ...(seed.sourceIdentity?.domains ?? [])]),
+        exactCopy: uniqueText(seed.sourceIdentity?.exactCopy ?? []),
+        distinctiveClaims: uniqueText(seed.sourceIdentity?.distinctiveClaims ?? []),
+        knownMarkAssetIds: uniqueText(seed.sourceIdentity?.knownMarkAssetIds ?? []),
+        sourceSpecificExclusions: uniqueText(seed.sourceIdentity?.sourceSpecificExclusions ?? []),
+    };
 };
 const buildEntry = (seed: Seed): ReferenceEntry => {
     const content = referenceContent[seed.id];
@@ -42,6 +57,7 @@ const buildEntry = (seed: Seed): ReferenceEntry => {
         filters,
         brief,
         imageRecipe: content.imageRecipe,
+        sourceIdentity: sourceIdentityFor(seed),
     };
 };
 const imageFile = (number: number, extension: 'jpg' | 'png') => `/assets/originals/${number}.${extension}`;
