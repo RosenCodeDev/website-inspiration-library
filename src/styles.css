@@ -450,6 +450,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 }
 
 .detail-visual {
+  position: relative;
   display: grid;
   place-items: center;
   min-height: 290px;
@@ -471,23 +472,43 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   background: var(--detail-fill);
 }
 
+.detail-visual.has-motion-preview { min-height: 0; }
+
 .detail-visual > video {
   pointer-events: none;
   transform: scaleY(1.002);
   transform-origin: center bottom;
 }
 
+.detail-visual.has-motion-preview > video {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  max-height: none;
+  margin: auto;
+}
+
+.detail-visual.has-motion-preview > .motion-preview-video {
+  transition: opacity .3s cubic-bezier(.4, 0, .2, 1);
+}
+
+.detail-visual.has-motion-preview:not(.is-playing) > .motion-preview-video {
+  transition-duration: .22s;
+}
+
 .detail-visual > img,
 .detail-visual > .image-fallback {
   opacity: 1;
-  transition: opacity .12s ease;
+  transition: opacity .22s cubic-bezier(.4, 0, .2, 1);
 }
 
 .detail-visual.is-playing.is-frame-ready > img,
 .detail-visual.is-playing.is-frame-ready > .image-fallback {
   opacity: 0;
   visibility: hidden;
-  transition: opacity .12s ease, visibility 0s linear .12s;
+  transition: opacity .3s cubic-bezier(.4, 0, .2, 1), visibility 0s linear .3s;
 }
 
 .detail-content { padding: 27px 30px 29px; }

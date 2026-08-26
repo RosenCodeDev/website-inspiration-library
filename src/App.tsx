@@ -100,7 +100,8 @@ function HoverMotionPreview({
   const [mediaNearby, setMediaNearby] = useState(deferInitialActivation);
   const [activationReady, setActivationReady] = useState(!deferInitialActivation);
   const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  const canPreview = Boolean(reference.media.motionClip) && hoverCapable && !reducedMotion && !videoFailed;
+  const previewEligible = Boolean(reference.media.motionClip) && hoverCapable && !reducedMotion;
+  const canPreview = previewEligible && !videoFailed;
 
   useEffect(() => { deactivateRef.current = onDeactivate; }, [onDeactivate]);
 
@@ -150,7 +151,7 @@ function HoverMotionPreview({
   return (
     <div
       ref={containerRef}
-      className={`${className}${active && canPreview ? ' is-playing' : ''}${frameReady ? ' is-frame-ready' : ''}`}
+      className={`${className}${previewEligible ? ' has-motion-preview' : ''}${active && canPreview ? ' is-playing' : ''}${frameReady ? ' is-frame-ready' : ''}`}
       onMouseEnter={() => {
         if (canPreview && activationReady) {
           setMediaNearby(true);
