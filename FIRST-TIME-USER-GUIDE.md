@@ -94,15 +94,21 @@ The workflow uses those facts for architecture, content, and functionality. Befo
 3. A source still displayed beside each hero-plus-opening-module preview.
 4. `SHOW ANOTHER CARD`, pin, exclude, swap, and accept controls.
 5. A frozen visual contract after direction selection.
-6. A complete homepage plus dense content page as the real design gate.
-7. Per-route visual conformance checks.
-8. Final Impeccable polish inside the selected visual system.
+6. Exactly three complete homepage variants created by parent Codex in the website project; the sealed direction runner is not reused.
+7. One eligible implementation path, followed by H0 plus exactly four hero alternatives for image-led cards. Reviewed `kind:none` cards stay off ImageGen.
+8. A development-only tweak bar constrained to approved contract choices and ranges.
+9. One dense content page after hero selection as the real full-page design gate.
+10. Per-route conformance, production tweak-bar removal, and final Impeccable polish.
+
+The default operation shape is one first-pass direction per current category, three homepage candidates, and one four-image batch, plus bounded corrective retries. The category count follows the catalog dynamically. Subscription time or usage is not estimated because it varies by task and account.
 
 The selector uses primary category, page-role eligibility, anchor strength, still/source quality, and verified usability. It does not use industry, audience, project semantics, brand color compatibility, category constitutions, or supporting cards.
 
 ## 7. Isolation behavior
 
 Automatic first-pass directions use an ephemeral read-only Codex CLI task authenticated through ChatGPT. Its temporary workspace contains one validated card payload, one still, the rendered prompt, and a strict schema. It has no conversation history and returns a text-file manifest for the trusted coordinator to materialize and validate. It is labeled `CODEX SUBSCRIPTION — STRUCTURED, CONTEXT-LIMITED`; this limits accidental context bleed but is not a filesystem confidentiality boundary.
+
+Only first-pass directions use that child. After the direction is selected and its contract is frozen, the current parent Codex task works inside the website project with the approved project content. Variant, build-path, hero-integration, tweak-bar, dense-page, and final generations are recorded separately and cannot claim sealed-runner provenance.
 
 The stateless, tool-free Responses API path is an optional explicit benchmark. It requires `OPENAI_API_KEY`, is never selected automatically, and is not a prerequisite for a normal website project or release evaluation.
 
@@ -120,7 +126,7 @@ npm run setup:project -- C:\path\to\website-project
 npm run check:project -- C:\path\to\website-project
 ```
 
-Existing `.inspiration` history remains in the website repository. A catalog fingerprint change forces active selection revalidation without rewriting historical previews.
+Existing `.inspiration` history remains in the website repository. Schema-v10 migration preserves legacy previews and decisions, then resumes at the earliest missing tutorial checkpoint rather than guessing new batch lineage. A catalog fingerprint change forces active selection revalidation without rewriting historical previews.
 
 ## 9. Troubleshooting
 

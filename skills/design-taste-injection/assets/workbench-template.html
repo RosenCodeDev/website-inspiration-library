@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="design-taste-workbench-version" content="5" />
+  <meta name="design-taste-workbench-version" content="6" />
   <title>Design Taste Injection Workbench</title>
   <style>
     :root { color-scheme: light; --paper: #f3ebdd; --ink: #171612; --muted: #746e64; --rule: #26231d; --accent: #9c4b37; }
@@ -20,7 +20,9 @@
     .chip, .control { border: 2px solid var(--rule); padding: 7px 9px; background: #f9f4eb; }
     .control { display: flex; align-items: center; gap: 8px; }
     select { border: 0; background: transparent; color: inherit; min-width: 13ch; }
-    .lineage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+    .lineage { display: grid; gap: 28px; }
+    .group { display: grid; gap: 12px; } .group > h2 { margin: 0; font: 13px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; text-transform: uppercase; letter-spacing: .06em; }
+    .group-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
     article { border: 2px solid var(--rule); background: #f9f4eb; min-width: 0; scroll-margin-top: 18px; }
     article:target { outline: 4px solid var(--accent); outline-offset: 3px; }
     .preview { border-bottom: 2px solid var(--rule); background: var(--paper); overflow: hidden; display: grid; grid-template-columns: minmax(150px, .42fr) minmax(0, 1fr); }
@@ -39,8 +41,8 @@
     .status-selected { color: #2b6b42; } .status-rejected { color: #9b352c; } .status-superseded { color: #8a6b20; }
     .isolation-degraded { background: #9b352c; color: white; border-color: #9b352c; } .isolation-sealed-api { background: #2b6b42; color: white; border-color: #2b6b42; } .isolation-subscription-ephemeral { background: #315c78; color: white; border-color: #315c78; }
     .empty { grid-column: 1 / -1; border: 2px solid var(--rule); padding: 42px; text-align: center; background: #f9f4eb; }
-    @media (max-width: 980px) { .lineage { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 640px) { header { display: block; } header p { margin-top: 12px; } .lineage { grid-template-columns: 1fr; } .preview { grid-template-columns: 1fr; } .source { border-right: 0; border-bottom: 2px solid var(--rule); max-height: 260px; } }
+    @media (max-width: 980px) { .group-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) { header { display: block; } header p { margin-top: 12px; } .group-grid { grid-template-columns: 1fr; } .preview { grid-template-columns: 1fr; } .source { border-right: 0; border-bottom: 2px solid var(--rule); max-height: 260px; } }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
 </head>
@@ -64,7 +66,7 @@
       const summary = document.querySelector('#summary');
       const isolation = state.visualControl?.isolation?.mode;
       const isolationLabel = isolationLabelFor(state.visualControl?.isolation);
-      summary.innerHTML = [`Status ${state.status}`, `${state.generations.length} generations`, `${state.references.pinned.length} pinned`, `${state.references.excluded.length} excluded`, `Hero ${state.heroProvider}`, isolationLabel].map((item, index) => `<span class="chip ${index === 5 ? `isolation-${esc(isolation || 'none')}` : ''}">${esc(item)}</span>`).join('');
+      summary.innerHTML = [`Status ${state.status}`, `${state.generations.length} generations`, `${state.references.pinned.length} pinned`, `${state.references.excluded.length} excluded`, `Hero ${state.heroProvider}`, `Tweak bar ${state.visualControl?.tweakBar?.status || 'pending'}`, isolationLabel].map((item, index) => `<span class="chip ${index === 6 ? `isolation-${esc(isolation || 'none')}` : ''}">${esc(item)}</span>`).join('');
       const stage = document.querySelector('#stage-filter').value;
       const category = document.querySelector('#category-filter').value;
       const children = new Map();
@@ -72,7 +74,12 @@
       const visible = [...state.generations].reverse().filter((item) => (stage === 'all' || item.stage === stage) && (category === 'all' || (item.category || 'Uncategorized') === category));
       const lineage = document.querySelector('#lineage');
       if (!visible.length) { lineage.innerHTML = `<div class="empty">${state.generations.length ? 'No generations match these filters.' : 'The workflow is ready. Approved directions will appear here without replacing earlier work.'}</div>`; return; }
-      lineage.innerHTML = visible.map((item) => {
+      const groupFor = (item) => item.stage === 'direction' ? [`direction:${item.id}`, `Direction ${item.id}`]
+        : item.stage === 'variant' ? [`variant:${item.batchId || item.parent}`, `Variant batch ${item.batchId || 'legacy'}`]
+          : item.stage === 'build-path' ? [`build:${item.id}`, `Build-path shell · ${item.buildPath || 'legacy'}`]
+            : item.stage === 'hero' ? [`hero:${item.heroBatchId || item.id}`, item.heroState === 'H0-retained' ? 'Reviewed H0 retained' : `Hero batch ${item.heroBatchId || 'legacy'}`]
+              : [`${item.stage}:${item.parent || item.id}`, item.stage];
+      const cardFor = (item) => {
         const parent = item.parent ? `<a href="#generation-${esc(item.parent)}">${esc(item.parent)}</a>` : 'root';
         const childLinks = (children.get(item.id) || []).map((id) => `<a href="#generation-${esc(id)}">${esc(id)}</a>`).join(' · ') || 'none';
         const anchor = (item.references || []).find((reference) => reference.role === 'anchor');
@@ -85,11 +92,17 @@
           <p class="meta status-${esc(item.status)}">${esc(item.status)} · ${esc(item.category || 'No category')}</p>
           <p class="meta">${esc(isolationLabelFor(generationIsolation))}</p>
           <p class="meta">Parent ${parent}</p><p class="meta">Children ${childLinks}</p>
+          ${item.batchId ? `<p class="meta">Variant batch ${esc(item.batchId)} · ${esc(item.variantOrdinal || '')}</p>` : ''}
+          ${item.buildPath ? `<p class="meta">Build path ${esc(item.buildPath)} · ${esc(item.heroState || 'H0')}</p>` : ''}
+          ${item.heroBatchId ? `<p class="meta">Hero batch ${esc(item.heroBatchId)} · ${esc(item.heroState || '')} · ${esc(item.provider || '')}</p>` : ''}
           <p>${esc(item.thesis || '')}</p>
           <p class="meta">${esc((item.references || []).map((ref) => `${ref.id}: ${ref.role}`).join(' · '))}</p>
           ${item.stage === 'direction' && anchor ? `<button type="button" data-another="${esc(anchor.id)}">Show another card</button>` : ''}</div>
         </article>`;
-      }).join('');
+      };
+      const groups = new Map();
+      for (const item of visible) { const [key, label] = groupFor(item); const group = groups.get(key) || { label, items: [] }; group.items.push(item); groups.set(key, group); }
+      lineage.innerHTML = [...groups.values()].map((group) => `<section class="group"><h2>${esc(group.label)}</h2><div class="group-grid">${group.items.map(cardFor).join('')}</div></section>`).join('');
       lineage.querySelectorAll('[data-another]').forEach((button) => button.addEventListener('click', async () => {
         const action = JSON.stringify({ type: 'SHOW ANOTHER CARD' }, null, 2);
         try { await navigator.clipboard.writeText(action); button.textContent = 'Action copied'; }

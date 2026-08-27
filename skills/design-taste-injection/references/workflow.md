@@ -97,16 +97,48 @@ The child returns structured output and may not create `output-contract.json`. T
 
 These focused directions are direction shopping, not the final design gate.
 
-## 6. Freeze and integrate
+## 6. Freeze the contract and plan three variants
 
-After the user selects a direction, write and fingerprint an anchor system sheet covering type, palette roles, spacing, layout grammar, surfaces, texture, image treatment, motion, components, and never rules. Record it through `visual.anchor-contract-frozen`.
+After the user selects a `Dxx-H0` direction, write and fingerprint an anchor system sheet covering type, palette roles, spacing, layout grammar, surfaces, texture, image treatment, motion, components, never rules, and `tweakableDecisions`. The latter contains only approved alternatives or numeric ranges for meaningful controls. Record the sheet through `visual.anchor-contract-frozen`.
 
 Only now use project context for real copy, information architecture, sections, routes, product data, functionality, accessibility, legal, and technical requirements. Copy may reflow within the frozen type system. It may not change the anchor subject, palette logic, typography, texture, spacing grammar, or image treatment.
 
-Build one complete homepage and one representative dense content page. This is the actual design gate. Content pages use their correct functional structure and inherit the frozen system; they do not repeat the homepage hero or promotional pacing.
+Parent Codex in the website project owns every later stage. Do not call `isolation-runner.mjs`, a nested page-generation child, or the optional API benchmark for variants, build paths, heroes, or implementation.
+
+Before editing, record one three-candidate batch plan. Assign A, B, and C different choices on at least three of hierarchy, body format, navigation, rhythm, density, and composition. All three share one batch-plan fingerprint and the frozen visual contract. Then render three separate complete responsive homepage candidates:
+
+- `Dxx-Vyy-A`
+- `Dxx-Vyy-B`
+- `Dxx-Vyy-C`
+
+Each preview uses `data-inspiration-preview="homepage-variant"`, contains no dense page, and keeps the future-image slot empty and flat for image-led cards. `TRY ANOTHER` creates a new three-variant batch without rerunning category directions. Select exactly one variant.
+
+## 7. Choose and execute the build path
+
+Offer only eligible paths:
+
+- **Original (`O`)** is always available and may promote the selected variant directly.
+- **Clone Remix (`R`)** requires `verified-clone-remix` plus a passed clone preflight. Read [clone-remix.md](clone-remix.md).
+- **Inspired Rebuild (`I`)** requires `inspired-rebuild`.
+
+The path is an implementation method, not a new direction. Clone Remix or Inspired Rebuild may create a separate shell, but it must preserve the selected variant decisions and frozen contract and receive approval before hero work. Render the approved shell with `data-inspiration-preview="build-path-shell"`, retain the future-media container, fingerprint the non-media layout at 1440, 768, and 390 pixels with `visual-contract.mjs fingerprint-layout`, and record it as H0.
+
+## 8. Resolve the hero
+
+Read [image-generation.md](image-generation.md). For image-led recipes, create exactly four H1-H4 alternatives in one batch. Every candidate is a copy of the approved shell, uses `data-inspiration-preview="hero-alternative"`, marks generated media with `data-generated-hero-media`, and retains the H0 layout fingerprint outside the media container. Present H0 and H1-H4 together.
+
+For `kind:none`, do not call ImageGen. Preserve the reviewed code-native visual or owned-media requirement, render `data-inspiration-preview="hero-retained"`, and record `H0-retained`. `TRY ANOTHER` preserves the earlier hero batch and creates another four-image batch. Select exactly one hero state.
+
+## 9. Tune and pass the full-page gate
+
+Automatically insert the development-only tweak bar after hero selection. Expose only keys and ranges in the frozen `tweakableDecisions`; this may be substantial, but it is not a generic theme editor and cannot change the protected hero by default. Record `active`, apply the accepted values to source and record `applied`, then verify the production build contains no tweak-bar import, marker, global, route, or control and record `production-excluded`.
+
+Build one representative dense content page after hero selection and tuning—not one per variant. The homepage and dense page are the actual design gate. Content pages use their correct functional structure and inherit the frozen system; they do not repeat the homepage hero or promotional pacing.
 
 At every route, record a lightweight conformance check for typography, palette, spacing, surfaces, texture, image treatment, and component behavior. Fail unexplained visual additions. Record the full-page gate with `visual.design-gate-recorded` before building remaining pages.
 
-## 7. Implement, polish, and finish
+## 10. Implement, polish, and finish
 
 Build the remaining site inside the frozen system. Apply the Impeccable route as polish, not new taste selection. Verify responsive widths, keyboard flow, focus, contrast, reduced motion, loading, media fallback, content-page conformance, and production build. Record successful verification before completion.
+
+The expected default operation shape is one direction generation per current category, three parent-generated homepage candidates, and one four-image hero batch, plus bounded retries. This is not a promise of elapsed time or subscription-credit consumption.

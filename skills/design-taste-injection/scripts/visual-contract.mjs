@@ -245,10 +245,17 @@ const validateRenderedH0 = async (outputRoot, options = {}) => {
     if ((options.expectedH0 ?? 'reserved-image-hole-with-flat-stand-in') === 'code-native' && (!options.expectedCodeNativeMethod || observed.codeNativeMethod !== options.expectedCodeNativeMethod)) throw new Error('Code-native H0 does not match the reviewed permitted method.');
     let slotMetrics = null; let geometry = null;
     if ((options.expectedH0 ?? 'reserved-image-hole-with-flat-stand-in') !== 'code-native') {
-      await page.evaluate(() => document.querySelectorAll('[data-protected-copy-region]').forEach((node) => { node.dataset.validationVisibility = node.style.visibility; node.style.visibility = 'hidden'; }));
+      await page.evaluate(() => {
+        const slot = document.querySelector('[data-future-image-slot]'); const target = slot.getBoundingClientRect();
+        const overlaps = (rect) => rect.right > target.left && rect.left < target.right && rect.bottom > target.top && rect.top < target.bottom;
+        document.querySelectorAll('body *').forEach((node) => {
+          if (node === slot || node.contains(slot) || slot.contains(node) || !overlaps(node.getBoundingClientRect())) return;
+          node.dataset.validationVisibility = node.style.visibility; node.style.setProperty('visibility', 'hidden', 'important');
+        });
+      });
       const rect = observed.rect; const inset = H0_THRESHOLDS.inset;
       const buffer = await page.screenshot({ clip: { x: rect.x + inset, y: rect.y + inset, width: rect.width - (inset * 2), height: rect.height - (inset * 2) }, animations: 'disabled' });
-      await page.evaluate(() => document.querySelectorAll('[data-protected-copy-region]').forEach((node) => { node.style.visibility = node.dataset.validationVisibility ?? ''; delete node.dataset.validationVisibility; }));
+      await page.evaluate(() => document.querySelectorAll('[data-validation-visibility]').forEach((node) => { node.style.visibility = node.dataset.validationVisibility ?? ''; delete node.dataset.validationVisibility; }));
       slotMetrics = await pixelMetrics(buffer); assertFlatMetrics(slotMetrics);
       if (options.expectedGeometry) {
         const expected = options.expectedGeometry; const actualRatio = rect.width / rect.height; const center = (rect.x + (rect.width / 2)) / viewport.width;
@@ -264,6 +271,47 @@ const validateRenderedH0 = async (outputRoot, options = {}) => {
     const finalScreenshot = await page.screenshot({ fullPage: true, animations: 'disabled' });
     return { observed, slotMetrics, geometry, finalScreenshot, thresholds: H0_THRESHOLDS };
   } finally { await browser.close(); }
+};
+const fingerprintProtectedLayout = async (outputRoot, options = {}) => {
+  const root = canonicalPath(outputRoot); const browserPath = options.browserPath ?? discoverBrowser();
+  if (!browserPath) throw new Error('Layout fingerprinting requires Chrome, Edge, or Chromium. Set DESIGN_TASTE_BROWSER_PATH.');
+  const widths = options.widths ?? [1440, 768, 390];
+  if (!Array.isArray(widths) || widths.length !== 3 || widths.some((width) => !Number.isInteger(width) || width < 320)) throw new Error('Layout fingerprinting requires exactly three supported widths.');
+  const playwright = await loadRuntimePackage('playwright-core'); const chromium = playwright.chromium ?? playwright.default?.chromium;
+  const browser = await chromium.launch({ executablePath: browserPath, headless: true }); const snapshots = [];
+  try {
+    for (const width of widths) {
+      const page = await browser.newPage({ viewportSize: { width, height: options.height ?? 1000 }, deviceScaleFactor: 1 });
+      await page.goto(pathToFileURL(resolve(root, 'index.html')).href, { waitUntil: 'load' });
+      snapshots.push(await page.evaluate((viewportWidth) => {
+        const slot = document.querySelector('[data-future-image-slot]');
+        if (!slot) throw new Error('Protected layout requires one data-future-image-slot.');
+        if (document.querySelectorAll('[data-future-image-slot]').length !== 1) throw new Error('Protected layout requires exactly one data-future-image-slot.');
+        const rounded = (value) => Math.round(value * 10) / 10;
+        const nodes = [...document.body.querySelectorAll('*')].filter((node) => {
+          if (node.matches('[data-generated-hero-media], [data-generated-hero-media] *')) return false;
+          return node === slot || !node.closest('[data-future-image-slot]');
+        });
+        return {
+          width: viewportWidth,
+          nodes: nodes.map((node) => {
+            const rect = node.getBoundingClientRect(); const style = getComputedStyle(node);
+            return {
+              tag: node.tagName.toLowerCase(),
+              id: node.id,
+              className: typeof node.className === 'string' ? node.className : '',
+              markers: [...node.attributes].filter((attribute) => attribute.name.startsWith('data-') && !['data-generated-hero-media', 'data-inspiration-preview'].includes(attribute.name)).map((attribute) => [attribute.name, attribute.value]).sort(),
+              rect: [rounded(rect.x), rounded(rect.y), rounded(rect.width), rounded(rect.height)],
+              style: [style.display, style.position, style.gridTemplateColumns, style.flexDirection, style.fontFamily, style.fontSize, style.fontWeight, style.lineHeight, style.letterSpacing, style.textAlign, style.padding, style.margin, style.borderRadius],
+              text: node.children.length ? '' : node.textContent.replace(/\s+/g, ' ').trim(),
+            };
+          }),
+        };
+      }, width));
+      await page.close();
+    }
+  } finally { await browser.close(); }
+  return { widths, fingerprint: hashBytes(Buffer.from(JSON.stringify(snapshots))), snapshots };
 };
 const scanKnownAssetHashes = async (files, identity) => {
   const forbidden = new Set([...(identity?.derived?.assetHashes ?? []), ...(identity?.reviewed?.knownMarkAssetHashes ?? [])]); const matches = [];
@@ -294,9 +342,10 @@ const main = async () => {
   if (command === 'leak-signals') { const intake = JSON.parse(await readFile(resolve(first), 'utf8')); await writeFile(resolve(second), `${JSON.stringify(buildLeakSignals(intake), null, 2)}\n`, 'utf8'); return; }
   if (command === 'validate-preview') return console.log(JSON.stringify(await validatePreviewTree(resolve(first)), null, 2));
   if (command === 'validate-h0') return console.log(JSON.stringify(await validateRenderedH0(resolve(first), { expectedH0: second }), (key, value) => key === 'finalScreenshot' ? undefined : value, 2));
-  throw new Error('Usage: visual-contract.mjs leak-signals <intake.json> <output.json> | validate-preview <output-root> | validate-h0 <output-root> <h0-mode>');
+  if (command === 'fingerprint-layout') return console.log(JSON.stringify(await fingerprintProtectedLayout(resolve(first)), null, 2));
+  throw new Error('Usage: visual-contract.mjs leak-signals <intake.json> <output.json> | validate-preview <output-root> | validate-h0 <output-root> <h0-mode> | fingerprint-layout <output-root>');
 };
 const isDirect = Boolean(process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)));
 if (isDirect) main().catch((error) => { console.error(`Visual contract: ${error.message}`); process.exitCode = 1; });
 
-export { H0_THRESHOLDS, assertNoConstitution, assertReviewedIdentity, assertSealedPayload, buildLeakSignals, buildSealedPayload, importPreview, normalizeText, parseBrief, pixelMetrics, renderVisualPrompt, resolveEvidence, scanExactSignals, scanSourceIdentity, sourceIdentityScanSignals, sourceIdentitySignals, validatePreviewTree, validateRenderedH0 };
+export { H0_THRESHOLDS, assertNoConstitution, assertReviewedIdentity, assertSealedPayload, buildLeakSignals, buildSealedPayload, fingerprintProtectedLayout, importPreview, normalizeText, parseBrief, pixelMetrics, renderVisualPrompt, resolveEvidence, scanExactSignals, scanSourceIdentity, sourceIdentityScanSignals, sourceIdentitySignals, validatePreviewTree, validateRenderedH0 };

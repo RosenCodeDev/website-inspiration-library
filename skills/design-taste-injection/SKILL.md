@@ -51,9 +51,14 @@ Pins and exclusions never imply approval to advance.
 - Inspect the selected still before writing first-pass HTML. Never inspect motion for visual-direction generation.
 - Generate first-pass directions through the ChatGPT-authenticated read-only structured Codex runner in [workflow.md]. The trusted coordinator materializes and validates its file manifest. Record each generation as context-limited, not API-isolated. The stateless Responses API is an explicit optional benchmark, never the automatic default.
 - The first pass uses `previewScope: focused-category-preview` and is exactly a hero plus one opening module. For image-led cards `H0` reserves the future image geometry with a flat stand-in; decorative code art cannot substitute for the image.
-- Freeze an anchor-derived visual contract after direction approval. Project context can then fill content, architecture, and functionality but cannot average or replace the anchor's visual language.
+- Freeze an anchor-derived visual contract after direction approval, including the approved choices and ranges under `tweakableDecisions`. Project context can then fill content, architecture, and functionality but cannot average or replace the anchor's visual language.
+- The sealed runner is direction-only. In the same user-facing project task, parent Codex plans and renders exactly three complete homepage variants from the frozen contract; it never sends variants, build paths, heroes, or implementation through `isolation-runner.mjs`.
+- Select one variant, then one eligible implementation path. Original is always available; Clone Remix and Inspired Rebuild require their catalog eligibility and route-specific preflight.
+- Keep the selected shell as H0. Image-led cards receive exactly four H1-H4 alternatives in one batch without changing protected layout; `kind:none` retains reviewed code-native or owned-media behavior and never invokes ImageGen.
+- After hero selection, add the contract-constrained development tweak bar, apply accepted values to source, build one representative dense page, and prove the tweak bar is absent from production.
 - Inner pages inherit the frozen system while using page-appropriate structures; they do not repeat the landing-page hero.
 - Render every generation at `.inspiration/previews/<generation-id>/index.html` before recording it.
+- Record schema-v10 typed lineage through `project-state.mjs`: direction, three-variant batch, build-path shell, hero batch, tweak lifecycle, implementation, and final. IDs are readable labels; typed fields are authoritative.
 - Preserve source identity safely: automatic generation requires a current fingerprinted identity inventory. Record whether it is Codex-drafted or human-reviewed; current Codex-drafted inventories remain generation guardrails, not legal or independent QA review. Ambiguous resemblance receives human review and is never automatically deleted.
 
 ## Conditional Routes

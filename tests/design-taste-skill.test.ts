@@ -183,6 +183,8 @@ describe('inspiration-controlled design workflow', () => {
     expect(prompt).toContain('Do not inspect any motion media');
     expect(JSON.stringify(payload)).not.toMatch(/categoryProfile|categoryConstitution|motionClip|projectName|audience|brandColors/);
     expect(() => visual.assertSealedPayload({ ...payload, secretProjectBrief: 'hidden' })).toThrow(/unexpected or missing fields/i);
+    const completeHomepage = structuredClone(payload); completeHomepage.output.scope = 'complete-homepage';
+    expect(() => visual.assertSealedPayload(completeHomepage)).toThrow(/output contract/i);
   });
 
   it('excludes exact constitution sentences by provenance without rejecting card-authored Composition or Avoid', async () => {
@@ -365,7 +367,7 @@ describe('inspiration-controlled design workflow', () => {
     await expect(isolation.materializeOutput({ ...manifest, files: [{ path: 'assets/too-large.js', content: 'x'.repeat(isolation.MAX_STRUCTURED_OUTPUT_BYTES) }] }, destination, stillSha256)).rejects.toThrow(/2 MiB/i);
   }, 20_000);
 
-  it('initializes schema 9 state, records generation-specific subscription provenance, and persists visual controls through events', () => {
+  it('initializes schema 10 state, records direction-only subscription provenance, and persists visual controls through events', () => {
     const project = resolve(scratch, 'state-project');
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
     expect(runNode(script, ['init', project]).status).toBe(0);
@@ -375,7 +377,7 @@ describe('inspiration-controlled design workflow', () => {
     writeFileSync(resolve(preview, 'index.html'), '<!doctype html><html><body><main>Direction preview D01</main></body></html>');
     const generationPath = resolve(scratch, 'direction.json');
     writeFileSync(generationPath, JSON.stringify({
-      id: 'D01', parent: null, stage: 'direction', status: 'selected', label: 'Direction', category: card.primaryCategory,
+      id: 'D01', directionId: 'D01', parent: null, stage: 'direction', status: 'selected', executionHost: 'sealed-runner', label: 'Direction', category: card.primaryCategory,
       thesis: 'One-card visual direction.', references: [{ id: card.id, role: 'anchor' }], preview: '../previews/D01/index.html',
       previewScope: focusedDirectionScope(), createdAt: new Date().toISOString(),
     }));
@@ -387,19 +389,48 @@ describe('inspiration-controlled design workflow', () => {
     writeFileSync(eventPath, JSON.stringify({ type: 'visual.route-conformance-recorded', payload: { route: '/pricing', status: 'passed', checks: ['type', 'palette', 'spacing'] } }));
     expect(runNode(script, ['apply-event', project, eventPath]).status).toBe(0);
     const state = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(9);
-    expect(state.workbenchVersion).toBe(7);
+    expect(state.schemaVersion).toBe(10);
+    expect(state.workbenchVersion).toBe(8);
     expect(state.generations[0].references).toEqual([{ id: card.id, role: 'anchor' }]);
     expect(state.visualControl.isolation.mode).toBe('subscription-ephemeral');
     expect(state.visualControl.isolationRuns.D01).toEqual(expect.objectContaining({ generationId: 'D01', mode: 'subscription-ephemeral', outputMode: 'structured-manifest' }));
     expect(state.visualControl.routeConformance[0].route).toBe('/pricing');
     expect(readFileSync(resolve(project, '.inspiration', 'workbench', 'index.html'), 'utf8')).toContain('SHOW ANOTHER CARD');
-    state.schemaVersion = 8; state.workbenchVersion = 6; delete state.visualControl.isolationRuns; state.visualControl.isolation = { mode: 'sealed-api', model: 'gpt-5.6-sol', requestFingerprint: 'b'.repeat(64), recordedAt: new Date().toISOString() };
+    state.schemaVersion = 9; state.workbenchVersion = 7; delete state.visualControl.isolationRuns; delete state.visualControl.tweakBar; state.visualControl.isolation = { mode: 'sealed-api', model: 'gpt-5.6-sol', requestFingerprint: 'b'.repeat(64), recordedAt: new Date().toISOString() };
     writeFileSync(resolve(project, '.inspiration', 'state.json'), JSON.stringify(state));
     expect(runNode(script, ['init', project]).status).toBe(0);
     const migrated = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
-    expect(migrated.schemaVersion).toBe(9); expect(migrated.visualControl.isolation.mode).toBe('sealed-api'); expect(migrated.visualControl.isolationRuns.D01.mode).toBe('sealed-api');
+    expect(migrated.schemaVersion).toBe(10); expect(migrated.visualControl.isolation.mode).toBe('sealed-api'); expect(migrated.visualControl.isolationRuns.D01.mode).toBe('sealed-api'); expect(migrated.visualControl.tweakBar.status).toBe('pending');
   }, 60_000);
+
+  it('enforces parent-owned variants, complete batches, protected hero lineage, and clean tweak-bar exclusion', async () => {
+    const catalog = loadCatalog(); const card = catalog.cards.find((item: any) => item.id === 'site-spade');
+    const stateModule = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'project-state.mjs')).href}?boundaries=${Date.now()}`);
+    const project = resolve(scratch, 'state-boundaries'); const state = stateModule.emptyState(project); const now = new Date().toISOString();
+    state.status = 'build-path';
+    state.generations = [{
+      id: 'D01-V01-A', parent: 'D01-H0', stage: 'variant', status: 'selected', executionHost: 'sealed-runner', batchId: 'D01-V01', variantOrdinal: 'A', batchPlanFingerprint: 'a'.repeat(64), differenceAxes: ['hierarchy', 'body-format', 'navigation'],
+      label: 'A', category: card.primaryCategory, thesis: '', references: [{ id: card.id, role: 'anchor' }], preview: '../previews/D01-V01-A/index.html', previewScope: { kind: 'complete-homepage-variant', pageCount: 1, completeHomepage: true, includesDensePage: false, futureImageSlot: 'empty-flat' }, createdAt: now,
+    }];
+    let errors = stateModule.validateState(state, project, catalog);
+    expect(errors).toContain('variant D01-V01-A must be generated by parent/project Codex');
+    expect(errors).toContain('a selected variant from a complete three-variant batch is required before build path');
+
+    state.generations = [
+      { id: 'BUILD-H0', parent: null, stage: 'build-path', status: 'selected', executionHost: 'parent-project-codex', buildPath: 'original', clonePreflight: null, heroState: 'H0', recipeKind: 'primary', contractFingerprint: 'b'.repeat(64), layoutFingerprint: 'c'.repeat(64), label: 'Build', category: card.primaryCategory, thesis: '', references: [{ id: card.id, role: 'anchor' }], preview: '../previews/BUILD-H0/index.html', previewScope: { kind: 'build-path-shell', completeHomepage: true, includesDensePage: false }, createdAt: now },
+      { id: 'BUILD-H0-HB01-H1', parent: 'BUILD-H0', stage: 'hero', status: 'selected', executionHost: 'parent-project-codex', heroBatchId: 'BUILD-H0-HB01', heroState: 'H1', provider: 'codex', recipeKind: 'primary', recipeFingerprint: 'd'.repeat(64), assetSha256: 'e'.repeat(64), assetReceipt: 'assets/H1.png', contractFingerprint: 'b'.repeat(64), layoutFingerprint: 'f'.repeat(64), label: 'H1', category: card.primaryCategory, thesis: '', references: [{ id: card.id, role: 'anchor' }], preview: '../previews/BUILD-H0-HB01-H1/index.html', createdAt: now },
+    ];
+    errors = stateModule.validateState(state, project, catalog);
+    expect(errors).toContain('BUILD-H0-HB01-H1 changed build-path contract, layout, or recipe lineage');
+
+    state.visualControl.tweakBar = { status: 'production-excluded', records: [
+      { status: 'active', generationId: 'BUILD-H0-HB01-H1', contractFingerprint: 'b'.repeat(64), controls: ['typography'], recordedAt: now },
+      { status: 'applied', generationId: 'IMPLEMENTED', contractFingerprint: 'b'.repeat(64), valuesFingerprint: '1'.repeat(64), recordedAt: now },
+      { status: 'production-excluded', generationId: 'FINAL', contractFingerprint: 'b'.repeat(64), productionBuildFingerprint: '2'.repeat(64), markersFound: ['data-tweak-bar'], recordedAt: now },
+    ] };
+    errors = stateModule.validateState(state, project, catalog);
+    expect(errors).toContain('production-excluded tweak bar requires a clean production-build fingerprint');
+  });
 
   it('migrates legacy state without losing history and rejects new direction supports', () => {
     const project = resolve(scratch, 'legacy-state');
@@ -417,7 +448,7 @@ describe('inspiration-controlled design workflow', () => {
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
     expect(runNode(script, ['init', project]).status).toBe(0);
     const state = JSON.parse(readFileSync(resolve(inspiration, 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(9);
+    expect(state.schemaVersion).toBe(10);
     expect(state.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
     expect(state.visualControl).toBeTruthy();
     expect(state.visualControl.isolation).toEqual(expect.objectContaining({ mode: 'legacy-unverified', legacyMode: 'payload-only' }));
@@ -522,7 +553,7 @@ describe('inspiration-controlled design workflow', () => {
     const state = JSON.parse(readFileSync(statePath, 'utf8')); state.schemaVersion = 5; state.workbenchVersion = 3; writeFileSync(statePath, JSON.stringify(state));
     expect(runNode(script, ['init', project]).status).toBe(0);
     expect(readdirSync(resolve(project, '.inspiration', 'workbench', 'archive')).length).toBeGreaterThan(0);
-    expect(readFileSync(workbenchPath, 'utf8')).toContain('content="5"');
+    expect(readFileSync(workbenchPath, 'utf8')).toContain('content="6"');
     const junction = resolve(scratch, 'junction-project'); const outside = resolve(scratch, 'junction-outside');
     mkdirSync(junction, { recursive: true }); mkdirSync(outside, { recursive: true });
     symlinkSync(outside, resolve(junction, '.inspiration'), process.platform === 'win32' ? 'junction' : 'dir');

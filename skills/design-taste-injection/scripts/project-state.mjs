@@ -10,19 +10,28 @@ import { assertContainedPath, assertIndependentPath, canonicalPath } from './pat
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
 const templatePath = resolve(skillRoot, 'assets', 'workbench-template.html');
-const currentSchemaVersion = 9;
-const currentWorkbenchVersion = 7;
+const currentSchemaVersion = 10;
+const currentWorkbenchVersion = 8;
 const legacyWorkbenchHashes = new Set([
   '90d7b70ac826a8955583e5f09d5ccb198e1d2a85e27e49b07391e23255d91b5d',
   '5304288a5c7048ebae565f16489c278a194b9cac16184a24090fddd0e70ebf0a',
   '548eabeda7755bdf4db5d20cec87c1f262ee2047f352de3b40bc899b8ad94506',
   'bfbd3cdcc00173f531a66c82b796009253dcb9a4bffc734355afe7e61c9bf388',
+  '3902df7b397887af5682183e161ab08896cea3ba1b5e87d591d531b69a7bd598',
 ]);
 const workflowStatuses = new Set(['intake', 'architecture', 'directions', 'references', 'variants', 'build-path', 'hero', 'implementation', 'polish', 'complete']);
 const generationStages = new Set(['direction', 'variant', 'build-path', 'hero', 'implementation', 'final']);
 const generationStatuses = new Set(['candidate', 'selected', 'rejected', 'superseded']);
 const architectureStatuses = new Set(['pending', 'candidate', 'approved']);
 const focusedPreviewSections = ['hero', 'opening-module'];
+const variantOrdinals = new Set(['A', 'B', 'C']);
+const buildPaths = new Set(['original', 'clone-remix', 'inspired-rebuild']);
+const imageRecipeKinds = new Set(['primary', 'supporting', 'none']);
+const heroStates = new Set(['H0-retained', 'H1', 'H2', 'H3', 'H4']);
+const tweakBarStatuses = new Set(['pending', 'active', 'applied', 'production-excluded']);
+const tweakableDecisionKeys = new Set(['typography', 'lineLength', 'spacing', 'bodyDensity', 'paletteRoles', 'accent', 'surfaces', 'texture', 'borders', 'radius', 'shadows', 'motion']);
+const variantDifferenceAxes = new Set(['hierarchy', 'body-format', 'navigation', 'rhythm', 'density', 'composition']);
+const sha256Pattern = /^[a-f0-9]{64}$/;
 
 const fail = (message) => { console.error(`Design Taste Injection: ${message}`); process.exitCode = 1; };
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
@@ -73,6 +82,7 @@ const emptyState = (projectRoot) => {
       leakScans: [],
       identityScans: [],
       anchorContract: null,
+      tweakBar: { status: 'pending', records: [] },
       routeConformance: [],
       designGate: { status: 'pending', homepageGenerationId: null, densePageGenerationId: null, decidedAt: null },
     },
@@ -82,6 +92,15 @@ const emptyState = (projectRoot) => {
     verification: { status: 'pending', checks: [], completedAt: null },
     migrationWarnings: [],
   };
+};
+
+const validId = (value) => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value);
+const validateFingerprint = (value) => typeof value === 'string' && sha256Pattern.test(value);
+const validateTweakableDecisions = (value) => {
+  if (!isRecord(value) || !Object.keys(value).length) return false;
+  return Object.entries(value).every(([key, options]) => tweakableDecisionKeys.has(key)
+    && ((Array.isArray(options) && options.length > 0 && options.every((item) => ['string', 'number', 'boolean'].includes(typeof item)))
+      || (isRecord(options) && Number.isFinite(options.min) && Number.isFinite(options.max) && options.max >= options.min)));
 };
 
 const validateNamedItem = (item, label) => {
@@ -121,6 +140,58 @@ const validateDirectionPreviewScope = (scope, label, allowLegacy = true) => {
     return [`${label} must stay to one page with exactly a hero and one opening module; completeSite must be false`];
   }
   return [];
+};
+
+const validateVariantPreviewScope = (scope, label) => {
+  if (!isRecord(scope)
+    || scope.kind !== 'complete-homepage-variant'
+    || scope.pageCount !== 1
+    || scope.completeHomepage !== true
+    || scope.includesDensePage !== false
+    || !['empty-flat', 'not-applicable'].includes(scope.futureImageSlot)) {
+    return [`${label} must be one complete homepage, contain no dense page, and declare its future-image slot`];
+  }
+  return [];
+};
+
+const validateGenerationLineage = (generation, catalog = null) => {
+  const errors = [];
+  if (generation.lineageStatus === 'legacy-unverified') return errors;
+  if (!['sealed-runner', 'explicit-degraded', 'parent-project-codex'].includes(generation.executionHost)) errors.push(`executionHost is invalid for ${generation.id}`);
+  if (generation.stage === 'direction') {
+    if (!['sealed-runner', 'explicit-degraded'].includes(generation.executionHost)) errors.push(`direction ${generation.id} must use the direction-only runner or explicit degraded execution`);
+    if (generation.parent !== null || generation.directionId !== generation.id) errors.push(`direction ${generation.id} requires null parent and matching directionId`);
+  }
+  if (generation.stage === 'variant') {
+    if (generation.executionHost !== 'parent-project-codex') errors.push(`variant ${generation.id} must be generated by parent/project Codex`);
+    if (!validId(generation.parent) || !validId(generation.batchId) || !variantOrdinals.has(generation.variantOrdinal)) errors.push(`variant ${generation.id} requires parent, batchId, and ordinal A, B, or C`);
+    if (!validateFingerprint(generation.batchPlanFingerprint)) errors.push(`variant ${generation.id} requires a batch-plan fingerprint`);
+    if (!Array.isArray(generation.differenceAxes) || generation.differenceAxes.length < 3 || new Set(generation.differenceAxes).size !== generation.differenceAxes.length || generation.differenceAxes.some((axis) => !variantDifferenceAxes.has(axis))) errors.push(`variant ${generation.id} requires at least three unique approved difference axes`);
+    errors.push(...validateVariantPreviewScope(generation.previewScope, `variant ${generation.id}`));
+  }
+  if (generation.stage === 'build-path') {
+    if (generation.executionHost !== 'parent-project-codex') errors.push(`build path ${generation.id} must be generated by parent/project Codex`);
+    if (!validId(generation.parent) || !buildPaths.has(generation.buildPath) || generation.heroState !== 'H0') errors.push(`build path ${generation.id} requires selected variant parent, eligible buildPath, and H0 state`);
+    if (!imageRecipeKinds.has(generation.recipeKind) || !validateFingerprint(generation.contractFingerprint) || !validateFingerprint(generation.layoutFingerprint)) errors.push(`build path ${generation.id} requires recipe, contract, and layout fingerprints`);
+    if (!isRecord(generation.previewScope) || generation.previewScope.kind !== 'build-path-shell' || generation.previewScope.completeHomepage !== true || generation.previewScope.includesDensePage !== false) errors.push(`build path ${generation.id} must be a complete homepage shell without a dense page`);
+    if (generation.buildPath === 'clone-remix' && (!isRecord(generation.clonePreflight) || generation.clonePreflight.status !== 'passed' || typeof generation.clonePreflight.record !== 'string' || !generation.clonePreflight.record.trim())) errors.push(`clone-remix ${generation.id} requires a passed clone preflight record`);
+    if (generation.buildPath !== 'clone-remix' && generation.clonePreflight != null) errors.push(`non-clone build path ${generation.id} cannot carry clone preflight evidence`);
+    const anchor = generation.references?.find((item) => item?.role === 'anchor');
+    const card = catalog?.cards?.find((item) => item.id === anchor?.id);
+    if (card && generation.recipeKind !== card.imageRecipe.kind) errors.push(`build path ${generation.id} does not match card ${card.id} image recipe`);
+    if (card && generation.buildPath === 'clone-remix' && card.workflow.cloneMode !== 'verified-clone-remix') errors.push(`card ${card.id} is not eligible for Clone Remix`);
+    if (card && generation.buildPath === 'inspired-rebuild' && card.workflow.cloneMode !== 'inspired-rebuild') errors.push(`card ${card.id} is not eligible for Inspired Rebuild`);
+  }
+  if (generation.stage === 'hero') {
+    if (generation.executionHost !== 'parent-project-codex' || !validId(generation.parent) || !heroStates.has(generation.heroState) || !imageRecipeKinds.has(generation.recipeKind) || !validateFingerprint(generation.contractFingerprint) || !validateFingerprint(generation.layoutFingerprint)) errors.push(`hero ${generation.id} has invalid parent/project lineage`);
+    if (generation.heroState === 'H0-retained') {
+      if (generation.recipeKind !== 'none' || generation.provider !== 'none' || generation.heroBatchId !== null || generation.assetSha256 !== null || generation.assetReceipt !== null) errors.push(`retained H0 ${generation.id} must be a kind:none route without generated assets`);
+    } else {
+      if (!['primary', 'supporting'].includes(generation.recipeKind) || !validId(generation.heroBatchId) || !['codex', 'higgsfield'].includes(generation.provider) || !validateFingerprint(generation.recipeFingerprint) || !validateFingerprint(generation.assetSha256) || typeof generation.assetReceipt !== 'string' || !generation.assetReceipt.trim()) errors.push(`generated hero ${generation.id} requires a complete image-generation receipt`);
+    }
+  }
+  if (['implementation', 'final'].includes(generation.stage) && generation.executionHost !== 'parent-project-codex') errors.push(`${generation.stage} ${generation.id} must be generated by parent/project Codex`);
+  return errors;
 };
 
 const validateState = (state, expectedProjectRoot, catalog = null) => {
@@ -199,6 +270,19 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
     }
     if (!Array.isArray(state.visualControl.leakScans)) errors.push('visualControl.leakScans must be an array');
     if (!Array.isArray(state.visualControl.identityScans)) errors.push('visualControl.identityScans must be an array');
+    if (state.visualControl.anchorContract !== null && (!isRecord(state.visualControl.anchorContract) || typeof state.visualControl.anchorContract.cardId !== 'string' || !validateFingerprint(state.visualControl.anchorContract.fingerprint) || !validateTweakableDecisions(state.visualControl.anchorContract.tweakableDecisions) || !validDate(state.visualControl.anchorContract.frozenAt))) errors.push('visualControl.anchorContract is invalid or lacks contract-constrained tweakableDecisions');
+    if (!isRecord(state.visualControl.tweakBar) || !tweakBarStatuses.has(state.visualControl.tweakBar.status) || !Array.isArray(state.visualControl.tweakBar.records)) errors.push('visualControl.tweakBar is invalid');
+    else {
+      const records = state.visualControl.tweakBar.records;
+      const expectedOrder = ['active', 'applied', 'production-excluded'];
+      if (records.some((record, index) => !isRecord(record) || record.status !== expectedOrder[index] || !validId(record.generationId) || !validateFingerprint(record.contractFingerprint) || !validDate(record.recordedAt))) errors.push('visualControl.tweakBar records must follow active, applied, production-excluded order');
+      if (records.length !== expectedOrder.indexOf(state.visualControl.tweakBar.status) + 1 && state.visualControl.tweakBar.status !== 'pending') errors.push('visualControl.tweakBar status does not match its lifecycle records');
+      if (state.visualControl.tweakBar.status === 'pending' && records.length) errors.push('pending tweak bar cannot contain lifecycle records');
+      const active = records[0]; const applied = records[1]; const excluded = records[2];
+      if (active && (!Array.isArray(active.controls) || !active.controls.length || active.controls.some((key) => !tweakableDecisionKeys.has(key)))) errors.push('active tweak bar requires approved frozen-contract controls');
+      if (applied && !validateFingerprint(applied.valuesFingerprint)) errors.push('applied tweak bar requires a values fingerprint');
+      if (excluded && (!validateFingerprint(excluded.productionBuildFingerprint) || !Array.isArray(excluded.markersFound) || excluded.markersFound.length)) errors.push('production-excluded tweak bar requires a clean production-build fingerprint');
+    }
     if (!Array.isArray(state.visualControl.routeConformance)) errors.push('visualControl.routeConformance must be an array');
     if (!isRecord(state.visualControl.designGate) || !['pending', 'passed', 'failed'].includes(state.visualControl.designGate.status)) errors.push('visualControl.designGate is invalid');
   }
@@ -222,6 +306,7 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
     if (catalog && generation.category && !catalogCategories.has(generation.category)) errors.push(`unknown category for ${generation.id}: ${generation.category}`);
     if (typeof generation.thesis !== 'string') errors.push(`thesis is required for ${generation.id}`);
     if (generation.stage === 'direction') errors.push(...validateDirectionPreviewScope(generation.previewScope, `direction ${generation.id}`));
+    errors.push(...validateGenerationLineage(generation, catalog));
     if (!Array.isArray(generation.references)) errors.push(`references are required for ${generation.id}`);
     else {
       const referenceIds = generation.references.map((item) => item?.id);
@@ -241,7 +326,26 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
     const expectedPreview = `../previews/${generation.id}/index.html`;
     if (generation.preview !== expectedPreview) errors.push(`preview for ${generation.id} must be ${expectedPreview}`);
   }
-  for (const generation of state.generations ?? []) if (generation?.parent && !ids.has(generation.parent)) errors.push(`missing parent ${generation.parent} for ${generation.id}`);
+  const generationsById = new Map((state.generations ?? []).map((generation) => [generation.id, generation]));
+  for (const generation of state.generations ?? []) {
+    if (generation?.parent && !ids.has(generation.parent)) { errors.push(`missing parent ${generation.parent} for ${generation.id}`); continue; }
+    if (generation.lineageStatus === 'legacy-unverified' || !generation.parent) continue;
+    const parent = generationsById.get(generation.parent);
+    const expectedParentStage = { variant: 'direction', 'build-path': 'variant', hero: 'build-path', implementation: 'hero', final: 'implementation' }[generation.stage];
+    if (expectedParentStage && parent?.stage !== expectedParentStage) errors.push(`${generation.id} requires a ${expectedParentStage} parent`);
+    if (expectedParentStage && parent?.status !== 'selected') errors.push(`${generation.id} requires its parent to be selected`);
+    if (generation.stage === 'build-path' && generation.contractFingerprint !== state.visualControl?.anchorContract?.fingerprint) errors.push(`${generation.id} does not match the frozen anchor contract`);
+    if (generation.stage === 'hero' && (generation.contractFingerprint !== parent?.contractFingerprint || generation.layoutFingerprint !== parent?.layoutFingerprint || generation.recipeKind !== parent?.recipeKind)) errors.push(`${generation.id} changed build-path contract, layout, or recipe lineage`);
+  }
+  const tweakStageByStatus = { active: 'hero', applied: 'implementation', 'production-excluded': 'final' };
+  for (const record of state.visualControl?.tweakBar?.records ?? []) if (generationsById.get(record.generationId)?.stage !== tweakStageByStatus[record.status]) errors.push(`tweak-bar ${record.status} record requires a ${tweakStageByStatus[record.status]} generation`);
+  if (state.visualControl?.designGate?.status !== 'pending') {
+    if (generationsById.get(state.visualControl.designGate.homepageGenerationId)?.stage !== 'implementation' || generationsById.get(state.visualControl.designGate.densePageGenerationId)?.stage !== 'implementation') errors.push('design gate requires homepage and dense-page implementation generations');
+  }
+  for (const stage of generationStages) {
+    const selected = (state.generations ?? []).filter((generation) => generation.stage === stage && generation.status === 'selected');
+    if (selected.length > 1) errors.push(`multiple selected ${stage} generations are not allowed`);
+  }
   for (const [index, decision] of (state.decisions ?? []).entries()) {
     if (!isRecord(decision) || typeof decision.action !== 'string' || !decision.action.trim() || typeof decision.summary !== 'string' || !decision.summary.trim() || !workflowStatuses.has(decision.stage) || !validDate(decision.createdAt)) errors.push(`invalid decision record at index ${index}`);
   }
@@ -253,13 +357,37 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
     || !(state.informationArchitecture.pages?.length || state.informationArchitecture.sections?.length)
     || !nonempty(state.informationArchitecture?.primaryJourney))) errors.push('approved architecture with pages or sections and a primary journey is required before directions');
   const selectedAt = (stage) => (state.generations ?? []).some((generation) => generation.stage === stage && generation.status === 'selected');
+  const selectedGeneration = (stage) => (state.generations ?? []).find((generation) => generation.stage === stage && generation.status === 'selected');
+  const completeVariantBatch = (variant) => {
+    if (!variant || variant.lineageStatus === 'legacy-unverified') return false;
+    const batch = (state.generations ?? []).filter((generation) => generation.stage === 'variant' && generation.parent === variant.parent && generation.batchId === variant.batchId);
+    return batch.length === 3
+      && new Set(batch.map((generation) => generation.variantOrdinal)).size === 3
+      && [...variantOrdinals].every((ordinal) => batch.some((generation) => generation.variantOrdinal === ordinal))
+      && batch.every((generation) => generation.batchPlanFingerprint === variant.batchPlanFingerprint)
+      && new Set(batch.map((generation) => JSON.stringify([...generation.differenceAxes].sort()))).size === 3;
+  };
+  const completeHeroBatch = (hero) => {
+    if (!hero || hero.lineageStatus === 'legacy-unverified') return false;
+    if (hero.heroState === 'H0-retained') return hero.recipeKind === 'none';
+    const batch = (state.generations ?? []).filter((generation) => generation.stage === 'hero' && generation.parent === hero.parent && generation.heroBatchId === hero.heroBatchId);
+    return batch.length === 4
+      && ['H1', 'H2', 'H3', 'H4'].every((heroState) => batch.some((generation) => generation.heroState === heroState))
+      && batch.every((generation) => generation.recipeFingerprint === hero.recipeFingerprint && generation.layoutFingerprint === hero.layoutFingerprint && generation.provider === hero.provider);
+  };
   if (atOrAfter('references') && !selectedAt('direction')) errors.push('a selected direction is required before references');
+  if (atOrAfter('references')) {
+    const direction = selectedGeneration('direction');
+    if (direction?.lineageStatus !== 'legacy-unverified' && !state.visualControl?.isolationRuns?.[direction?.id]) errors.push('direction execution provenance is required before references');
+  }
   if (atOrAfter('variants') && (!(state.references?.acceptedSets?.length > 0) || state.references?.selectionStatus !== 'current')) errors.push('a current accepted reference set is required before variants');
-  if (atOrAfter('build-path') && !selectedAt('variant')) errors.push('a selected variant is required before build path');
+  if (atOrAfter('variants') && !state.visualControl?.anchorContract) errors.push('a frozen anchor contract is required before variants');
+  if (atOrAfter('build-path') && (!selectedAt('variant') || !completeVariantBatch(selectedGeneration('variant')))) errors.push('a selected variant from a complete three-variant batch is required before build path');
   if (atOrAfter('hero') && !selectedAt('build-path')) errors.push('a selected build path is required before hero work');
-  if (atOrAfter('implementation') && !selectedAt('hero')) errors.push('a selected hero is required before implementation');
-  if (atOrAfter('polish') && !selectedAt('implementation')) errors.push('a selected implementation is required before polish');
-  if (state.status === 'complete' && (!selectedAt('final') || state.verification?.status !== 'passed')) errors.push('a selected final generation and passed verification are required before completion');
+  if (atOrAfter('implementation') && (!selectedAt('hero') || !completeHeroBatch(selectedGeneration('hero')))) errors.push('a selected hero from a complete four-image batch, or reviewed kind:none H0, is required before implementation');
+  if (atOrAfter('implementation') && state.visualControl?.tweakBar?.status === 'pending') errors.push('an active contract-constrained tweak bar is required before implementation');
+  if (atOrAfter('polish') && (!selectedAt('implementation') || !['applied', 'production-excluded'].includes(state.visualControl?.tweakBar?.status) || state.visualControl?.designGate?.status !== 'passed')) errors.push('a selected implementation, applied tweak values, and passed homepage/dense-page gate are required before polish');
+  if (state.status === 'complete' && (!selectedAt('final') || state.verification?.status !== 'passed' || state.visualControl?.tweakBar?.status !== 'production-excluded')) errors.push('a selected final generation, clean production tweak-bar exclusion, and passed verification are required before completion');
   return errors;
 };
 
@@ -278,7 +406,7 @@ const legacyPreview = (generation) => `<!doctype html>\n<html lang="en"><meta ch
 
 const normalizeStatus = (status) => ({ direction: 'directions', reference: 'references', variant: 'variants', build: 'implementation' })[status] ?? (workflowStatuses.has(status) ? status : 'intake');
 const migrateState = async (state, paths, projectRoot, catalog) => {
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
   if (state.schemaVersion === currentSchemaVersion) {
     if (state.references?.selectionStatus === 'current' && state.references.catalogFingerprint !== catalog.fingerprint) {
       state.references.historicalCards ??= {};
@@ -297,6 +425,44 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
       return true;
     }
     return state.workbenchVersion !== currentWorkbenchVersion;
+  }
+  if (state.schemaVersion === 9) {
+    const previousSchemaVersion = state.schemaVersion;
+    state.schemaVersion = currentSchemaVersion;
+    state.migrationWarnings = Array.isArray(state.migrationWarnings) ? state.migrationWarnings : [];
+    state.visualControl = isRecord(state.visualControl) ? state.visualControl : {};
+    state.visualControl.tweakBar = isRecord(state.visualControl.tweakBar) ? state.visualControl.tweakBar : { status: 'pending', records: [] };
+    if (!isRecord(state.visualControl.isolationRuns)) {
+      const priorIsolation = isRecord(state.visualControl.isolation) ? state.visualControl.isolation : { mode: null };
+      const priorGenerationId = validId(priorIsolation.generationId) ? priorIsolation.generationId : [...(state.generations ?? [])].reverse().find((generation) => validId(generation?.id))?.id;
+      state.visualControl.isolationRuns = priorIsolation.mode && priorGenerationId ? { [priorGenerationId]: { ...priorIsolation, generationId: priorGenerationId, recordedAt: priorIsolation.recordedAt ?? state.updatedAt } } : {};
+    }
+    if (isRecord(state.visualControl.anchorContract) && !validateTweakableDecisions(state.visualControl.anchorContract.tweakableDecisions)) {
+      state.visualControl.legacyAnchorContract = state.visualControl.anchorContract;
+      state.visualControl.anchorContract = null;
+      state.migrationWarnings.push('The prior anchor contract was preserved as legacyAnchorContract. Freeze a schema-v10 contract with tweakable decisions before creating variants.');
+    }
+    state.generations = Array.isArray(state.generations) ? state.generations : [];
+    for (const generation of state.generations) generation.lineageStatus ??= 'legacy-unverified';
+    if (state.references?.selectionStatus === 'current' && state.references.catalogFingerprint !== catalog.fingerprint) {
+      state.references.selectionStatus = 'needs-revalidation';
+      state.migrationWarnings.push('The library catalog changed. Historical selections remain visible, but the active set must be revalidated before reuse.');
+    }
+    const originalStatus = state.status;
+    const orderedStatuses = [...workflowStatuses];
+    const semanticMarkers = ['required before', 'required before completion'];
+    for (let index = orderedStatuses.indexOf(state.status); index >= 0; index -= 1) {
+      state.status = orderedStatuses[index];
+      const candidate = { ...state, workbenchVersion: currentWorkbenchVersion };
+      const semanticErrors = validateState(candidate, projectRoot, catalog).filter((error) => semanticMarkers.some((marker) => error.includes(marker)));
+      if (!semanticErrors.length) break;
+    }
+    if (state.status !== originalStatus) {
+      state.migrationWarnings.push(`Schema ${previousSchemaVersion} project stage was adjusted from ${originalStatus} to ${state.status} because required schema-v10 artifacts were missing.`);
+      state.decisions.push({ action: 'MIGRATION STAGE ADJUSTMENT', summary: `Preserved project history and resumed at ${state.status}.`, stage: state.status, createdAt: state.updatedAt });
+    }
+    state.updatedAt = new Date().toISOString();
+    return true;
   }
   let changed = state.schemaVersion !== currentSchemaVersion;
   const previousSchemaVersion = state.schemaVersion;
@@ -351,6 +517,7 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
     leakScans: Array.isArray(state.visualControl?.leakScans) ? state.visualControl.leakScans : [],
     identityScans: Array.isArray(state.visualControl?.identityScans) ? state.visualControl.identityScans : [],
     anchorContract: isRecord(state.visualControl?.anchorContract) ? state.visualControl.anchorContract : null,
+    tweakBar: isRecord(state.visualControl?.tweakBar) ? state.visualControl.tweakBar : { status: 'pending', records: [] },
     routeConformance: Array.isArray(state.visualControl?.routeConformance) ? state.visualControl.routeConformance : [],
     designGate: isRecord(state.visualControl?.designGate) ? state.visualControl.designGate : { status: 'pending', homepageGenerationId: null, densePageGenerationId: null, decidedAt: null },
   };
@@ -363,12 +530,18 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
   state.heroProvider = ['codex', 'higgsfield'].includes(state.heroProvider) ? state.heroProvider : 'codex';
   state.verification = isRecord(state.verification) ? state.verification : { status: 'pending', checks: [], completedAt: null };
   state.migrationWarnings = Array.isArray(state.migrationWarnings) ? state.migrationWarnings : [];
+  if (isRecord(state.visualControl.anchorContract) && !validateTweakableDecisions(state.visualControl.anchorContract.tweakableDecisions)) {
+    state.visualControl.legacyAnchorContract = state.visualControl.anchorContract;
+    state.visualControl.anchorContract = null;
+    state.migrationWarnings.push('The prior anchor contract was preserved as legacyAnchorContract. Freeze a schema-v10 contract with tweakable decisions before creating variants.');
+  }
   for (const generation of state.generations) {
     generation.label = typeof generation.label === 'string' && generation.label.trim() ? generation.label : generation.id;
     generation.category ??= null;
     generation.thesis = typeof generation.thesis === 'string' ? generation.thesis : '';
     generation.references = Array.isArray(generation.references) ? generation.references : [];
     if (generation.stage === 'direction' && !isRecord(generation.previewScope)) generation.previewScope = { kind: 'legacy-unverified' };
+    generation.lineageStatus ??= 'legacy-unverified';
     generation.createdAt = validDate(generation.createdAt) ? generation.createdAt : state.updatedAt;
     generation.preview = `../previews/${generation.id}/index.html`;
     const path = previewPath(paths, generation.id);
@@ -431,6 +604,17 @@ const assertGenerationPreview = async (paths, generation) => {
   if (!existsSync(path) || !(await stat(path)).isFile()) throw new Error(`generation preview is missing: ${path}`);
   const source = await readFile(path, 'utf8');
   if (source.trim().length < 40 || !/<(?:!doctype|html|body)\b/i.test(source)) throw new Error(`generation preview is not a renderable HTML document: ${path}`);
+  if (generation.lineageStatus === 'legacy-unverified') return;
+  if (generation.stage === 'variant') {
+    if (!/data-inspiration-preview=["']homepage-variant["']/i.test(source)) throw new Error(`variant preview ${generation.id} must identify a complete homepage variant`);
+    if (generation.previewScope?.futureImageSlot === 'empty-flat' && !/<([a-z][\w:-]*)\b[^>]*data-future-image-slot(?:=["'][^"']*["'])?[^>]*>\s*<\/\1>/i.test(source)) throw new Error(`variant preview ${generation.id} requires an empty data-future-image-slot`);
+  }
+  if (generation.stage === 'build-path' && !/data-inspiration-preview=["']build-path-shell["']/i.test(source)) throw new Error(`build-path preview ${generation.id} must identify its H0 shell`);
+  if (generation.stage === 'hero') {
+    const marker = generation.heroState === 'H0-retained' ? 'hero-retained' : 'hero-alternative';
+    if (!new RegExp(`data-inspiration-preview=["']${marker}["']`, 'i').test(source)) throw new Error(`hero preview ${generation.id} must identify ${marker}`);
+    if (generation.heroState !== 'H0-retained' && !/data-generated-hero-media\b/i.test(source)) throw new Error(`hero preview ${generation.id} must identify generated hero media`);
+  }
 };
 
 const loadState = async (projectRoot, paths) => {
@@ -522,6 +706,9 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
       || payload.action !== 'RUN DEGRADED GENERATION'
       || !['subscription-unavailable', 'subscription-failure', 'api-unavailable', 'sealed-api-failure'].includes(payload.degradedCause) || !validDate(payload.approvedAt)
       || typeof payload.approver !== 'string' || !payload.approver.trim() || typeof payload.generationId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(payload.generationId))) throw new Error('degraded isolation requires one-run explicit approval after the configured generation path is unavailable or fails');
+    const generation = state.generations.find((item) => item.id === payload.generationId);
+    if (!generation || generation.stage !== 'direction') throw new Error('visual.isolation-recorded is direction-only and requires an existing direction generation');
+    if (payload.mode === 'degraded' ? generation.executionHost !== 'explicit-degraded' : generation.executionHost !== 'sealed-runner') throw new Error('direction executionHost does not match its recorded generation mode');
     const isolation = { ...payload, recordedAt: new Date().toISOString() };
     state.visualControl.isolationRuns[payload.generationId] = isolation;
     state.visualControl.isolation = isolation;
@@ -535,8 +722,22 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
     state.visualControl.identityScans.push({ ...payload, recordedAt: new Date().toISOString() });
   }
   else if (event.type === 'visual.anchor-contract-frozen') {
-    if (!isRecord(payload) || typeof payload.cardId !== 'string' || typeof payload.fingerprint !== 'string') throw new Error('visual.anchor-contract-frozen requires cardId and fingerprint');
+    const selectedDirection = state.generations.find((item) => item.stage === 'direction' && item.status === 'selected');
+    const anchorId = selectedDirection?.references?.find((item) => item.role === 'anchor')?.id;
+    if (!isRecord(payload) || payload.cardId !== anchorId || !validateFingerprint(payload.fingerprint) || !validateTweakableDecisions(payload.tweakableDecisions)) throw new Error('visual.anchor-contract-frozen requires the selected anchor, a SHA-256 fingerprint, and contract-constrained tweakableDecisions');
     state.visualControl.anchorContract = { ...payload, frozenAt: new Date().toISOString() };
+  }
+  else if (event.type === 'visual.tweak-bar-recorded') {
+    if (!isRecord(payload) || !['active', 'applied', 'production-excluded'].includes(payload.status) || !validId(payload.generationId) || !validateFingerprint(payload.contractFingerprint)) throw new Error('visual.tweak-bar-recorded requires status, generationId, and contract fingerprint');
+    if (payload.contractFingerprint !== state.visualControl.anchorContract?.fingerprint) throw new Error('tweak bar does not match the frozen anchor contract');
+    const expectedNext = { pending: 'active', active: 'applied', applied: 'production-excluded' }[state.visualControl.tweakBar.status];
+    if (payload.status !== expectedNext) throw new Error(`tweak bar lifecycle must advance from ${state.visualControl.tweakBar.status} to ${expectedNext}`);
+    if (payload.status === 'active' && (!Array.isArray(payload.controls) || !payload.controls.length || payload.controls.some((key) => !Object.hasOwn(state.visualControl.anchorContract.tweakableDecisions, key)))) throw new Error('active tweak bar controls must come from the frozen contract');
+    if (payload.status === 'applied' && !validateFingerprint(payload.valuesFingerprint)) throw new Error('applied tweak bar requires a values fingerprint');
+    if (payload.status === 'production-excluded' && (!validateFingerprint(payload.productionBuildFingerprint) || !Array.isArray(payload.markersFound) || payload.markersFound.length)) throw new Error('production-excluded tweak bar requires a clean production build fingerprint');
+    const record = { ...payload, recordedAt: new Date().toISOString() };
+    state.visualControl.tweakBar.records.push(record);
+    state.visualControl.tweakBar.status = payload.status;
   }
   else if (event.type === 'visual.route-conformance-recorded') {
     if (!isRecord(payload) || typeof payload.route !== 'string' || !['passed', 'failed'].includes(payload.status) || !Array.isArray(payload.checks)) throw new Error('visual.route-conformance-recorded requires route, status, and checks');
@@ -614,4 +815,4 @@ const main = async () => {
 const isDirectExecution = () => Boolean(process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)));
 if (isDirectExecution()) main().catch((error) => fail(error.message));
 
-export { applyEvent, assertProjectRoot, atomicWriteJson, emptyState, migrateState, readProjectState, saveReferenceSession, validateState };
+export { applyEvent, assertProjectRoot, atomicWriteJson, emptyState, migrateState, readProjectState, saveReferenceSession, statePaths, validateState };
