@@ -14,7 +14,9 @@ const qualityBandWidth = 10;
 const unique = (values) => [...new Set(values)];
 const setSignature = (set) => set.anchor.id;
 const recipeUsable = (card) => card.imageRecipe?.kind === 'none'
-  ? typeof card.imageRecipe.reason === 'string' && card.imageRecipe.reason.trim().length >= 60
+  ? ['code-native', 'authorized-media'].includes(card.imageRecipe.noneMode)
+    && typeof card.imageRecipe.permittedMethod === 'string' && card.imageRecipe.permittedMethod.trim().length >= 3
+    && typeof card.imageRecipe.reason === 'string' && card.imageRecipe.reason.trim().length >= 60
   : typeof card.imageRecipe?.prompt === 'string' && card.imageRecipe.prompt.trim().length >= 80;
 const stillUsable = (card) => Boolean(card.media?.detailImage && card.media?.original && card.quality?.width > 0 && card.quality?.height > 0);
 
@@ -56,6 +58,8 @@ const anchorEligible = (card, rawRequest) => {
   return card.primaryCategory === request.category
     && card.workflow.anchorUses.includes(request.pageUse)
     && card.quality.tier !== 'limited'
+    && card.sourceIdentity?.review?.reviewStatus === 'reviewed'
+    && card.identityReviewFresh === true
     && stillUsable(card)
     && recipeUsable(card);
 };

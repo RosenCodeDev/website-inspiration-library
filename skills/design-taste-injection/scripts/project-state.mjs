@@ -10,8 +10,8 @@ import { assertContainedPath, assertIndependentPath, canonicalPath } from './pat
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
 const templatePath = resolve(skillRoot, 'assets', 'workbench-template.html');
-const currentSchemaVersion = 6;
-const currentWorkbenchVersion = 4;
+const currentSchemaVersion = 7;
+const currentWorkbenchVersion = 5;
 const legacyWorkbenchHashes = new Set([
   '90d7b70ac826a8955583e5f09d5ccb198e1d2a85e27e49b07391e23255d91b5d',
   '5304288a5c7048ebae565f16489c278a194b9cac16184a24090fddd0e70ebf0a',
@@ -67,7 +67,7 @@ const emptyState = (projectRoot) => {
     },
     visualControl: {
       evidence: {},
-      isolation: { mode: null, preflight: null, recordedAt: null },
+      isolation: { mode: null, recordedAt: null },
       leakScans: [],
       identityScans: [],
       anchorContract: null,
@@ -190,7 +190,7 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
   if (!isRecord(state.visualControl)) errors.push('visualControl must be an object');
   else {
     if (!isRecord(state.visualControl.evidence)) errors.push('visualControl.evidence must be an object');
-    if (!isRecord(state.visualControl.isolation) || ![null, 'fresh-agent', 'payload-only', 'degraded'].includes(state.visualControl.isolation.mode)) errors.push('visualControl.isolation is invalid');
+    if (!isRecord(state.visualControl.isolation) || ![null, 'sealed-api', 'degraded', 'legacy-unverified'].includes(state.visualControl.isolation.mode)) errors.push('visualControl.isolation is invalid');
     if (!Array.isArray(state.visualControl.leakScans)) errors.push('visualControl.leakScans must be an array');
     if (!Array.isArray(state.visualControl.identityScans)) errors.push('visualControl.identityScans must be an array');
     if (!Array.isArray(state.visualControl.routeConformance)) errors.push('visualControl.routeConformance must be an array');
@@ -272,7 +272,7 @@ const legacyPreview = (generation) => `<!doctype html>\n<html lang="en"><meta ch
 
 const normalizeStatus = (status) => ({ direction: 'directions', reference: 'references', variant: 'variants', build: 'implementation' })[status] ?? (workflowStatuses.has(status) ? status : 'intake');
 const migrateState = async (state, paths, projectRoot, catalog) => {
-  if (![1, 2, 3, 4, 5, 6].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
+  if (![1, 2, 3, 4, 5, 6, 7].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
   if (state.schemaVersion === currentSchemaVersion) {
     if (state.references?.selectionStatus === 'current' && state.references.catalogFingerprint !== catalog.fingerprint) {
       state.references.historicalCards ??= {};
@@ -328,9 +328,13 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
     pinned: Array.isArray(legacyReferences.pinned) ? legacyReferences.pinned.filter((pin) => pin?.role === 'anchor').slice(0, 1) : [],
     excluded: Array.isArray(legacyReferences.excluded) ? legacyReferences.excluded : [],
   };
+  const priorIsolation = isRecord(state.visualControl?.isolation) ? state.visualControl.isolation : { mode: null, recordedAt: null };
+  const migratedIsolation = ['fresh-agent', 'payload-only'].includes(priorIsolation.mode)
+    ? { mode: 'legacy-unverified', legacyMode: priorIsolation.mode, recordedAt: priorIsolation.recordedAt ?? state.updatedAt }
+    : priorIsolation;
   state.visualControl = {
     evidence: isRecord(state.visualControl?.evidence) ? state.visualControl.evidence : {},
-    isolation: isRecord(state.visualControl?.isolation) ? state.visualControl.isolation : { mode: null, preflight: null, recordedAt: null },
+    isolation: migratedIsolation,
     leakScans: Array.isArray(state.visualControl?.leakScans) ? state.visualControl.leakScans : [],
     identityScans: Array.isArray(state.visualControl?.identityScans) ? state.visualControl.identityScans : [],
     anchorContract: isRecord(state.visualControl?.anchorContract) ? state.visualControl.anchorContract : null,
@@ -496,9 +500,13 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
     evidence.inspectedAt = new Date().toISOString();
   }
   else if (event.type === 'visual.isolation-recorded') {
-    if (!isRecord(payload) || !['fresh-agent', 'payload-only', 'degraded'].includes(payload.mode)) throw new Error('visual.isolation-recorded requires a valid mode');
-    if (payload.mode !== 'degraded' && payload.preflight?.available !== true) throw new Error('isolated modes require a passing preflight');
-    if (payload.mode === 'degraded' && payload.explicitApproval !== true) throw new Error('degraded isolation requires explicit approval');
+    if (!isRecord(payload) || !['sealed-api', 'degraded'].includes(payload.mode)) throw new Error('visual.isolation-recorded requires sealed-api or degraded mode');
+    if (payload.mode === 'sealed-api' && ((!payload.developmentModelOverride && payload.model !== 'gpt-5.6-sol') || (payload.developmentModelOverride === true && (typeof payload.model !== 'string' || !payload.model.trim())) || !/^[a-f0-9]{64}$/.test(payload.requestFingerprint ?? ''))) throw new Error('sealed-api isolation requires the pinned model (or an explicit development override) and a SHA-256 request fingerprint');
+    if (payload.mode === 'degraded' && (payload.explicitApproval !== true
+      || payload.warning !== 'This generation can see project intake and is not isolated.'
+      || payload.action !== 'RUN DEGRADED GENERATION'
+      || !['api-unavailable', 'sealed-api-failure'].includes(payload.degradedCause) || !validDate(payload.approvedAt)
+      || typeof payload.approver !== 'string' || !payload.approver.trim() || typeof payload.generationId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(payload.generationId))) throw new Error('degraded isolation requires one-run explicit approval after a sealed API failure or unavailable API configuration');
     state.visualControl.isolation = { ...payload, recordedAt: new Date().toISOString() };
   }
   else if (event.type === 'visual.leak-scan-recorded') {

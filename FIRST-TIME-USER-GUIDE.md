@@ -49,6 +49,8 @@ npm run doctor:project -- C:\path\to\website-project
 
 Restart Codex in the website project after installation or updates. Codex discovers repository skills from `.agents/skills`.
 
+For isolated automatic direction generation, set `OPENAI_API_KEY` in the environment that launches Codex. The doctor reports this as optional because the explicitly approved degraded path remains available, but without the key automatic generation cannot use the sealed Responses API.
+
 ## 4. Remove older global installations
 
 The workflow no longer uses global installations. After at least one project-scoped installation passes `check:project`, remove only verified, previously managed copies:
@@ -100,15 +102,11 @@ The selector uses primary category, page-role eligibility, anchor strength, stil
 
 ## 7. Isolation behavior
 
-Visual generation prefers:
+Automatic first-pass directions use a stateless, tool-free Responses API call with the pinned `gpt-5.6-sol` model. The request contains one validated card payload and one still as an in-memory image; it omits conversation state, previous response IDs, project context, the catalog, category profiles, other cards, absolute paths, and motion clips.
 
-1. A fresh no-history agent with a verified resource boundary.
-2. An ephemeral payload-only execution in a temporary sandbox.
-3. The current thread only after explicit approval, recorded as `degraded` and never described as isolated.
+If the API is unavailable or a sealed call fails, the current thread may run only after you select the exact warning acknowledgement and then choose `RUN DEGRADED GENERATION`. Every such run is one-generation-only, recorded as `degraded`, and labeled `DEGRADED — NOT ISOLATED` throughout review. It is never called isolated and approval is never remembered.
 
-The workflow stops only when both isolated modes are unavailable and you decline degraded execution.
-
-The visual agent receives one staged still, one sealed card payload, neutral copy envelopes, and an output contract. It does not receive project intake, the catalog, category profiles, other cards, or motion clips.
+The coordinator, rather than the model, validates the rendered hero slot and writes `output-contract.json`. Earlier `fresh-agent` and `payload-only` records migrate to `legacy-unverified`.
 
 ## 8. Updating a project
 

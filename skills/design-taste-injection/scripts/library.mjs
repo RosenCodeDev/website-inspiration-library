@@ -16,14 +16,24 @@ const getLibraryRoot = async () => {
 };
 
 const main = async () => {
-  const [command = 'catalog'] = process.argv.slice(2);
-  if (command !== 'catalog') throw new Error(`Unknown command: ${command}`);
+  const [command = 'catalog', first, second] = process.argv.slice(2);
+  if (!['catalog', 'card', 'stage'].includes(command)) throw new Error(`Unknown command: ${command}`);
   const root = await getLibraryRoot();
   const exporter = resolve(root, 'scripts', 'export-workflow-catalog.mjs');
   if (!existsSync(exporter)) throw new Error(`Library exporter not found at ${exporter}. Update the library and rerun npm run setup:project -- <website-project-root>.`);
-  const result = spawnSync(process.execPath, [exporter], { cwd: root, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+  if ((command === 'card' || command === 'stage') && !first) throw new Error(`${command} requires a stable card ID.`);
+  const result = spawnSync(process.execPath, [exporter, ...(command === 'catalog' ? [] : ['--card', first])], { cwd: root, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
   if (result.status !== 0) throw new Error(result.stderr.trim() || 'Library catalog export failed.');
-  process.stdout.write(result.stdout);
+  if (command !== 'stage') return process.stdout.write(result.stdout);
+  if (!second) throw new Error('stage requires a website project root.');
+  const selected = JSON.parse(result.stdout);
+  const { resolveEvidence } = await import('./visual-contract.mjs');
+  const evidence = await resolveEvidence({
+    libraryRoot: selected.libraryRoot,
+    publicAssetRoot: selected.publicAssetRoot,
+    cards: [selected.card],
+  }, resolve(second), first);
+  process.stdout.write(`${JSON.stringify({ card: selected.card, evidence: evidence.record, stagedPath: evidence.destination }, null, 2)}\n`);
 };
 
 const isDirect = process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));

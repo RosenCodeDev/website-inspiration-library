@@ -1,23 +1,35 @@
 import { ReferenceManifestSchema, type Category, type ReferenceEntry, } from './reference-schema';
 import { referenceContent } from './reference-content';
 import { getReferenceWorkflow } from './workflow-intelligence';
+import { sourceIdentityReviews } from './source-identity-reviews';
 type Seed = Omit<ReferenceEntry, 'brief' | 'imageRecipe' | 'filters' | 'cardDescriptor' | 'styleDescriptor' | 'description' | 'scope' | 'interfaceInventory' | 'designSystem' | 'tags' | 'media' | 'workflow' | 'sourceIdentity'> & {
     extraFilters?: Category[];
-    sourceIdentity?: Partial<ReferenceEntry['sourceIdentity']>;
     media: Omit<ReferenceEntry['media'], 'motionNotes'> & { motionNotes?: string };
 };
 const uniqueText = (values: Array<string | undefined>) => Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
+const authorizedMediaNoneIds = new Set(['site-sstr', 'site-watch', 'site-system-patch', 'site-oqoqo', 'site-human-made', 'site-jitter']);
+const codeNativeMethods: Record<string, string> = {
+    'image-voidpixel': 'css-pixel-field',
+    'site-pen': 'html-css-typographic-composition',
+    'site-coda': 'html-css-typographic-composition',
+};
+const imageRecipeFor = (id: string, recipe: { kind: 'primary' | 'supporting'; prompt: string } | { kind: 'none'; reason: string }): ReferenceEntry['imageRecipe'] => recipe.kind === 'none'
+    ? { ...recipe, noneMode: authorizedMediaNoneIds.has(id) ? 'authorized-media' : 'code-native', permittedMethod: authorizedMediaNoneIds.has(id) ? 'authorized-real-media-slot' : (codeNativeMethods[id] ?? 'reviewed-html-css-structure') }
+    : recipe;
 const sourceIdentityFor = (seed: Seed): ReferenceEntry['sourceIdentity'] => {
     const domain = seed.source.url ? new URL(seed.source.url).hostname.replace(/^www\./, '') : undefined;
     const titleName = seed.title.split(/\s+[—–-]\s+/)[0];
+    const reviewed = sourceIdentityReviews[seed.id];
     return {
-        sourceNames: uniqueText([seed.source.siteName, titleName]),
-        aliases: uniqueText(seed.sourceIdentity?.aliases ?? []),
-        domains: uniqueText([domain, ...(seed.sourceIdentity?.domains ?? [])]),
-        exactCopy: uniqueText(seed.sourceIdentity?.exactCopy ?? []),
-        distinctiveClaims: uniqueText(seed.sourceIdentity?.distinctiveClaims ?? []),
-        knownMarkAssetIds: uniqueText(seed.sourceIdentity?.knownMarkAssetIds ?? []),
-        sourceSpecificExclusions: uniqueText(seed.sourceIdentity?.sourceSpecificExclusions ?? []),
+        derived: { sourceNames: uniqueText([seed.source.siteName, titleName]), aliases: [], domains: uniqueText([domain]), assetHashes: [] },
+        reviewed: reviewed ? {
+            exactCopy: uniqueText(reviewed.exactCopy), distinctiveClaims: uniqueText(reviewed.distinctiveClaims), knownMarkAssetIds: uniqueText(reviewed.knownMarkAssetIds), knownMarkAssetHashes: uniqueText(reviewed.knownMarkAssetHashes),
+            characters: uniqueText(reviewed.characters), products: uniqueText(reviewed.products), people: uniqueText(reviewed.people), packaging: uniqueText(reviewed.packaging),
+            interfaceFragments: uniqueText(reviewed.interfaceFragments), sourceSpecificExclusions: uniqueText(reviewed.sourceSpecificExclusions),
+        } : { exactCopy: [], distinctiveClaims: [], knownMarkAssetIds: [], knownMarkAssetHashes: [], characters: [], products: [], people: [], packaging: [], interfaceFragments: [], sourceSpecificExclusions: [] },
+        review: reviewed
+            ? { reviewStatus: 'reviewed', reviewedAt: reviewed.reviewedAt, reviewedBy: reviewed.reviewedBy, reviewBasis: reviewed.reviewBasis, reviewFingerprint: reviewed.reviewFingerprint }
+            : { reviewStatus: 'unreviewed', reviewedAt: null, reviewedBy: null, reviewBasis: null, reviewFingerprint: null },
     };
 };
 const buildEntry = (seed: Seed): ReferenceEntry => {
@@ -56,7 +68,7 @@ const buildEntry = (seed: Seed): ReferenceEntry => {
         media: { ...entry.media, motionNotes: content.motionBehavior },
         filters,
         brief,
-        imageRecipe: content.imageRecipe,
+        imageRecipe: imageRecipeFor(seed.id, content.imageRecipe),
         sourceIdentity: sourceIdentityFor(seed),
     };
 };

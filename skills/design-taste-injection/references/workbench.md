@@ -15,7 +15,7 @@ Write state only through `project-state.mjs apply-event`. Start the loopback wor
 
 ## Preview import
 
-Visual agents write only to an isolated temporary workspace. The coordinator validates output containment, permitted filenames, local references, intake leaks, exact source identity, renderability, and human identity review before atomically importing it to `.inspiration/previews/<generation-id>/`.
+The sealed API response is materialized only in a temporary workspace. The coordinator validates output containment, permitted filenames, local references, intake leaks, exact source identity, renderability, and H0 evidence before atomically importing it to `.inspiration/previews/<generation-id>/`.
 
 Every generation must resolve to `../previews/<generation-id>/index.html`. The state event is applied only after that file exists and renders.
 
@@ -34,9 +34,11 @@ Focused category previews are direction-shopping artifacts, not complete sites.
 
 ## H0
 
-Image-led H0 reserves the correct future-media geometry with a flat quiet stand-in and type sized around it. It cannot fill the hole with decorative CSS, SVG, canvas, fog, dithering, gradients, crop marks, or generic scenery.
+Image-led H0 reserves the correct future-media geometry with an empty marked slot, opaque flat stand-in, and type sized around it. Protected copy is a sibling of the slot and may overlap it geometrically. The coordinator rejects child content, media, gradients, masks, filters, pseudo-element scenery, animation, transparency that exposes ancestor imagery, invalid geometry, and excessive rendered color/edge/luminance complexity.
 
-For `kind:none`, follow the reviewed reason. Code-native visuals may be built as real HTML/CSS/SVG/canvas geometry. Authorized-media cards use a neutral stand-in until owned media exists.
+The generator never supplies its own validation claim. After DOM, computed-style, and rendered-pixel checks, the coordinator writes `output-contract.json` from observations. Golden passing and failing fixtures pin the pixel thresholds across supported render environments.
+
+For `kind:none`, follow the reviewed reason and `permittedMethod`. Code-native H0 must expose its defining visual through `data-code-native-hero="<permitted-method>"`; the coordinator verifies the method, visible geometry, and nonempty visual. Authorized-media cards use the same neutral reserved-slot validation until owned media exists.
 
 ## Later lineage
 

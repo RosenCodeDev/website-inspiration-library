@@ -56,12 +56,12 @@ const parsedBrief = (brief: string) => Object.fromEntries(
 const identityExclusions = (reference: ReferenceEntry) => {
   const identity = reference.sourceIdentity;
   const exclusions = [
-    ...identity.sourceNames,
-    ...identity.aliases,
-    ...identity.domains,
-    ...identity.exactCopy,
-    ...identity.distinctiveClaims,
-    ...identity.sourceSpecificExclusions,
+    ...identity.derived.sourceNames,
+    ...identity.derived.aliases,
+    ...identity.derived.domains,
+    ...identity.reviewed.exactCopy,
+    ...identity.reviewed.distinctiveClaims,
+    ...identity.reviewed.sourceSpecificExclusions,
   ];
   return exclusions.length > 0
     ? exclusions.join(', ')

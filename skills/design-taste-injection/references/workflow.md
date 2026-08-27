@@ -10,7 +10,7 @@ Intake is sealed away from steps 1–3. It cannot choose cards, alter their reci
 
 ## 1. Select one anchor per category
 
-Read the catalog through `library.mjs catalog`, but pass selection only the requested category, page role, optional seed, pins, and exclusions:
+Let the selection service read the catalog internally, but pass it only the requested category, page role, optional seed, pins, and exclusions:
 
 ```json
 {
@@ -31,6 +31,8 @@ Run `reference-selection.mjs propose-and-save`. The selector:
 - Produces one anchor and an empty `supporting` array.
 
 Project keywords, semantic fit, industry, audience, brand compatibility, constitutions, supporting-card logic, and project usage are not accepted selection inputs.
+
+After selection, use `library.mjs card <stable-id> --json` or `library.mjs stage <stable-id> <project-root>`. The coordinator receives only the chosen record and evidence request; it does not receive or log the complete catalog.
 
 Use `SHOW ANOTHER CARD`, `PIN THIS CARD`, `DO NOT USE THIS CARD`, `SWAP`, and `ACCEPT ALL`. The legacy `SHOW ANOTHER SET` spelling is accepted only as a compatibility alias.
 
@@ -56,19 +58,15 @@ The card's `Composition:` and `Avoid:` guidance is allowed. The builder does not
 
 Create `.inspiration/leak-signals.json` from exact intake-derived names, phrases, domains, claims, brand color names, and hex values. It is a guardrail, not proof of isolation.
 
-## 4. Isolate generation
+## 4. Generate through the sealed API
 
-Use this ladder:
+Build the complete outbound request with `isolation-runner.mjs`. It must be one stateless `POST /v1/responses` request using the pinned release model `gpt-5.6-sol`, `store:false`, no conversation or prior response, no tools, high reasoning, one selected still as a data URL, and strict coordinator-owned structured output. A non-release model is allowed only behind an explicit development override; record the requested and returned model and show `SEALED API — DEVELOPMENT MODEL`. Release evaluation never permits this override.
 
-1. `fresh-agent`: no history and a resource boundary that exposes only staged evidence, payload, scaffold, and output directory.
-2. `payload-only`: `codex exec --ephemeral` in a temporary workspace, `workspace-write`, non-interactive approvals, and no added project/library directories.
-3. `degraded`: the intake-aware thread, only after explicit user approval; never call it isolated.
+Serialize and validate the exact request before transmission. Scan its text envelope for intake, paths, catalog fields, sibling cards, motion, and category constitutions. Do not send project data, absolute paths, or external metadata. API capability, model, or schema errors stop sealed generation and never trigger a context-aware fallback automatically.
 
-Before enabling either isolated mode, run `isolation-runner.mjs preflight`. It must prove staged reads and temporary writes succeed while project and library reads and enumeration fail. A fresh subagent without an enforced resource boundary is not `fresh-agent`.
+At most two stateless retries are permitted. A retry contains only the original sealed request, prior generated files, a rendered screenshot, machine-validation failures, and a generic correction instruction. Rebuild and rescan the retry envelope; never add product, industry, audience, or project-language hints.
 
-If a mode fails, mark it unavailable and try the next. Stop only when both isolated modes are unavailable and the user refuses degraded generation.
-
-Record the chosen mode with `visual.isolation-recorded`.
+If sealed generation is unavailable or fails, offer `degraded` execution only behind the exact unselected warning “This generation can see project intake and is not isolated.” and a separate `RUN DEGRADED GENERATION` action. Record approver, timestamp, generation ID, and `isolationMode: degraded`. Keep `DEGRADED — NOT ISOLATED` visible throughout review. Never remember approval. Earlier `fresh-agent` and `payload-only` state migrates to `legacy-unverified`.
 
 ## 5. Generate and import H0
 
@@ -89,7 +87,9 @@ For image-led cards, H0 is the correct image hole, flat quiet stand-in, and type
 
 For `kind:none`, follow the reviewed reason: construct genuinely code-native visuals in code, or reserve neutral geometry for authorized media. Never invent a protected product, artwork, person, packaging, or interface.
 
-The isolated agent writes only to its temporary output directory. It must include `output-contract.json`, asserting one anchor, no supports, still inspection, no motion use, one hero, one opening module, the required H0 mode, and no decorative code art used as the missing image. The coordinator validates that schema, containment, permitted files, paths, intake leaks, and exact source identity, renders the result, performs human identity review, atomically imports it, and only then appends the generation event. Show the source still beside the preview in the workbench.
+Generated markup must contain one `data-inspiration-hero` and one `data-opening-module`. Image-led and authorized-media H0 also require an empty `data-future-image-slot` and a sibling `data-protected-copy-region`; code-native H0 requires `data-code-native-hero` and its reviewed method.
+
+The API output writes only to a temporary directory and may not create `output-contract.json`. The coordinator validates containment and permitted files, scans intake and exact source identity, inspects computed styles and slot geometry, hides protected-copy siblings, measures the composed slot pixels, restores copy, and captures the final preview. Only the coordinator writes the observed output contract. It then atomically imports the result and appends the generation event. Show the source still beside the preview in the workbench.
 
 These focused directions are direction shopping, not the final design gate.
 

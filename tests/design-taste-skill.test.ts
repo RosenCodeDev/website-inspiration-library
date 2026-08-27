@@ -49,17 +49,35 @@ describe('inspiration-controlled design workflow', () => {
 
   it('exports the validated live catalog with reviewed identity metadata', () => {
     const catalog = loadCatalog();
-    expect(catalog.schemaVersion).toBe(3);
+    expect(catalog.schemaVersion).toBe(4);
     expect(catalog.cards).toHaveLength(63);
     expect(catalog.categories).toHaveLength(7);
     for (const card of catalog.cards) {
       expect(card.fingerprint).toMatch(/^[a-f0-9]{16}$/);
-      expect(card.sourceIdentity).toEqual(expect.objectContaining({
-        sourceNames: expect.any(Array), aliases: expect.any(Array), domains: expect.any(Array), exactCopy: expect.any(Array),
-        distinctiveClaims: expect.any(Array), knownMarkAssetIds: expect.any(Array), sourceSpecificExclusions: expect.any(Array),
-      }));
+      expect(card.sourceIdentity.derived).toEqual(expect.objectContaining({ sourceNames: expect.any(Array), aliases: expect.any(Array), domains: expect.any(Array), assetHashes: expect.any(Array) }));
+      expect(card.sourceIdentity.reviewed).toEqual(expect.objectContaining({ exactCopy: expect.any(Array), distinctiveClaims: expect.any(Array), knownMarkAssetIds: expect.any(Array), knownMarkAssetHashes: expect.any(Array), sourceSpecificExclusions: expect.any(Array) }));
     }
+    const reviewedMarketingBand = catalog.cards.filter((card: any) => card.sourceIdentity.review.reviewStatus === 'reviewed');
+    expect(reviewedMarketingBand).toHaveLength(34);
+    expect(reviewedMarketingBand.every((card: any) => card.identityReviewFresh)).toBe(true);
   });
+
+  it('returns and stages one selected card without returning the catalog', () => {
+    const library = resolve(skillRoot, 'scripts', 'library.mjs');
+    const one = runNode(library, ['card', 'site-spade', '--json']);
+    expect(one.status, one.stderr).toBe(0);
+    const record = JSON.parse(one.stdout);
+    expect(record.card.id).toBe('site-spade');
+    expect(record.cards).toBeUndefined();
+    expect(record.categoryProfiles).toBeUndefined();
+    const project = resolve(scratch, 'single-card-stage'); mkdirSync(project, { recursive: true });
+    const staged = runNode(library, ['stage', 'site-spade', project]);
+    expect(staged.status, staged.stderr).toBe(0);
+    const stagedRecord = JSON.parse(staged.stdout);
+    expect(stagedRecord.card.id).toBe('site-spade');
+    expect(stagedRecord.evidence.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(stagedRecord.cards).toBeUndefined();
+  }, 20_000);
 
   it('selects one context-free anchor from a ten-point quality band and never adds supports', async () => {
     const catalog = loadCatalog();
@@ -110,7 +128,9 @@ describe('inspiration-controlled design workflow', () => {
     const card = catalog.cards.find((item: any) => item.imageRecipe.kind === 'none' && item.imageRecipe.reason.length >= 60);
     expect(card).toBeTruthy();
     expect(anchorEligible(card, { category: card.primaryCategory, pageUse: card.workflow.anchorUses[0] })).toBe(true);
-    expect(anchorEligible({ ...card, imageRecipe: { kind: 'none', reason: '' } }, { category: card.primaryCategory, pageUse: card.workflow.anchorUses[0] })).toBe(false);
+    expect(card.imageRecipe.noneMode).toMatch(/code-native|authorized-media/);
+    expect(card.imageRecipe.permittedMethod).toEqual(expect.any(String));
+    expect(anchorEligible({ ...card, imageRecipe: { kind: 'none', reason: '', noneMode: card.imageRecipe.noneMode, permittedMethod: card.imageRecipe.permittedMethod } }, { category: card.primaryCategory, pageUse: card.workflow.anchorUses[0] })).toBe(false);
   });
 
   it('persists only a minimal user-level rotation ledger and reconciles catalog changes', async () => {
@@ -140,6 +160,7 @@ describe('inspiration-controlled design workflow', () => {
     expect(prompt).toMatch(/AESTHETIC[\s\S]*REFERENCE[\s\S]*FUTURE HERO[\s\S]*PLACEMENT[\s\S]*OUTPUT CONTRACT/);
     expect(prompt).toContain('Do not inspect any motion media');
     expect(JSON.stringify(payload)).not.toMatch(/categoryProfile|categoryConstitution|motionClip|projectName|audience|brandColors/);
+    expect(() => visual.assertSealedPayload({ ...payload, secretProjectBrief: 'hidden' })).toThrow(/unexpected or missing fields/i);
   });
 
   it('excludes exact constitution sentences by provenance without rejecting card-authored Composition or Avoid', async () => {
@@ -158,7 +179,7 @@ describe('inspiration-controlled design workflow', () => {
     const signals = visual.buildLeakSignals({ companyNames: ['Acme Ledger'], domains: ['acme.test'], brandHexValues: ['#12ab34'], audiencePhrases: ['regional payroll teams'] });
     expect(visual.scanExactSignals('A neutral preview for Acme Ledger.', signals)[0].value).toBe('Acme Ledger');
     expect(visual.scanExactSignals('A neutral preview.', signals)).toEqual([]);
-    const identity = { sourceNames: ['Spade'], aliases: [], domains: ['spade.com'], exactCopy: ['Make it count'], distinctiveClaims: [], knownMarkAssetIds: [], sourceSpecificExclusions: [] };
+    const identity = { derived: { sourceNames: ['Spade'], aliases: [], domains: ['spade.com'], assetHashes: [] }, reviewed: { exactCopy: ['Make it count'], distinctiveClaims: [], knownMarkAssetIds: [], knownMarkAssetHashes: [], characters: [], products: [], people: [], packaging: [], interfaceFragments: [], sourceSpecificExclusions: [] } };
     expect(visual.scanSourceIdentity('This says Make it count.', identity)[0].value).toBe('Make it count');
     const source = readFileSync(resolve(skillRoot, 'scripts', 'visual-contract.mjs'), 'utf8');
     expect(source).not.toMatch(/ocr|logo.shape|color.*identity|delete.*logo/i);
@@ -166,7 +187,7 @@ describe('inspiration-controlled design workflow', () => {
 
   it('resolves evidence by stable card ID, fingerprints it, and imports only validated temporary previews', async () => {
     const catalog = loadCatalog();
-    const card = catalog.cards[0];
+    const card = catalog.cards.find((item: any) => item.id === 'site-spade');
     const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?evidence=${Date.now()}`);
     const project = resolve(scratch, 'evidence-project');
     const evidence = await visual.resolveEvidence(catalog, project, card.id);
@@ -176,31 +197,80 @@ describe('inspiration-controlled design workflow', () => {
     expect(evidence.record.inspected).toBe(false);
     const temporary = resolve(scratch, 'temporary-preview');
     mkdirSync(temporary, { recursive: true });
-    writeFileSync(resolve(temporary, 'index.html'), '<!doctype html><link rel="stylesheet" href="styles.css"><main>H0</main>');
-    writeFileSync(resolve(temporary, 'styles.css'), 'main{display:grid}');
-    writeFileSync(resolve(temporary, 'output-contract.json'), JSON.stringify({ schemaVersion: 1, scope: 'hero-and-opening-module', anchorCardId: card.id, supportingCardIds: [], sourceStillInspected: true, motionMediaUsed: false, heroCount: 1, openingModuleCount: 1, h0Mode: 'reserved-image-hole-with-flat-stand-in', decorativeCodeArtUsedAsFutureImage: false }));
-    const imported = await visual.importPreview(temporary, project, 'D01-H0', { leakSignals: { schemaVersion: 1, signals: [] }, sourceIdentity: card.sourceIdentity, anchorCardId: card.id, expectedH0: 'reserved-image-hole-with-flat-stand-in' });
+    writeFileSync(resolve(temporary, 'index.html'), '<!doctype html><link rel="stylesheet" href="styles.css"><main><section data-inspiration-hero><div data-protected-copy-region>Neutral heading</div><div data-future-image-slot></div></section><section data-opening-module>Opening module</section></main>');
+    writeFileSync(resolve(temporary, 'styles.css'), 'body{margin:0} [data-inspiration-hero]{display:grid;grid-template-columns:1fr 1fr;min-height:600px}[data-future-image-slot]{width:620px;aspect-ratio:4/3;background:#d8d4ca}[data-opening-module]{min-height:200px}');
+    const imported = await visual.importPreview(temporary, project, 'D01-H0', { leakSignals: { schemaVersion: 1, signals: [] }, sourceIdentity: card.sourceIdentity, anchorCardId: card.id, expectedH0: 'reserved-image-hole-with-flat-stand-in', expectedGeometry: { aspectRatio: 4 / 3, aspectTolerance: 0.18, alignment: 'right', minWidthRatio: 0.28, minHeightRatio: 0.2 }, sourceStillInspected: true });
     expect(imported.preview).toBe('../previews/D01-H0/index.html');
     expect(existsSync(resolve(project, '.inspiration', 'previews', 'D01-H0', 'index.html'))).toBe(true);
+    const observedContract = JSON.parse(readFileSync(resolve(project, '.inspiration', 'previews', 'D01-H0', 'output-contract.json'), 'utf8'));
+    expect(observedContract.schemaVersion).toBe(2);
+    expect(observedContract.validator.slotMetrics.quantizedColors).toBeLessThanOrEqual(12);
     const unsafe = resolve(scratch, 'unsafe-preview');
     mkdirSync(unsafe, { recursive: true });
     writeFileSync(resolve(unsafe, 'index.html'), '<script src="https://example.com/a.js"></script>');
-    await expect(visual.importPreview(unsafe, project, 'D02-H0', { leakSignals: { schemaVersion: 1, signals: [] }, sourceIdentity: card.sourceIdentity })).rejects.toThrow(/external|absolute/i);
+    await expect(visual.importPreview(unsafe, project, 'D02-H0', { leakSignals: { schemaVersion: 1, signals: [] }, sourceIdentity: card.sourceIdentity, anchorCardId: card.id, expectedH0: 'reserved-image-hole-with-flat-stand-in', expectedGeometry: { aspectRatio: 4 / 3, aspectTolerance: 0.18, alignment: 'right', minWidthRatio: 0.28, minHeightRatio: 0.2 }, sourceStillInspected: true })).rejects.toThrow(/external|absolute/i);
   });
 
-  it('defines the isolation ladder and a bounded non-interactive payload-only command', async () => {
+  it('pins H0 pixel thresholds with passing and failing golden fixtures', async () => {
+    const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?goldens=${Date.now()}`);
+    const fixtureRoot = resolve(root, 'tests', 'fixtures', 'h0');
+    for (const name of ['good-flat.html', 'good-overlap.html', 'good-outside-texture.html']) {
+      const folder = resolve(scratch, `h0-${name}`); mkdirSync(folder, { recursive: true }); cpSync(resolve(fixtureRoot, name), resolve(folder, 'index.html'));
+      await expect(visual.validateRenderedH0(folder, { expectedH0: 'reserved-image-hole-with-flat-stand-in' })).resolves.toEqual(expect.objectContaining({ slotMetrics: expect.any(Object) }));
+    }
+    for (const name of ['bad-gradient.html', 'bad-fog.html', 'bad-dither.html', 'bad-svg.html', 'bad-transparent-parent.html']) {
+      const folder = resolve(scratch, `h0-${name}`); mkdirSync(folder, { recursive: true }); cpSync(resolve(fixtureRoot, name), resolve(folder, 'index.html'));
+      await expect(visual.validateRenderedH0(folder, { expectedH0: 'reserved-image-hole-with-flat-stand-in' })).rejects.toThrow();
+    }
+    const codeNative = resolve(scratch, 'h0-good-code-native'); mkdirSync(codeNative, { recursive: true }); cpSync(resolve(fixtureRoot, 'good-code-native.html'), resolve(codeNative, 'index.html'));
+    await expect(visual.validateRenderedH0(codeNative, { expectedH0: 'code-native', expectedCodeNativeMethod: 'css-pixel-field' })).resolves.toEqual(expect.objectContaining({ observed: expect.objectContaining({ codeNativeMethod: 'css-pixel-field' }) }));
+    await expect(visual.validateRenderedH0(codeNative, { expectedH0: 'code-native', expectedCodeNativeMethod: 'canvas-field' })).rejects.toThrow(/permitted method/i);
+  }, 60_000);
+
+  it('rejects stale identity reviews from automatic generation', async () => {
+    const catalog = loadCatalog(); const card = catalog.cards.find((item: any) => item.id === 'site-spade');
+    const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?stale=${Date.now()}`);
+    expect(() => visual.assertReviewedIdentity({ ...card, identityReviewFresh: false })).toThrow(/stale/i);
+  });
+
+  it('fingerprints release evaluation inputs and validates approval artifacts noninteractively', async () => {
+    const common = await import(`${pathToFileURL(resolve(root, 'scripts', 'inspiration-eval-common.mjs')).href}?eval=${Date.now()}`);
+    const approvalModule = await import(`${pathToFileURL(resolve(root, 'scripts', 'inspiration-eval-approval.mjs')).href}?approval=${Date.now()}`);
+    const current = await common.currentEvaluationInputs();
+    expect(current.inputs.releaseModel).toBe('gpt-5.6-sol');
+    expect(Object.keys(current.inputs.cardFingerprints)).toEqual(['site-spade', 'image-astra-ai', 'site-ctgt']);
+    expect(Object.keys(current.inputs.identityReviewBandFingerprints)).toHaveLength(34);
+    const approval = { evaluationFingerprint: current.evaluationFingerprint, decision: 'approved', requestedModel: 'gpt-5.6-sol', returnedModels: ['gpt-5.6-sol'], cardFingerprints: current.inputs.cardFingerprints, identityReviewBandFingerprints: current.inputs.identityReviewBandFingerprints, inputFingerprints: current.inputs.fileFingerprints, goldenFixtureFingerprint: current.inputs.goldenFixtureFingerprint };
+    expect(approvalModule.validateApproval(approval, current)).toBe(true);
+    expect(() => approvalModule.validateApproval({ ...approval, goldenFixtureFingerprint: 'stale' }, current)).toThrow(/stale/i);
+    const source = readFileSync(resolve(root, 'scripts', 'inspiration-eval-approval.mjs'), 'utf8');
+    expect(source).not.toMatch(/readline|inquirer|prompt\(/i);
+  }, 20_000);
+
+  it('builds an exact stateless Responses request and makes degradation explicit', async () => {
     const isolation = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'isolation-runner.mjs')).href}?isolation=${Date.now()}`);
-    expect(isolation.codexArgs('PROMPT')).toEqual(expect.arrayContaining(['exec', '--ephemeral', '--sandbox', 'workspace-write', '--ask-for-approval', 'never']));
-    expect(isolation.isolationLabel({ freshAgentAvailable: true })).toBe('fresh-agent');
-    expect(isolation.isolationLabel({ payloadOnlyPreflight: { available: true } })).toBe('payload-only');
-    expect(isolation.isolationLabel({ degradedApproved: true })).toBe('degraded');
-    expect(isolation.isolationLabel({})).toBeNull();
+    const card = loadCatalog().cards.find((item: any) => item.id === 'site-spade');
+    const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?request=${Date.now()}`);
+    const evidence = await visual.resolveEvidence({ ...loadCatalog() }, resolve(scratch, 'request-project'), card.id);
+    const payload = visual.buildSealedPayload(card, { sha256: evidence.record.sha256 });
+    const request = await isolation.buildSealedRequest(payload, evidence.destination, { projectRoot: resolve(scratch, 'request-project'), libraryRoot: root });
+    expect(request.model).toBe('gpt-5.6-sol');
+    expect(request).toEqual(expect.objectContaining({ store: false, background: false, stream: false, tools: [], tool_choice: 'none', reasoning: { effort: 'high' } }));
+    expect(request).not.toHaveProperty('conversation'); expect(request).not.toHaveProperty('previous_response_id'); expect(request).not.toHaveProperty('metadata');
+    expect(request.input[0].content.filter((item: any) => item.type === 'input_image')).toHaveLength(1);
+    await expect(isolation.buildSealedRequest(payload, evidence.destination, { model: 'development-model', projectRoot: resolve(scratch, 'request-project'), libraryRoot: root })).rejects.toThrow(/requires gpt-5.6-sol/i);
+    await expect(isolation.buildSealedRequest(payload, evidence.destination, { model: 'development-model', allowDevelopmentModel: true, projectRoot: resolve(scratch, 'request-project'), libraryRoot: root })).resolves.toEqual(expect.objectContaining({ model: 'development-model' }));
+    expect(() => isolation.buildRetryRequest(request, { previousFiles: [], failures: ['make this more payroll'] }, { leakSignals: visual.buildLeakSignals({ distinctiveClaims: ['make this more payroll'] }) })).toThrow(/intake leak/i);
+    const redacted = isolation.redactRetryEvidence({ previousFiles: [{ path: 'index.html', content: 'Acme Ledger' }], failures: ['The data & AI platform for modern finance leaked'] }, request, { leakSignals: visual.buildLeakSignals({ companyNames: ['Acme Ledger'] }) });
+    expect(JSON.stringify(redacted)).not.toMatch(/Acme Ledger|data & AI platform for modern finance/i);
+    expect(() => isolation.createDegradedApproval({ acknowledged: isolation.DEGRADED_WARNING, action: 'wrong', approver: 'Reviewer', generationId: 'D01', degradedCause: 'api-unavailable' })).toThrow();
+    expect(isolation.createDegradedApproval({ acknowledged: isolation.DEGRADED_WARNING, action: isolation.DEGRADED_ACTION, approver: 'Reviewer', generationId: 'D01', degradedCause: 'api-unavailable' })).toEqual(expect.objectContaining({ mode: 'degraded', isolated: false, explicitApproval: true, degradedCause: 'api-unavailable' }));
     const source = readFileSync(resolve(skillRoot, 'references', 'workflow.md'), 'utf8');
-    expect(source).toMatch(/fresh-agent[\s\S]*payload-only[\s\S]*degraded/);
-    expect(source.toLowerCase()).toContain('explicit user approval');
+    expect(source).toContain('POST /v1/responses');
+    expect(source).toContain('DEGRADED — NOT ISOLATED');
   });
 
-  it('initializes schema 6 state, records anchor-only generations, and persists visual controls through events', () => {
+  it('initializes schema 7 state, records anchor-only generations, and persists visual controls through events', () => {
     const project = resolve(scratch, 'state-project');
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
     expect(runNode(script, ['init', project]).status).toBe(0);
@@ -217,15 +287,15 @@ describe('inspiration-controlled design workflow', () => {
     const appended = runNode(script, ['append-generation', project, generationPath]);
     expect(appended.status, appended.stderr).toBe(0);
     const eventPath = resolve(scratch, 'visual-event.json');
-    writeFileSync(eventPath, JSON.stringify({ type: 'visual.isolation-recorded', payload: { mode: 'payload-only', preflight: { available: true, version: 1 } } }));
+    writeFileSync(eventPath, JSON.stringify({ type: 'visual.isolation-recorded', payload: { mode: 'sealed-api', model: 'gpt-5.6-sol', requestFingerprint: 'a'.repeat(64) } }));
     expect(runNode(script, ['apply-event', project, eventPath]).status).toBe(0);
     writeFileSync(eventPath, JSON.stringify({ type: 'visual.route-conformance-recorded', payload: { route: '/pricing', status: 'passed', checks: ['type', 'palette', 'spacing'] } }));
     expect(runNode(script, ['apply-event', project, eventPath]).status).toBe(0);
     const state = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(6);
-    expect(state.workbenchVersion).toBe(4);
+    expect(state.schemaVersion).toBe(7);
+    expect(state.workbenchVersion).toBe(5);
     expect(state.generations[0].references).toEqual([{ id: card.id, role: 'anchor' }]);
-    expect(state.visualControl.isolation.mode).toBe('payload-only');
+    expect(state.visualControl.isolation.mode).toBe('sealed-api');
     expect(state.visualControl.routeConformance[0].route).toBe('/pricing');
     expect(readFileSync(resolve(project, '.inspiration', 'workbench', 'index.html'), 'utf8')).toContain('SHOW ANOTHER CARD');
   }, 20_000);
@@ -240,14 +310,16 @@ describe('inspiration-controlled design workflow', () => {
       informationArchitecture: { status: 'pending', pages: [], sections: [], primaryJourney: '' },
       references: { pinned: [], excluded: [], usage: {}, sets: [] },
       generations: [{ id: 'OLD', parent: null, stage: 'direction', status: 'selected', label: 'Legacy', category: 'Print-Tech Paper', thesis: '', references: [], preview: '', createdAt: new Date().toISOString() }],
+      visualControl: { isolation: { mode: 'payload-only', recordedAt: new Date().toISOString() } },
       decisions: [], heroProvider: 'codex',
     }));
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
     expect(runNode(script, ['init', project]).status).toBe(0);
     const state = JSON.parse(readFileSync(resolve(inspiration, 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(6);
+    expect(state.schemaVersion).toBe(7);
     expect(state.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
     expect(state.visualControl).toBeTruthy();
+    expect(state.visualControl.isolation).toEqual(expect.objectContaining({ mode: 'legacy-unverified', legacyMode: 'payload-only' }));
   });
 
   it('protects project roots, preview containment, and atomic state replacement', async () => {
@@ -345,7 +417,7 @@ describe('inspiration-controlled design workflow', () => {
     const state = JSON.parse(readFileSync(statePath, 'utf8')); state.schemaVersion = 5; state.workbenchVersion = 3; writeFileSync(statePath, JSON.stringify(state));
     expect(runNode(script, ['init', project]).status).toBe(0);
     expect(readdirSync(resolve(project, '.inspiration', 'workbench', 'archive')).length).toBeGreaterThan(0);
-    expect(readFileSync(workbenchPath, 'utf8')).toContain('content="4"');
+    expect(readFileSync(workbenchPath, 'utf8')).toContain('content="5"');
     const junction = resolve(scratch, 'junction-project'); const outside = resolve(scratch, 'junction-outside');
     mkdirSync(junction, { recursive: true }); mkdirSync(outside, { recursive: true });
     symlinkSync(outside, resolve(junction, '.inspiration'), process.platform === 'win32' ? 'junction' : 'dir');

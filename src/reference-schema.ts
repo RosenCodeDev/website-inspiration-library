@@ -89,18 +89,38 @@ export const ImageRecipeSchema = z.discriminatedUnion('kind', [
   }),
   z.object({
     kind: z.literal('none'),
+    noneMode: z.enum(['code-native', 'authorized-media']),
+    permittedMethod: z.string().min(3).max(100),
     reason: z.string().min(60),
   }),
 ]);
 
 export const SourceIdentitySchema = z.object({
-  sourceNames: z.array(z.string().min(1)),
-  aliases: z.array(z.string().min(1)),
-  domains: z.array(z.string().min(1)),
-  exactCopy: z.array(z.string().min(1)),
-  distinctiveClaims: z.array(z.string().min(1)),
-  knownMarkAssetIds: z.array(z.string().min(1)),
-  sourceSpecificExclusions: z.array(z.string().min(1)),
+  derived: z.object({
+    sourceNames: z.array(z.string().min(1)),
+    aliases: z.array(z.string().min(1)),
+    domains: z.array(z.string().min(1)),
+    assetHashes: z.array(z.string().regex(/^[a-f0-9]{64}$/)),
+  }),
+  reviewed: z.object({
+    exactCopy: z.array(z.string().min(1)),
+    distinctiveClaims: z.array(z.string().min(1)),
+    knownMarkAssetIds: z.array(z.string().min(1)),
+    knownMarkAssetHashes: z.array(z.string().regex(/^[a-f0-9]{64}$/)),
+    characters: z.array(z.string().min(1)),
+    products: z.array(z.string().min(1)),
+    people: z.array(z.string().min(1)),
+    packaging: z.array(z.string().min(1)),
+    interfaceFragments: z.array(z.string().min(1)),
+    sourceSpecificExclusions: z.array(z.string().min(1)),
+  }),
+  review: z.object({
+    reviewStatus: z.enum(['unreviewed', 'reviewed']),
+    reviewedAt: z.string().nullable(),
+    reviewedBy: z.string().nullable(),
+    reviewBasis: z.string().nullable(),
+    reviewFingerprint: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
+  }),
 });
 
 export const ReferenceEntrySchema = z.object({

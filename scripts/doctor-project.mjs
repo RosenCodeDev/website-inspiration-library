@@ -20,9 +20,9 @@ const doctorProject = async (target) => {
   report(dependencies ? 'OK' : 'FIX', 'Library dependencies', dependencies ? 'installed' : 'run npm install in the library'); healthy &&= dependencies;
   const project = await checkProject(target);
   report(project.healthy ? 'OK' : 'FIX', 'Project skills', project.healthy ? project.destination : 'run npm run setup:project -- <website-project-root>'); healthy &&= Boolean(project.healthy);
-  const browser = discoverBrowser(); report(browser ? 'OK' : 'OPTIONAL', 'Browser capture', browser ?? 'install Chrome, Edge, or Chromium');
-  const codex = available(process.platform === 'win32' ? 'codex.exe' : 'codex', ['--version']);
-  report(codex ? 'OK' : 'FIX', 'Payload-only isolation', codex ? 'codex exec available; run the preflight per project' : 'Codex CLI is unavailable'); healthy &&= codex;
+  const browser = discoverBrowser(); report(browser ? 'OK' : 'FIX', 'Rendered H0 validation', browser ?? 'install Chrome, Edge, or Chromium'); healthy &&= Boolean(browser);
+  const apiConfigured = Boolean(process.env.OPENAI_API_KEY);
+  report(apiConfigured ? 'OK' : 'OPTIONAL', 'Sealed Responses API', apiConfigured ? 'OPENAI_API_KEY is configured' : 'set OPENAI_API_KEY for isolated automatic generation; degraded generation still requires one-run approval');
   console.log(['Design Taste Injection project doctor', ...lines, '', healthy ? 'READY: required project setup is healthy.' : 'NOT READY: complete the FIX items above.'].join('\n'));
   if (!healthy) process.exitCode = 1;
   return { healthy, lines };
