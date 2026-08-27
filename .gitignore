@@ -38,6 +38,7 @@ next-env.d.ts
 /work/
 /.capture-tools/
 /capture-work/
+/.impeccable/
 *.tsbuildinfo
 /library-*-preview.png
 /library-preview.png

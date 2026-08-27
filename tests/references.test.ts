@@ -401,8 +401,8 @@ describe('reference manifest', () => {
 
   it('keeps modal background inert and announces only concise filter counts', () => {
     const app = readFileSync(resolve(process.cwd(), 'src', 'App.tsx'), 'utf8');
-    expect(app).toContain('inert={selected ? true : undefined}');
-    expect(app).toContain('aria-hidden={selected ? true : undefined}');
+    expect(app).toContain('inert={overlayOpen ? true : undefined}');
+    expect(app).toContain('aria-hidden={overlayOpen ? true : undefined}');
     expect(app).toContain('className="filter-status" role="status" aria-live="polite"');
     expect(app).not.toMatch(/className="reference-grid"[^>]*aria-live/);
   });

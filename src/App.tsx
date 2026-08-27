@@ -11,6 +11,16 @@ import type { Category, ReferenceEntry } from './reference-schema';
 import { categoryProfiles } from './workflow-intelligence';
 import { buildAgentPacket, buildBriefCopy, buildImagePromptCopy } from './agent-packet';
 import { optimizeCardTagOrder } from './card-tag-layout';
+import {
+  ManualPromptDock,
+  ManualPromptModal,
+  ManualPromptVisibilityToggle,
+} from './ManualPromptWorkbench';
+import {
+  randomPrimarySelection,
+  reshufflePrimarySelection,
+  type ManualSelectionMode,
+} from './manual-prompts';
 
 type Filter = 'All' | Category;
 type CopyTarget = 'packet' | 'brief' | 'prompt' | 'link' | null;
@@ -342,19 +352,37 @@ function CategoryProfileVisibilityToggle({
 function ReferenceCard({
   reference,
   onOpen,
+  manualPromptsVisible,
+  manualSelected,
+  onManualSelect,
   activePreviewId,
   reducedMotion,
   onPreviewChange,
 }: {
   reference: ReferenceEntry;
   onOpen: (reference: ReferenceEntry, trigger: HTMLButtonElement) => void;
+  manualPromptsVisible: boolean;
+  manualSelected: boolean;
+  onManualSelect: (reference: ReferenceEntry) => void;
   activePreviewId: string | null;
   reducedMotion: boolean;
   onPreviewChange: (id: string | null) => void;
 }) {
   return (
-    <article className="reference-card">
-      <button className="card-button" type="button" aria-haspopup="dialog" aria-label={`Open ${reference.title} reference details`} onClick={(event) => onOpen(reference, event.currentTarget)}>
+    <article className={`reference-card${manualPromptsVisible && manualSelected ? ' manual-selected' : ''}`}>
+      <button
+        className="card-button"
+        type="button"
+        aria-haspopup={manualPromptsVisible ? undefined : 'dialog'}
+        aria-pressed={manualPromptsVisible ? manualSelected : undefined}
+        aria-label={manualPromptsVisible
+          ? `${manualSelected ? 'Remove' : 'Add'} ${reference.title} ${manualSelected ? 'from' : 'to'} manual prompts`
+          : `Open ${reference.title} reference details`}
+        onClick={(event) => {
+          if (manualPromptsVisible) onManualSelect(reference);
+          else onOpen(reference, event.currentTarget);
+        }}
+      >
         <CardPreview
           reference={reference}
           active={activePreviewId === reference.id}
@@ -523,10 +551,18 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
 export default function App() {
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
   const [categoryProfileVisible, setCategoryProfileVisible] = useState(true);
+  const manualCategories = useMemo(() => categories.slice(1) as Category[], []);
+  const [manualPromptsVisible, setManualPromptsVisible] = useState(true);
+  const [manualSelectionMode, setManualSelectionMode] = useState<ManualSelectionMode>('random');
+  const [manualSelectedIds, setManualSelectedIds] = useState<Set<string>>(
+    () => new Set(randomPrimarySelection(references, categories.slice(1) as Category[])),
+  );
+  const [manualPromptOpen, setManualPromptOpen] = useState(false);
   const [selected, setSelected] = useState<ReferenceEntry | null>(null);
   const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
   const lastTrigger = useRef<HTMLButtonElement | null>(null);
+  const reviewPromptTrigger = useRef<HTMLButtonElement | null>(null);
   const counts = useMemo(() => {
     const result = new Map<Filter, number>();
     result.set('All', references.length);
@@ -539,6 +575,11 @@ export default function App() {
     () => activeFilter === 'All' ? references : references.filter((reference) => reference.filters.includes(activeFilter)),
     [activeFilter],
   );
+  const manualSelectedReferences = useMemo(
+    () => references.filter((reference) => manualSelectedIds.has(reference.id)),
+    [manualSelectedIds],
+  );
+  const overlayOpen = Boolean(selected) || manualPromptOpen;
 
   useEffect(() => {
     if (!selected) return;
@@ -557,9 +598,38 @@ export default function App() {
     window.setTimeout(() => lastTrigger.current?.focus(), 0);
   };
 
+  const changeManualSelectionMode = (mode: ManualSelectionMode) => {
+    setManualSelectionMode(mode);
+    if (mode === 'random') {
+      setManualSelectedIds(new Set(randomPrimarySelection(references, manualCategories)));
+    }
+  };
+
+  const reshuffleManualSelection = () => {
+    setManualSelectedIds((current) => (
+      new Set(reshufflePrimarySelection(references, manualCategories, current))
+    ));
+  };
+
+  const toggleManualReference = (reference: ReferenceEntry) => {
+    setActivePreviewId(null);
+    setManualSelectionMode('manual');
+    setManualSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(reference.id)) next.delete(reference.id);
+      else next.add(reference.id);
+      return next;
+    });
+  };
+
+  const closeManualPrompts = () => {
+    setManualPromptOpen(false);
+    window.setTimeout(() => reviewPromptTrigger.current?.focus(), 0);
+  };
+
   return (
     <>
-      <main className="library-shell" inert={selected ? true : undefined} aria-hidden={selected ? true : undefined}>
+      <main className={`library-shell${manualPromptsVisible ? ' has-manual-prompt-dock' : ''}`} inert={overlayOpen ? true : undefined} aria-hidden={overlayOpen ? true : undefined}>
         <nav className="filters" aria-label="Reference categories">
           {categories.map((category) => (
             <button
@@ -575,10 +645,16 @@ export default function App() {
           ))}
         </nav>
 
-        <CategoryProfileVisibilityToggle
-          visible={categoryProfileVisible}
-          onToggle={() => setCategoryProfileVisible((current) => !current)}
-        />
+        <div className="library-visibility-controls">
+          <CategoryProfileVisibilityToggle
+            visible={categoryProfileVisible}
+            onToggle={() => setCategoryProfileVisible((current) => !current)}
+          />
+          <ManualPromptVisibilityToggle
+            visible={manualPromptsVisible}
+            onToggle={() => setManualPromptsVisible((current) => !current)}
+          />
+        </div>
         {categoryProfileVisible && <CategoryProfileBar key={activeFilter} activeFilter={activeFilter} />}
 
         <p className="filter-status" role="status" aria-live="polite">
@@ -590,6 +666,9 @@ export default function App() {
               key={reference.id}
               reference={reference}
               onOpen={openReference}
+              manualPromptsVisible={manualPromptsVisible}
+              manualSelected={manualSelectedIds.has(reference.id)}
+              onManualSelect={toggleManualReference}
               activePreviewId={activePreviewId}
               reducedMotion={reducedMotion}
               onPreviewChange={setActivePreviewId}
@@ -603,7 +682,26 @@ export default function App() {
           <span>{visibleReferences.length} shown / {references.length} moments</span>
         </footer>
       </main>
+      {manualPromptsVisible && (
+        <ManualPromptDock
+          references={manualSelectedReferences}
+          mode={manualSelectionMode}
+          onModeChange={changeManualSelectionMode}
+          onReshuffle={reshuffleManualSelection}
+          onReview={() => setManualPromptOpen(true)}
+          reviewButtonRef={reviewPromptTrigger}
+          inert={overlayOpen}
+        />
+      )}
       {selected && <DetailModal reference={selected} onClose={closeReference} />}
+      {manualPromptOpen && (
+        <ManualPromptModal
+          catalog={references}
+          categories={manualCategories}
+          selectedReferences={manualSelectedReferences}
+          onClose={closeManualPrompts}
+        />
+      )}
     </>
   );
 }
