@@ -407,10 +407,11 @@ describe('reference manifest', () => {
     expect(app).not.toMatch(/className="reference-grid"[^>]*aria-live/);
   });
 
-  it('lets users hide the category profile bar without changing category filters', () => {
+  it('starts optional library guidance hidden and lets users reveal it without changing filters', () => {
     const app = readFileSync(resolve(process.cwd(), 'src', 'App.tsx'), 'utf8');
     const styles = readFileSync(resolve(process.cwd(), 'src', 'styles.css'), 'utf8');
-    expect(app).toContain('const [categoryProfileVisible, setCategoryProfileVisible] = useState(true);');
+    expect(app).toContain('const [categoryProfileVisible, setCategoryProfileVisible] = useState(false);');
+    expect(app).toContain('const [manualPromptsVisible, setManualPromptsVisible] = useState(false);');
     expect(app).toContain('aria-pressed={visible}');
     expect(app).toContain('viewBox="0 0 16 16"');
     expect(app).toContain('<span>Show category profile</span>');

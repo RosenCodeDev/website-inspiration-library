@@ -550,9 +550,9 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
 
 export default function App() {
   const [activeFilter, setActiveFilter] = useState<Filter>('All');
-  const [categoryProfileVisible, setCategoryProfileVisible] = useState(true);
+  const [categoryProfileVisible, setCategoryProfileVisible] = useState(false);
   const manualCategories = useMemo(() => categories.slice(1) as Category[], []);
-  const [manualPromptsVisible, setManualPromptsVisible] = useState(true);
+  const [manualPromptsVisible, setManualPromptsVisible] = useState(false);
   const [manualSelectionMode, setManualSelectionMode] = useState<ManualSelectionMode>('random');
   const [manualSelectedIds, setManualSelectedIds] = useState<Set<string>>(
     () => new Set(randomPrimarySelection(references, categories.slice(1) as Category[])),
