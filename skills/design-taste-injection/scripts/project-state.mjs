@@ -10,8 +10,8 @@ import { assertContainedPath, assertIndependentPath, canonicalPath } from './pat
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
 const templatePath = resolve(skillRoot, 'assets', 'workbench-template.html');
-const currentSchemaVersion = 8;
-const currentWorkbenchVersion = 6;
+const currentSchemaVersion = 9;
+const currentWorkbenchVersion = 7;
 const legacyWorkbenchHashes = new Set([
   '90d7b70ac826a8955583e5f09d5ccb198e1d2a85e27e49b07391e23255d91b5d',
   '5304288a5c7048ebae565f16489c278a194b9cac16184a24090fddd0e70ebf0a',
@@ -69,6 +69,7 @@ const emptyState = (projectRoot) => {
     visualControl: {
       evidence: {},
       isolation: { mode: null, recordedAt: null },
+      isolationRuns: {},
       leakScans: [],
       identityScans: [],
       anchorContract: null,
@@ -192,6 +193,10 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
   else {
     if (!isRecord(state.visualControl.evidence)) errors.push('visualControl.evidence must be an object');
     if (!isRecord(state.visualControl.isolation) || ![null, 'subscription-ephemeral', 'sealed-api', 'degraded', 'legacy-unverified'].includes(state.visualControl.isolation.mode)) errors.push('visualControl.isolation is invalid');
+    if (!isRecord(state.visualControl.isolationRuns)) errors.push('visualControl.isolationRuns must be an object');
+    else for (const [generationId, run] of Object.entries(state.visualControl.isolationRuns)) {
+      if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(generationId) || !isRecord(run) || run.generationId !== generationId || !['subscription-ephemeral', 'sealed-api', 'degraded', 'legacy-unverified'].includes(run.mode) || !validDate(run.recordedAt)) errors.push(`visualControl.isolationRuns contains an invalid record: ${generationId}`);
+    }
     if (!Array.isArray(state.visualControl.leakScans)) errors.push('visualControl.leakScans must be an array');
     if (!Array.isArray(state.visualControl.identityScans)) errors.push('visualControl.identityScans must be an array');
     if (!Array.isArray(state.visualControl.routeConformance)) errors.push('visualControl.routeConformance must be an array');
@@ -273,7 +278,7 @@ const legacyPreview = (generation) => `<!doctype html>\n<html lang="en"><meta ch
 
 const normalizeStatus = (status) => ({ direction: 'directions', reference: 'references', variant: 'variants', build: 'implementation' })[status] ?? (workflowStatuses.has(status) ? status : 'intake');
 const migrateState = async (state, paths, projectRoot, catalog) => {
-  if (![1, 2, 3, 4, 5, 6, 7, 8].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
   if (state.schemaVersion === currentSchemaVersion) {
     if (state.references?.selectionStatus === 'current' && state.references.catalogFingerprint !== catalog.fingerprint) {
       state.references.historicalCards ??= {};
@@ -333,9 +338,16 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
   const migratedIsolation = ['fresh-agent', 'payload-only'].includes(priorIsolation.mode)
     ? { mode: 'legacy-unverified', legacyMode: priorIsolation.mode, recordedAt: priorIsolation.recordedAt ?? state.updatedAt }
     : priorIsolation;
+  const priorGenerationId = /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(migratedIsolation.generationId ?? '')
+    ? migratedIsolation.generationId
+    : [...(Array.isArray(state.generations) ? state.generations : [])].reverse().find((generation) => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(generation?.id ?? ''))?.id ?? 'legacy-unassigned';
+  const migratedIsolationRun = migratedIsolation.mode ? { ...migratedIsolation, generationId: priorGenerationId, recordedAt: migratedIsolation.recordedAt ?? state.updatedAt } : null;
   state.visualControl = {
     evidence: isRecord(state.visualControl?.evidence) ? state.visualControl.evidence : {},
-    isolation: migratedIsolation,
+    isolation: migratedIsolationRun ?? { mode: null, recordedAt: null },
+    isolationRuns: isRecord(state.visualControl?.isolationRuns)
+      ? state.visualControl.isolationRuns
+      : migratedIsolationRun ? { [priorGenerationId]: migratedIsolationRun } : {},
     leakScans: Array.isArray(state.visualControl?.leakScans) ? state.visualControl.leakScans : [],
     identityScans: Array.isArray(state.visualControl?.identityScans) ? state.visualControl.identityScans : [],
     anchorContract: isRecord(state.visualControl?.anchorContract) ? state.visualControl.anchorContract : null,
@@ -502,6 +514,7 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
   }
   else if (event.type === 'visual.isolation-recorded') {
     if (!isRecord(payload) || !['subscription-ephemeral', 'sealed-api', 'degraded'].includes(payload.mode)) throw new Error('visual.isolation-recorded requires subscription-ephemeral, sealed-api, or degraded mode');
+    if (typeof payload.generationId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(payload.generationId)) throw new Error('visual.isolation-recorded requires a valid generationId');
     if (payload.mode === 'subscription-ephemeral' && (payload.isolated !== false || payload.contextLimited !== true || payload.authenticatedWith !== 'chatgpt' || payload.runner !== 'codex-cli' || !/^[a-f0-9]{64}$/.test(payload.workspaceFingerprint ?? ''))) throw new Error('subscription-ephemeral requires a ChatGPT-authenticated Codex CLI run, an honest non-isolated label, and a SHA-256 workspace fingerprint');
     if (payload.mode === 'sealed-api' && ((!payload.developmentModelOverride && payload.model !== 'gpt-5.6-sol') || (payload.developmentModelOverride === true && (typeof payload.model !== 'string' || !payload.model.trim())) || !/^[a-f0-9]{64}$/.test(payload.requestFingerprint ?? ''))) throw new Error('sealed-api isolation requires the pinned model (or an explicit development override) and a SHA-256 request fingerprint');
     if (payload.mode === 'degraded' && (payload.explicitApproval !== true
@@ -509,7 +522,9 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
       || payload.action !== 'RUN DEGRADED GENERATION'
       || !['subscription-unavailable', 'subscription-failure', 'api-unavailable', 'sealed-api-failure'].includes(payload.degradedCause) || !validDate(payload.approvedAt)
       || typeof payload.approver !== 'string' || !payload.approver.trim() || typeof payload.generationId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(payload.generationId))) throw new Error('degraded isolation requires one-run explicit approval after the configured generation path is unavailable or fails');
-    state.visualControl.isolation = { ...payload, recordedAt: new Date().toISOString() };
+    const isolation = { ...payload, recordedAt: new Date().toISOString() };
+    state.visualControl.isolationRuns[payload.generationId] = isolation;
+    state.visualControl.isolation = isolation;
   }
   else if (event.type === 'visual.leak-scan-recorded') {
     if (!isRecord(payload) || !['passed', 'failed'].includes(payload.status) || !Array.isArray(payload.matches)) throw new Error('visual.leak-scan-recorded requires status and matches');

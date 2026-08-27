@@ -10,6 +10,8 @@ Intake is sealed away from steps 1–3. It cannot choose cards, alter their reci
 
 ## 1. Select one anchor per category
 
+Before generating any direction, run `reference-selection.mjs preflight <page-use>`. It must report eligible exact-category anchors for every current catalog category. If coverage is incomplete, stop before consuming subscription usage and choose a fully covered page role or repair the catalog; never silently omit a category.
+
 Let the selection service read the catalog internally, but pass it only the requested category, page role, optional seed, pins, and exclusions:
 
 ```json
@@ -29,6 +31,8 @@ Run `reference-selection.mjs propose-and-save`. The selector:
 - Builds a band within ten points of the best eligible card.
 - Uses the user-level seeded shuffle bag so every band member appears once before repeat.
 - Produces one anchor and an empty `supporting` array.
+
+Automatic rotation stays inside the ten-point band. An explicit `PIN THIS CARD` or `SWAP` may select a card outside that band only when it still passes every exact-category, page-role, evidence, identity, freshness, and recipe eligibility rule.
 
 Project keywords, semantic fit, industry, audience, brand compatibility, constitutions, supporting-card logic, and project usage are not accepted selection inputs.
 
@@ -60,9 +64,9 @@ Create `.inspiration/leak-signals.json` from exact intake-derived names, phrases
 
 ## 4. Generate through the Codex subscription
 
-Use `isolation-runner.mjs run-subscription` by default. It creates a temporary workspace containing only the sealed payload, rendered prompt, output directory, and one selected still, then launches an ephemeral Codex CLI task authenticated with ChatGPT. The runner ignores user configuration and project rules, loads no conversation history, and receives no project or library path.
+Use `isolation-runner.mjs run-subscription` by default. It creates a temporary workspace containing only the sealed payload, rendered prompt, strict output schema, and one selected still, then launches an ephemeral read-only Codex CLI task authenticated with ChatGPT. The prompt travels through stdin and the still is the final `-i` argument. The child returns an allowlisted UTF-8 file manifest; it does not write the preview. The trusted coordinator enforces the 2 MiB limit, paths, uniqueness, text-only content, still checksum, identity and intake scans, and rendered H0 contract before materializing the preview.
 
-Record this mode as `subscription-ephemeral` with `isolated:false` and `contextLimited:true`. It materially limits accidental context bleed, but it is not the same hard transport boundary as a stateless API request and must never be presented as API-isolated. The workbench label remains `CODEX SUBSCRIPTION — EPHEMERAL, NOT API-ISOLATED`.
+Require active ChatGPT authentication and remove `OPENAI_API_KEY` from the child environment. Authentication is the billing-safety check; a successful H0 is the page capability check. Built-in image generation is checked only when first requested, so no usage is spent on a probe. Record each run by generation ID as `subscription-ephemeral` with `isolated:false` and `contextLimited:true`. It limits accidental context bleed but is not a filesystem-confidentiality or API-grade boundary. The workbench label is `CODEX SUBSCRIPTION — STRUCTURED, CONTEXT-LIMITED`.
 
 The stateless tool-free `POST /v1/responses` path remains available only through `run-api`, an explicit opt-in with `OPENAI_API_KEY`. It preserves the sealed request validation, pinned release model, no-history request, strict structured output, and at most two sanitized retries. Never select it automatically or make it a normal project prerequisite.
 
@@ -89,7 +93,7 @@ For `kind:none`, follow the reviewed reason: construct genuinely code-native vis
 
 Generated markup must contain one `data-inspiration-hero` and one `data-opening-module`. Image-led and authorized-media H0 also require an empty `data-future-image-slot` and a sibling `data-protected-copy-region`; code-native H0 requires `data-code-native-hero` and its reviewed method.
 
-Generated output writes only to a temporary directory and may not create `output-contract.json`. The coordinator validates containment and permitted files, scans intake and exact source identity, inspects computed styles and slot geometry, hides protected-copy siblings, measures the composed slot pixels, restores copy, and captures the final preview. Only the coordinator writes the observed output contract. It then atomically imports the result and appends the generation event. Show the source still beside the preview in the workbench.
+The child returns structured output and may not create `output-contract.json`. The coordinator materializes it in a temporary directory, validates containment and permitted files, scans intake and exact source identity, inspects computed styles and slot geometry, hides protected-copy siblings, measures the composed slot pixels, restores copy, and captures the final preview. Only the coordinator writes the observed output contract. It then atomically imports the result, appends the generation event, and records execution provenance for that generation ID. Show the source still beside the preview in the workbench.
 
 These focused directions are direction shopping, not the final design gate.
 

@@ -47,7 +47,7 @@ npm run check:project -- C:\path\to\website-project
 npm run doctor:project -- C:\path\to\website-project
 ```
 
-Restart Codex in the website project after installation or updates. Codex discovers repository skills from `.agents/skills`. Run `codex login status` and confirm the CLI is signed in with ChatGPT; the doctor treats that subscription login as required for default automatic direction generation.
+Restart Codex in the website project after installation or updates. Codex discovers repository skills from `.agents/skills`. The doctor uses machine-readable Codex diagnostics when available to confirm active ChatGPT authentication. This is the billing-safety check; the first successful H0 and first requested image are the actual page and image capability checks.
 
 `OPENAI_API_KEY` is not required for ordinary project use, Codex image generation, or the formal subscription evaluation. It is optional and used only when you explicitly select the sealed API benchmark.
 
@@ -85,7 +85,7 @@ Provide:
 - Audience: who must understand or act.
 - Materials and Requirements: content, files, functionality, brand requirements, and constraints.
 
-The workflow uses those facts for architecture, content, and functionality. First-pass visual directions are generated in an ephemeral context-limited Codex task driven by one library card and its still; this is not described as API-grade isolation.
+The workflow uses those facts for architecture, content, and functionality. Before spending subscription usage it verifies that every current category has an eligible anchor for the intended page role. First-pass visual directions are generated in an ephemeral read-only, context-limited Codex task driven by one library card and its still; this is not described as filesystem-confidential or API-grade isolation.
 
 ## 6. What to expect
 
@@ -102,7 +102,7 @@ The selector uses primary category, page-role eligibility, anchor strength, stil
 
 ## 7. Isolation behavior
 
-Automatic first-pass directions use an ephemeral Codex CLI task authenticated through the ChatGPT subscription. Its temporary workspace contains one validated card payload, one still, the rendered prompt, and an output directory. It has no conversation history and is labeled `CODEX SUBSCRIPTION — EPHEMERAL, NOT API-ISOLATED`.
+Automatic first-pass directions use an ephemeral read-only Codex CLI task authenticated through ChatGPT. Its temporary workspace contains one validated card payload, one still, the rendered prompt, and a strict schema. It has no conversation history and returns a text-file manifest for the trusted coordinator to materialize and validate. It is labeled `CODEX SUBSCRIPTION — STRUCTURED, CONTEXT-LIMITED`; this limits accidental context bleed but is not a filesystem confidentiality boundary.
 
 The stateless, tool-free Responses API path is an optional explicit benchmark. It requires `OPENAI_API_KEY`, is never selected automatically, and is not a prerequisite for a normal website project or release evaluation.
 
@@ -127,7 +127,7 @@ Existing `.inspiration` history remains in the website repository. A catalog fin
 - Missing project skill: rerun `setup:project`, then restart Codex in the website project.
 - Stale fingerprints: rerun `setup:project`; do not edit installed skill files by hand.
 - Missing still: repair the card in this library and run the catalog tests.
-- Isolation preflight failure: try the next isolation mode; do not relabel the failed mode.
+- Subscription generation failure: inspect the authentication diagnostic and structured-output validation error. Do not silently switch to the API or current intake thread.
 - Workbench does not load: start it through the skill's loopback server rather than opening the HTML directly.
 - Browser capture unavailable: install Chrome, Edge, or Chromium, or set `DESIGN_TASTE_BROWSER_PATH`.
 
@@ -144,6 +144,8 @@ npm test
 npm run build
 npm run verify:temp-install
 npm run test:clone-fixture
+npm run test:inspiration-eval
+npm run release:check
 ```
 
 Do not bypass catalog, schema, fingerprint, vendor, preview-containment, or rollback failures.

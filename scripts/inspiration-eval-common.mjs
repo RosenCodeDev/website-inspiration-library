@@ -6,7 +6,7 @@ import { loadCatalog } from './export-workflow-catalog.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const RELEASE_MODEL = 'gpt-5.6-sol';
-const RELEASE_CARD_IDS = ['site-spade', 'image-astra-ai', 'site-ctgt'];
+const RELEASE_CARD_IDS = ['site-spade'];
 const INITIAL_IDENTITY_IDS = [
   'site-spade', 'site-more-nutrition', 'site-pen', 'site-coda', 'image-rooted', 'image-astra-ai', 'image-castle-waitlist', 'image-voidpixel',
   'image-linq-recovered', 'site-watch', 'site-igloo', 'site-lusion', 'site-ctgt', 'site-ctgt-finance', 'site-fin', 'image-root-soil',
@@ -32,16 +32,15 @@ const currentEvaluationInputs = async () => {
   const currentInventories = INITIAL_IDENTITY_IDS.map((id) => catalog.cards.find((card) => card.id === id));
   if (currentInventories.some((card) => !card || !card.identityReviewFresh)) throw new Error('All 34 initial marketing-band identity inventories must be current before release evaluation.');
   const paths = {
-    promptRenderer: resolve(root, 'skills', 'design-taste-injection', 'scripts', 'visual-contract.mjs'),
-    subscriptionRunner: resolve(root, 'skills', 'design-taste-injection', 'scripts', 'isolation-runner.mjs'),
     subscriptionEvaluation: resolve(root, 'scripts', 'inspiration-subscription-eval.mjs'),
-    validator: resolve(root, 'skills', 'design-taste-injection', 'scripts', 'visual-contract.mjs'),
+    subscriptionAttestation: resolve(root, 'scripts', 'inspiration-eval-attestation.mjs'),
     identityReviews: resolve(root, 'src', 'source-identity-reviews.ts'),
     schema: resolve(root, 'src', 'reference-schema.ts'),
   };
   const fixtures = await walk(resolve(root, 'tests', 'fixtures', 'h0'));
+  const skillFiles = await walk(resolve(root, 'skills', 'design-taste-injection'));
   const inputs = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     evaluationMode: 'subscription',
     subscriptionRunner: 'codex-cli-chatgpt',
     imageProvider: 'codex-imagegen',
@@ -56,11 +55,12 @@ const currentEvaluationInputs = async () => {
     identityReviewBandFingerprints: Object.fromEntries(currentInventories.map((card) => [card.id, card.identityReviewFingerprint])),
     identityReviewOrigins: Object.fromEntries(currentInventories.map((card) => [card.id, card.sourceIdentity.review.reviewOrigin])),
     fileFingerprints: Object.fromEntries(await Promise.all(Object.entries(paths).map(async ([name, path]) => [name, await hashFile(path)]))),
+    skillFingerprint: hash(Object.fromEntries(await Promise.all(skillFiles.map(async (file) => [file.relativePath, await hashFile(file.path)])))),
     goldenFixtureFingerprint: hash(Object.fromEntries(await Promise.all(fixtures.map(async (file) => [file.relativePath, await hashFile(file.path)])))),
   };
   return { inputs, evaluationFingerprint: hash(inputs), catalog };
 };
 
-const artifactManifest = async (directory) => Object.fromEntries(await Promise.all((await walk(directory)).filter((file) => !file.relativePath.endsWith('report.json')).map(async (file) => [file.relativePath, await hashFile(file.path)])));
+const artifactManifest = async (directory) => Object.fromEntries(await Promise.all((await walk(directory)).filter((file) => !['report.json', 'attestation.json'].includes(file.relativePath)).map(async (file) => [file.relativePath, await hashFile(file.path)])));
 
 export { INITIAL_IDENTITY_IDS, RELEASE_CARD_IDS, RELEASE_MODEL, artifactManifest, currentEvaluationInputs, hash, hashFile, root, walk };

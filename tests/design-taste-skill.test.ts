@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { PNG } from 'pngjs';
 
@@ -97,6 +98,25 @@ describe('inspiration-controlled design workflow', () => {
     expect(catalog.cards.find((card: any) => card.id === session.currentSet.anchor.id).primaryCategory).toBe('Print-Tech Paper');
     expect(Math.max(...band.map((item: any) => item.score)) - Math.min(...band.map((item: any) => item.score))).toBeLessThanOrEqual(10);
     expect(session.currentSet.anchor.score).toBe(baseScore(catalog.cards.find((card: any) => card.id === session.currentSet.anchor.id), session.request));
+  });
+
+  it('preflights every category and permits explicit eligible pins outside the automatic band', async () => {
+    const catalog = loadCatalog();
+    const script = resolve(skillRoot, 'scripts', 'reference-selection.mjs');
+    const selection = await import(`${pathToFileURL(script).href}?coverage=${Date.now()}`);
+    const coverage = selection.preflightCategoryCoverage(catalog, 'marketing');
+    expect(coverage.categoryCount).toBe(catalog.categories.length);
+    expect(coverage.coverage.every((entry: any) => entry.eligibleIds.length > 0)).toBe(true);
+    expect(() => selection.preflightCategoryCoverage(catalog, 'campaign')).toThrow(/all-category|no safe exact-category/i);
+
+    const request = { category: 'Print-Tech Paper', pageUse: 'marketing', seed: 'explicit-pin', pinned: [], excluded: [] };
+    const source = catalog.cards.find((card: any) => selection.anchorEligible(card, request));
+    const synthetic = { ...structuredClone(source), id: 'eligible-outside-band', title: 'Explicit eligible override', workflow: { ...source.workflow, anchorStrength: 1 }, quality: { ...source.quality, tier: 'usable', confidence: 0.25 } };
+    const extended = { ...catalog, cards: [...catalog.cards, synthetic] };
+    expect(selection.eligibleQualityBand(extended, request).some((entry: any) => entry.card.id === synthetic.id)).toBe(false);
+    const session = selection.createSession(extended, { ...request, pinned: [{ id: synthetic.id, role: 'anchor' }] });
+    expect(session.currentSet.anchor.id).toBe(synthetic.id);
+    expect(session.currentSet.supporting).toEqual([]);
   });
 
   it('uses a seeded exhaustion-before-repeat shuffle with refresh, pins, and exclusions', async () => {
@@ -235,28 +255,32 @@ describe('inspiration-controlled design workflow', () => {
     expect(() => visual.assertReviewedIdentity({ ...card, identityReviewFresh: false })).toThrow(/stale/i);
   });
 
-  it('fingerprints release evaluation inputs and validates approval artifacts noninteractively', async () => {
+  it('fingerprints full release inputs and validates automatic attestations noninteractively', async () => {
     const common = await import(`${pathToFileURL(resolve(root, 'scripts', 'inspiration-eval-common.mjs')).href}?eval=${Date.now()}`);
-    const approvalModule = await import(`${pathToFileURL(resolve(root, 'scripts', 'inspiration-eval-approval.mjs')).href}?approval=${Date.now()}`);
+    const attestationModule = await import(`${pathToFileURL(resolve(root, 'scripts', 'inspiration-eval-attestation.mjs')).href}?attestation=${Date.now()}`);
     const subscriptionEval = await import(`${pathToFileURL(resolve(root, 'scripts', 'inspiration-subscription-eval.mjs')).href}?subscriptionEval=${Date.now()}`);
     const current = await common.currentEvaluationInputs();
     expect(current.inputs.evaluationMode).toBe('subscription');
     expect(current.inputs.subscriptionRunner).toBe('codex-cli-chatgpt');
-    expect(Object.keys(current.inputs.cardFingerprints)).toEqual(['site-spade', 'image-astra-ai', 'site-ctgt']);
+    expect(Object.keys(current.inputs.cardFingerprints)).toEqual(['site-spade']);
     expect(Object.keys(current.inputs.identityReviewBandFingerprints)).toHaveLength(34);
     expect(new Set(Object.values(current.inputs.identityReviewOrigins))).toEqual(new Set(['codex-drafted']));
-    const approval = { schemaVersion: 2, evaluationMode: 'subscription', evaluationFingerprint: current.evaluationFingerprint, decision: 'approved', humanReviewer: 'Named Reviewer', approvedAt: new Date().toISOString(), reportHash: 'a'.repeat(64), artifactManifestHash: 'b'.repeat(64), cardFingerprints: current.inputs.cardFingerprints, identityReviewBandFingerprints: current.inputs.identityReviewBandFingerprints, identityReviewOrigins: current.inputs.identityReviewOrigins, inputFingerprints: current.inputs.fileFingerprints, goldenFixtureFingerprint: current.inputs.goldenFixtureFingerprint };
-    expect(approvalModule.validateApproval(approval, current)).toBe(true);
-    expect(() => approvalModule.validateApproval({ ...approval, evaluationMode: 'sealed-api-benchmark' }, current)).toThrow(/wrong mode/i);
-    expect(() => approvalModule.validateApproval({ ...approval, goldenFixtureFingerprint: 'stale' }, current)).toThrow(/stale/i);
+    expect(current.inputs.skillFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    const artifactManifest = { 'manifest.json': common.hash('manifest') };
+    const report = { evaluationMode: 'subscription', evaluationFingerprint: current.evaluationFingerprint, machinePassed: true, releaseEligible: true, artifactManifest, rubric: { mean: 4.2, minimum: 3 } };
+    const attestation = { schemaVersion: 3, evaluationMode: 'subscription', evaluationFingerprint: current.evaluationFingerprint, machinePassed: true, createdAt: new Date().toISOString(), reportHash: common.hash(report), artifactManifestHash: common.hash(artifactManifest), rubricMean: 4.2, rubricMinimum: 3, cardFingerprints: current.inputs.cardFingerprints, identityReviewBandFingerprints: current.inputs.identityReviewBandFingerprints, identityReviewOrigins: current.inputs.identityReviewOrigins, inputFingerprints: current.inputs.fileFingerprints, skillFingerprint: current.inputs.skillFingerprint, goldenFixtureFingerprint: current.inputs.goldenFixtureFingerprint };
+    expect(attestationModule.validateAttestation(attestation, current, { report, artifactManifest })).toBe(true);
+    expect(() => attestationModule.validateAttestation({ ...attestation, evaluationMode: 'sealed-api-benchmark' }, current, { report, artifactManifest })).toThrow(/wrong mode/i);
+    expect(() => attestationModule.validateAttestation({ ...attestation, skillFingerprint: 'stale' }, current, { report, artifactManifest })).toThrow(/stale/i);
+    expect(() => attestationModule.validateAttestation({ ...attestation, reportHash: 'a'.repeat(64) }, current, { report, artifactManifest })).toThrow(/modified/i);
     const prepared = await subscriptionEval.prepare({ outputRoot: resolve(scratch, 'subscription-eval') });
     const preparedManifest = JSON.parse(readFileSync(prepared.manifestPath, 'utf8'));
     expect(preparedManifest).toEqual(expect.objectContaining({ evaluationMode: 'subscription', subscriptionRunner: 'codex-cli-chatgpt', imageProvider: 'codex-imagegen' }));
-    expect(preparedManifest.cases).toHaveLength(3);
-    expect(readFileSync(resolve(prepared.destination, 'RUNBOOK.md'), 'utf8')).toMatch(/Do not set OPENAI_API_KEY[\s\S]*\$imagegen/);
-    const tamperedManifest = resolve(prepared.destination, 'tampered-manifest.json'); writeFileSync(tamperedManifest, JSON.stringify({ ...preparedManifest, cases: preparedManifest.cases.slice(0, 1) }));
+    expect(preparedManifest.cases).toHaveLength(1);
+    expect(readFileSync(resolve(prepared.destination, 'RUNBOOK.md'), 'utf8')).toMatch(/test:inspiration-eval[\s\S]*ImageGen[\s\S]*OPENAI_API_KEY/);
+    const tamperedManifest = resolve(prepared.destination, 'tampered-manifest.json'); writeFileSync(tamperedManifest, JSON.stringify({ ...preparedManifest, cases: [] }));
     await expect(subscriptionEval.verify({ manifestPath: tamperedManifest })).rejects.toThrow(/modified|incomplete/i);
-    const source = readFileSync(resolve(root, 'scripts', 'inspiration-eval-approval.mjs'), 'utf8');
+    const source = readFileSync(resolve(root, 'scripts', 'inspiration-eval-attestation.mjs'), 'utf8');
     expect(source).not.toMatch(/readline|inquirer|prompt\(/i);
   }, 20_000);
 
@@ -267,15 +291,39 @@ describe('inspiration-controlled design workflow', () => {
     const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?request=${Date.now()}`);
     const evidence = await visual.resolveEvidence(catalog, resolve(scratch, 'request-project'), card.id);
     const payload = visual.buildSealedPayload(card, { sha256: evidence.record.sha256 });
-    expect(isolation.subscriptionCodexArgs('C:/temp/eval', 'C:/temp/eval/input/reference.png')).toEqual(expect.arrayContaining(['exec', '--ephemeral', '--ignore-user-config', '--ignore-rules', '--sandbox', 'workspace-write']));
+    const subscriptionArgs = isolation.subscriptionCodexArgs('C:/temp/eval', ['C:/temp/eval/input/reference.png'], 'C:/temp/eval/schema.json', 'C:/temp/eval/result.json');
+    expect(subscriptionArgs).toEqual(expect.arrayContaining(['exec', '--ephemeral', '--ignore-user-config', '--ignore-rules', '--sandbox', 'read-only', '--output-schema', 'C:/temp/eval/schema.json', '--output-last-message', 'C:/temp/eval/result.json']));
+    expect(subscriptionArgs.slice(-2)).toEqual(['-i', 'C:/temp/eval/input/reference.png']);
     expect(isolation.subscriptionLoginStatus({ run: () => ({ status: 0, stdout: 'Logged in using ChatGPT', stderr: '' }) })).toEqual(expect.objectContaining({ available: true, authenticatedWith: 'chatgpt' }));
+    const doctorReport = { checks: { 'auth.credentials': { status: 'ok', details: { 'stored auth mode': 'chatgpt', 'stored API key': 'true' } } } };
+    expect(isolation.subscriptionLoginStatus({ run: () => ({ status: 1, stdout: JSON.stringify(doctorReport), stderr: 'unrelated doctor failure' }) })).toEqual(expect.objectContaining({ available: true, authenticatedWith: 'chatgpt', source: 'doctor' }));
+    expect(isolation.subscriptionLoginStatus({ run: () => ({ status: 0, stdout: 'Logged in using API key', stderr: '' }) })).toEqual(expect.objectContaining({ available: true, authenticatedWith: 'api-key' }));
+    expect(isolation.subscriptionFeatureStatus({ run: () => ({ status: 0, stdout: 'image_generation stable true', stderr: '' }) })).toEqual(expect.objectContaining({ configured: true }));
+    expect(isolation.sanitizedSubscriptionEnv({ Path: 'x', OPENAI_API_KEY: 'secret', openai_api_key: 'also-secret' })).toEqual({ Path: 'x' });
     const subscriptionOutput = resolve(scratch, 'subscription-output');
     const subscription = await isolation.runSubscriptionGeneration(payload, evidence.destination, subscriptionOutput, {
       loginStatus: { available: true, authenticatedWith: 'chatgpt' },
-      run: (_command: string, _args: string[], options: any) => { mkdirSync(resolve(options.cwd, 'output'), { recursive: true }); writeFileSync(resolve(options.cwd, 'output', 'index.html'), '<!doctype html><html><body><main data-inspiration-hero></main><section data-opening-module></section></body></html>'); return { status: 0, stdout: '', stderr: '' }; },
+      featureStatus: { available: true, configured: true, detail: '' },
+      generationRun: (_command: string, args: string[], options: any) => {
+        expect(options.shell).toBe(false); expect(options.input).toMatch(/EXECUTION CONTRACT/); expect(options.input).toMatch(/H0 SLOT RULE[\s\S]*one opaque solid background color/i); expect(options.env.OPENAI_API_KEY).toBeUndefined();
+        const resultPath = args[args.indexOf('--output-last-message') + 1];
+        writeFileSync(resultPath, JSON.stringify({ files: [{ path: 'index.html', content: '<!doctype html><html><body><main data-inspiration-hero></main><section data-opening-module></section></body></html>' }], inspection: { stillSha256: payload.reference.sha256 } }));
+        return { status: 0, stdout: '', stderr: '' };
+      },
+      env: { ...process.env, OPENAI_API_KEY: 'must-be-removed' },
     });
-    expect(subscription).toEqual(expect.objectContaining({ mode: 'subscription-ephemeral', isolated: false, contextLimited: true, authenticatedWith: 'chatgpt' }));
+    expect(subscription).toEqual(expect.objectContaining({ mode: 'subscription-ephemeral', isolated: false, contextLimited: true, authenticatedWith: 'chatgpt', outputMode: 'structured-manifest', attempt: 1 }));
     expect(existsSync(resolve(subscriptionOutput, 'index.html'))).toBe(true);
+    let attempts = 0;
+    const retried = await isolation.runSubscriptionGeneration(payload, evidence.destination, resolve(scratch, 'subscription-retry-output'), {
+      loginStatus: { available: true, authenticatedWith: 'chatgpt' }, featureStatus: { available: true, configured: true, detail: '' },
+      generationRun: (_command: string, args: string[]) => {
+        const resultPath = args[args.indexOf('--output-last-message') + 1]; attempts += 1;
+        writeFileSync(resultPath, attempts === 1 ? '{malformed' : JSON.stringify({ files: [{ path: 'index.html', content: '<!doctype html><html><body>retry</body></html>' }], inspection: { stillSha256: payload.reference.sha256 } }));
+        return { status: 0, stdout: '', stderr: '' };
+      },
+    });
+    expect(retried.attempt).toBe(2); expect(attempts).toBe(2);
     const request = await isolation.buildSealedRequest(payload, evidence.destination, { projectRoot: resolve(scratch, 'request-project'), libraryRoot: root });
     expect(request.model).toBe('gpt-5.6-sol');
     expect(request).toEqual(expect.objectContaining({ store: false, background: false, stream: false, tools: [], tool_choice: 'none', reasoning: { effort: 'high' } }));
@@ -294,7 +342,30 @@ describe('inspiration-controlled design workflow', () => {
     expect(source).toContain('DEGRADED — NOT ISOLATED');
   }, 20_000);
 
-  it('initializes schema 8 state, records subscription generation, and persists visual controls through events', () => {
+  it('round-trips large structured manifests and rejects malformed or unsafe output', async () => {
+    const isolation = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'isolation-runner.mjs')).href}?manifest=${Date.now()}`);
+    const destination = resolve(scratch, 'manifest-stress'); const stillSha256 = 'a'.repeat(64);
+    const tricky = ['const quote = "double";', "const apostrophe = 'single';", 'const template = `value ${amount}`;', 'const regex = /[\\\\/"\'`]/gu;', 'const unicode = "雪—café";', 'const closing = "</script>";'].join('\n');
+    const padding = `/*${'x'.repeat((1024 * 1024) + 256_000)}*/`;
+    const manifest = {
+      files: [
+        { path: 'index.html', content: `<!doctype html><html><body><script>${tricky}</script></body></html>` },
+        { path: 'assets/stress.js', content: `${tricky}\n${padding}` },
+      ],
+      inspection: { stillSha256 },
+    };
+    await isolation.materializeOutput(manifest, destination, stillSha256);
+    for (const file of manifest.files) {
+      const actual = readFileSync(resolve(destination, file.path), 'utf8');
+      expect(createHash('sha256').update(actual).digest('hex')).toBe(createHash('sha256').update(file.content).digest('hex'));
+    }
+    await expect(isolation.materializeOutput({ ...manifest, files: [...manifest.files, manifest.files[0]] }, destination, stillSha256)).rejects.toThrow(/duplicate/i);
+    await expect(isolation.materializeOutput({ ...manifest, files: [{ path: '../escape.js', content: 'x' }] }, destination, stillSha256)).rejects.toThrow(/invalid path/i);
+    await expect(isolation.materializeOutput({ ...manifest, files: [{ path: 'assets/image.txt', content: 'data:image/png;base64,AAAA' }] }, destination, stillSha256)).rejects.toThrow(/binary data URI/i);
+    await expect(isolation.materializeOutput({ ...manifest, files: [{ path: 'assets/too-large.js', content: 'x'.repeat(isolation.MAX_STRUCTURED_OUTPUT_BYTES) }] }, destination, stillSha256)).rejects.toThrow(/2 MiB/i);
+  }, 20_000);
+
+  it('initializes schema 9 state, records generation-specific subscription provenance, and persists visual controls through events', () => {
     const project = resolve(scratch, 'state-project');
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
     expect(runNode(script, ['init', project]).status).toBe(0);
@@ -311,22 +382,23 @@ describe('inspiration-controlled design workflow', () => {
     const appended = runNode(script, ['append-generation', project, generationPath]);
     expect(appended.status, appended.stderr).toBe(0);
     const eventPath = resolve(scratch, 'visual-event.json');
-    writeFileSync(eventPath, JSON.stringify({ type: 'visual.isolation-recorded', payload: { mode: 'subscription-ephemeral', isolated: false, contextLimited: true, authenticatedWith: 'chatgpt', runner: 'codex-cli', workspaceFingerprint: 'a'.repeat(64) } }));
+    writeFileSync(eventPath, JSON.stringify({ type: 'visual.isolation-recorded', payload: { generationId: 'D01', mode: 'subscription-ephemeral', isolated: false, contextLimited: true, authenticatedWith: 'chatgpt', runner: 'codex-cli', outputMode: 'structured-manifest', workspaceFingerprint: 'a'.repeat(64) } }));
     expect(runNode(script, ['apply-event', project, eventPath]).status).toBe(0);
     writeFileSync(eventPath, JSON.stringify({ type: 'visual.route-conformance-recorded', payload: { route: '/pricing', status: 'passed', checks: ['type', 'palette', 'spacing'] } }));
     expect(runNode(script, ['apply-event', project, eventPath]).status).toBe(0);
     const state = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(8);
-    expect(state.workbenchVersion).toBe(6);
+    expect(state.schemaVersion).toBe(9);
+    expect(state.workbenchVersion).toBe(7);
     expect(state.generations[0].references).toEqual([{ id: card.id, role: 'anchor' }]);
     expect(state.visualControl.isolation.mode).toBe('subscription-ephemeral');
+    expect(state.visualControl.isolationRuns.D01).toEqual(expect.objectContaining({ generationId: 'D01', mode: 'subscription-ephemeral', outputMode: 'structured-manifest' }));
     expect(state.visualControl.routeConformance[0].route).toBe('/pricing');
     expect(readFileSync(resolve(project, '.inspiration', 'workbench', 'index.html'), 'utf8')).toContain('SHOW ANOTHER CARD');
-    state.schemaVersion = 7; state.workbenchVersion = 5; state.visualControl.isolation = { mode: 'sealed-api', model: 'gpt-5.6-sol', requestFingerprint: 'b'.repeat(64), recordedAt: new Date().toISOString() };
+    state.schemaVersion = 8; state.workbenchVersion = 6; delete state.visualControl.isolationRuns; state.visualControl.isolation = { mode: 'sealed-api', model: 'gpt-5.6-sol', requestFingerprint: 'b'.repeat(64), recordedAt: new Date().toISOString() };
     writeFileSync(resolve(project, '.inspiration', 'state.json'), JSON.stringify(state));
     expect(runNode(script, ['init', project]).status).toBe(0);
     const migrated = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
-    expect(migrated.schemaVersion).toBe(8); expect(migrated.visualControl.isolation.mode).toBe('sealed-api');
+    expect(migrated.schemaVersion).toBe(9); expect(migrated.visualControl.isolation.mode).toBe('sealed-api'); expect(migrated.visualControl.isolationRuns.D01.mode).toBe('sealed-api');
   }, 60_000);
 
   it('migrates legacy state without losing history and rejects new direction supports', () => {
@@ -345,10 +417,11 @@ describe('inspiration-controlled design workflow', () => {
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
     expect(runNode(script, ['init', project]).status).toBe(0);
     const state = JSON.parse(readFileSync(resolve(inspiration, 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(8);
+    expect(state.schemaVersion).toBe(9);
     expect(state.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
     expect(state.visualControl).toBeTruthy();
     expect(state.visualControl.isolation).toEqual(expect.objectContaining({ mode: 'legacy-unverified', legacyMode: 'payload-only' }));
+    expect(state.visualControl.isolationRuns.OLD).toEqual(expect.objectContaining({ generationId: 'OLD', mode: 'legacy-unverified' }));
   });
 
   it('protects project roots, preview containment, and atomic state replacement', async () => {

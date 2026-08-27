@@ -81,6 +81,19 @@ const eligibleQualityBand = (catalog, request) => {
   const top = Math.max(...eligible.map((item) => item.score));
   return eligible.filter((item) => item.score >= top - qualityBandWidth);
 };
+const preflightCategoryCoverage = (catalog, pageUse, excluded = []) => {
+  const allowed = catalogSets(catalog);
+  if (!allowed.pageUses.has(pageUse)) throw new Error(`Unknown pageUse: ${pageUse ?? '(missing)'}`);
+  assertStringArray(excluded, 'excluded');
+  const excludedIds = new Set(excluded); const coverage = catalog.categories.map((category) => {
+    const request = { category, pageUse, pinned: [], excluded };
+    const eligibleIds = catalog.cards.filter((card) => !excludedIds.has(card.id) && anchorEligible(card, request)).map((card) => card.id);
+    return { category, eligibleIds };
+  });
+  const missing = coverage.filter((entry) => entry.eligibleIds.length === 0).map((entry) => entry.category);
+  if (missing.length) throw new Error(`Cannot generate all-category directions for ${pageUse}; no safe exact-category anchor is available for: ${missing.join(', ')}`);
+  return { pageUse, categoryCount: coverage.length, coverage };
+};
 const shuffleRank = (seed, cycle, id) => createHash('sha256').update(`${seed}\0${cycle}\0${id}`).digest('hex');
 const orderBand = (band, seed, cycle) => [...band].sort((left, right) => {
   const order = shuffleRank(seed, cycle, left.card.id).localeCompare(shuffleRank(seed, cycle, right.card.id));
@@ -102,8 +115,9 @@ const selectAnchor = (catalog, request, bag) => {
   const pinnedId = request.pinned[0]?.id;
   let chosen;
   if (pinnedId) {
-    chosen = band.find((item) => item.card.id === pinnedId);
-    if (!chosen) throw new Error(`Pinned card is outside the eligible quality band: ${pinnedId}`);
+    const card = catalog.cards.find((item) => item.id === pinnedId);
+    if (!card || request.excluded.includes(pinnedId) || !anchorEligible(card, request)) throw new Error(`Pinned card is not an eligible exact-category anchor: ${pinnedId}`);
+    chosen = { card, score: Number(baseScore(card, request).toFixed(2)) };
   } else {
     chosen = orderBand(band, rotation.seed, rotation.cycle).find((item) => !rotation.shownIds.includes(item.card.id));
     if (!chosen) {
@@ -251,6 +265,11 @@ const main = async () => {
   const [command, firstPath, secondPath, thirdPath] = process.argv.slice(2);
   if (!command) return;
   const catalog = loadCatalog();
+  if (command === 'preflight') {
+    const excluded = secondPath ? JSON.parse(await readFile(resolve(secondPath), 'utf8')) : [];
+    console.log(JSON.stringify(preflightCategoryCoverage(catalog, firstPath, excluded), null, 2));
+    return;
+  }
   if (command === 'propose' || command === 'propose-and-save') {
     const requestPath = command === 'propose' ? firstPath : secondPath;
     const request = JSON.parse(await readFile(resolve(requestPath), 'utf8'));
@@ -289,9 +308,9 @@ const main = async () => {
     console.log(JSON.stringify(session, null, 2));
     return;
   }
-  throw new Error('Usage: reference-selection.mjs propose <request.json> | action <session.json> <action.json> [request.json] | propose-and-save <project-root> <request.json> | action-and-save <project-root> <action.json>');
+  throw new Error('Usage: reference-selection.mjs preflight <page-use> [excluded.json] | propose <request.json> | action <session.json> <action.json> [request.json] | propose-and-save <project-root> <request.json> | action-and-save <project-root> <action.json>');
 };
 const isDirectExecution = Boolean(process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)));
 if (isDirectExecution) main().catch((error) => { console.error(`Design Taste Injection: ${error.message}`); process.exitCode = 1; });
 
-export { anchorEligible, applyAction, baseScore, chooseSet, createSession, eligibleQualityBand, normalizeSession, selectAnchor, setSignature, validateRequest };
+export { anchorEligible, applyAction, baseScore, chooseSet, createSession, eligibleQualityBand, normalizeSession, preflightCategoryCoverage, selectAnchor, setSignature, validateRequest };

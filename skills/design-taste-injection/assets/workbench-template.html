@@ -57,12 +57,13 @@
   <script>
     const esc = (value = '') => String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
     const option = (value) => `<option value="${esc(value)}">${esc(value)}</option>`;
+    const isolationLabelFor = (record) => record?.mode === 'degraded' ? 'DEGRADED — NOT ISOLATED' : record?.mode === 'subscription-ephemeral' ? 'CODEX SUBSCRIPTION — STRUCTURED, CONTEXT-LIMITED' : record?.mode === 'sealed-api' && record?.developmentModelOverride ? 'SEALED API — DEVELOPMENT MODEL' : record?.mode === 'sealed-api' ? 'SEALED API — OPTIONAL' : record?.mode === 'legacy-unverified' ? 'LEGACY — UNVERIFIED' : 'GENERATION MODE NOT RECORDED';
     let projectState = null;
     const render = () => {
       const state = projectState;
       const summary = document.querySelector('#summary');
       const isolation = state.visualControl?.isolation?.mode;
-      const isolationLabel = isolation === 'degraded' ? 'DEGRADED — NOT ISOLATED' : isolation === 'subscription-ephemeral' ? 'CODEX SUBSCRIPTION — EPHEMERAL, NOT API-ISOLATED' : isolation === 'sealed-api' && state.visualControl?.isolation?.developmentModelOverride ? 'SEALED API — DEVELOPMENT MODEL' : isolation === 'sealed-api' ? 'SEALED API — OPTIONAL' : isolation === 'legacy-unverified' ? 'LEGACY — UNVERIFIED' : 'GENERATION MODE NOT RECORDED';
+      const isolationLabel = isolationLabelFor(state.visualControl?.isolation);
       summary.innerHTML = [`Status ${state.status}`, `${state.generations.length} generations`, `${state.references.pinned.length} pinned`, `${state.references.excluded.length} excluded`, `Hero ${state.heroProvider}`, isolationLabel].map((item, index) => `<span class="chip ${index === 5 ? `isolation-${esc(isolation || 'none')}` : ''}">${esc(item)}</span>`).join('');
       const stage = document.querySelector('#stage-filter').value;
       const category = document.querySelector('#category-filter').value;
@@ -76,11 +77,13 @@
         const childLinks = (children.get(item.id) || []).map((id) => `<a href="#generation-${esc(id)}">${esc(id)}</a>`).join(' · ') || 'none';
         const anchor = (item.references || []).find((reference) => reference.role === 'anchor');
         const evidence = anchor ? state.visualControl?.evidence?.[anchor.id] : null;
+        const generationIsolation = state.visualControl?.isolationRuns?.[item.id] ?? (state.visualControl?.isolation?.generationId === item.id ? state.visualControl.isolation : null);
         const source = evidence?.file ? `<div class="source"><img src="../evidence/${esc(evidence.file)}" alt="Source still for ${esc(anchor.id)}"><span>Source still · ${esc(anchor.id)}</span></div>` : '<div class="source"><span>Source still not recorded</span></div>';
         return `<article id="generation-${esc(item.id)}" data-stage="${esc(item.stage)}" data-category="${esc(item.category || 'Uncategorized')}">
           <div class="preview">${source}<div class="frame"><iframe src="${esc(item.preview)}" title="${esc(item.label || item.id)}" sandbox="allow-scripts" referrerpolicy="no-referrer" loading="lazy"></iframe></div></div>
           <div class="body"><h2>${esc(item.id)} · ${esc(item.label || item.stage)}</h2>
           <p class="meta status-${esc(item.status)}">${esc(item.status)} · ${esc(item.category || 'No category')}</p>
+          <p class="meta">${esc(isolationLabelFor(generationIsolation))}</p>
           <p class="meta">Parent ${parent}</p><p class="meta">Children ${childLinks}</p>
           <p>${esc(item.thesis || '')}</p>
           <p class="meta">${esc((item.references || []).map((ref) => `${ref.id}: ${ref.role}`).join(' · '))}</p>

@@ -1,6 +1,6 @@
 ---
 name: design-taste-injection
-description: Guide a website from project brief through context-isolated taste-library directions, one-card reference selection, variants, implementation, and polish. Use when a website should be shaped by the project-installed Website Inspiration Library. Do not use for ordinary isolated UI edits or library maintenance.
+description: Guide a website from project brief through context-limited taste-library directions, one-card reference selection, variants, implementation, and polish. Use when a website should be shaped by the project-installed Website Inspiration Library. Do not use for ordinary isolated UI edits or library maintenance.
 ---
 
 # Design Taste Injection
@@ -44,12 +44,12 @@ Pins and exclusions never imply approval to advance.
 
 ## Invariants
 
-- Present one first-pass direction for every populated category.
+- Preflight the intended page role, then present one first-pass direction for every current catalog category. Do not begin generation if any category lacks an eligible exact-category anchor.
 - Each direction has exactly one anchor and no supporting cards.
 - Automatic selection uses primary category, page-role eligibility, anchor strength, source/still quality, and verified usability only.
 - Never use project semantics, industry, audience, brand palette, category constitution, prior project usage, or cross-card complementarity to choose an anchor.
 - Inspect the selected still before writing first-pass HTML. Never inspect motion for visual-direction generation.
-- Generate first-pass directions through the ChatGPT-authenticated ephemeral Codex runner in [workflow.md]. Record it as context-limited, not API-isolated. The stateless Responses API is an explicit optional benchmark, never the automatic default.
+- Generate first-pass directions through the ChatGPT-authenticated read-only structured Codex runner in [workflow.md]. The trusted coordinator materializes and validates its file manifest. Record each generation as context-limited, not API-isolated. The stateless Responses API is an explicit optional benchmark, never the automatic default.
 - The first pass uses `previewScope: focused-category-preview` and is exactly a hero plus one opening module. For image-led cards `H0` reserves the future image geometry with a flat stand-in; decorative code art cannot substitute for the image.
 - Freeze an anchor-derived visual contract after direction approval. Project context can then fill content, architecture, and functionality but cannot average or replace the anchor's visual language.
 - Inner pages inherit the frozen system while using page-appropriate structures; they do not repeat the landing-page hero.

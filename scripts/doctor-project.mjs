@@ -5,15 +5,10 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { checkProject } from './check-project.mjs';
 import { discoverBrowser } from '../skills/design-taste-injection/scripts/browser-discovery.mjs';
+import { subscriptionFeatureStatus, subscriptionLoginStatus } from '../skills/design-taste-injection/scripts/isolation-runner.mjs';
 
 const root = resolve(import.meta.dirname, '..');
-const available = (command, args = ['--version']) => spawnSync(command, args, { encoding: 'utf8', shell: process.platform === 'win32' }).status === 0;
-const codexCommand = () => process.env.CODEX_EXECUTABLE ?? (process.platform === 'win32' ? 'codex.exe' : 'codex');
-const codexLogin = () => {
-  const result = spawnSync(codexCommand(), ['login', 'status'], { encoding: 'utf8', shell: process.platform === 'win32' });
-  const detail = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
-  return { available: result.status === 0, chatgpt: /logged in using chatgpt/i.test(detail) };
-};
+const available = (command, args = ['--version']) => spawnSync(command, args, { encoding: 'utf8', shell: false }).status === 0;
 const doctorProject = async (target) => {
   const lines = [];
   let healthy = true;
@@ -27,8 +22,10 @@ const doctorProject = async (target) => {
   const project = await checkProject(target);
   report(project.healthy ? 'OK' : 'FIX', 'Project skills', project.healthy ? project.destination : 'run npm run setup:project -- <website-project-root>'); healthy &&= Boolean(project.healthy);
   const browser = discoverBrowser(); report(browser ? 'OK' : 'FIX', 'Rendered H0 validation', browser ?? 'install Chrome, Edge, or Chromium'); healthy &&= Boolean(browser);
-  const codex = codexLogin();
-  report(codex.available && codex.chatgpt ? 'OK' : 'FIX', 'Codex subscription runner', codex.available && codex.chatgpt ? 'Codex CLI is signed in with ChatGPT' : 'run codex login and sign in with ChatGPT'); healthy &&= codex.available && codex.chatgpt;
+  const codex = subscriptionLoginStatus(); const chatgpt = codex.available && codex.authenticatedWith === 'chatgpt';
+  report(chatgpt ? 'OK' : 'FIX', 'Codex subscription authentication', chatgpt ? `active ChatGPT authentication verified through ${codex.source}` : `run codex login with ChatGPT; diagnostic: ${codex.detail || 'unavailable'}`); healthy &&= chatgpt;
+  const imageGeneration = subscriptionFeatureStatus();
+  report('ADVISORY', 'Built-in image generation', imageGeneration.configured === true ? 'client feature is enabled; account capability is confirmed by the first requested generation' : imageGeneration.configured === false ? 'client feature is disabled; update or configure Codex before requesting imagery' : 'feature status unavailable; the first requested generation remains the capability check');
   const apiConfigured = Boolean(process.env.OPENAI_API_KEY);
   report('OPTIONAL', 'Sealed API benchmark', apiConfigured ? 'OPENAI_API_KEY is configured for explicit opt-in benchmarking' : 'not configured; normal generation and release evaluation use the Codex subscription');
   console.log(['Design Taste Injection project doctor', ...lines, '', healthy ? 'READY: required project setup is healthy.' : 'NOT READY: complete the FIX items above.'].join('\n'));
