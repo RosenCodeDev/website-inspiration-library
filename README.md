@@ -42,9 +42,9 @@ Restart Codex Desktop, open an independent website project folder, and paste `$d
 
 The workflow uses schema-v7 state, one context-free anchor per direction, a user-level seeded shuffle bag, and stateless tool-free Responses API generation with one selected still. Initial category previews contain only a hero and opening module, and the coordinator validates H0 from the rendered DOM, computed styles, and slot pixels. Project context enters only after the selected anchor's visual contract is frozen. Clone Remix remains available for curated, measurable references with human approval; it is not a guarantee for arbitrary websites. `npm run test:public-clone` runs the network-dependent Aside pilot outside CI because public availability and bot protection are nondeterministic.
 
-Run `npm run test:inspiration-plumbing` for the free deterministic request, catalog-boundary, identity, H0, and import suite. A release candidate also needs a paid visual evaluation: set `RUN_PAID_INSPIRATION_EVAL=1` and `OPENAI_API_KEY`, run `npm run test:inspiration-eval`, inspect its rendered artifacts, then create the fingerprint-bound approval with `npm run approve:inspiration-eval -- --report <report.json> --reviewer <name>`.
+Run `npm run test:inspiration-plumbing` for the free deterministic request, catalog-boundary, identity, H0, and import suite. GitHub push and pull-request validation runs `npm run ci:check`, which performs the deterministic checks without an API key or human approval.
 
-Run `npm run release:check` before a release. It is fully noninteractive: it validates scripts and the skill, checks pinned vendor and archive pointers, runs tests and the portal build, verifies a temporary project-scoped installation, reconstructs controlled fixtures, and rejects a missing or stale committed inspiration-eval approval.
+A release candidate additionally needs a paid visual evaluation: set `RUN_PAID_INSPIRATION_EVAL=1` and `OPENAI_API_KEY`, run `npm run test:inspiration-eval`, inspect its rendered artifacts, then create the fingerprint-bound approval with `npm run approve:inspiration-eval -- --report <report.json> --reviewer <name>`. Run `npm run release:check` before a release; it reruns `ci:check` and rejects a missing or stale committed inspiration-eval approval.
 
 ## Media and provenance
 

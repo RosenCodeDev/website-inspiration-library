@@ -10,7 +10,7 @@
     "dev": "vite --host=127.0.0.1 --port=4173",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run tests",
+    "test": "vitest run tests --no-file-parallelism",
     "verify:archive": "node scripts/verify-archive.mjs",
     "verify:archive-pointers": "node scripts/verify-archive.mjs --allow-pointers",
     "verify:vendor": "node scripts/skill-integrity.mjs verify-vendor skills/design-taste-injection/vendor/site-clone",
@@ -27,7 +27,8 @@
     "approve:inspiration-eval": "node scripts/inspiration-eval-approval.mjs approve",
     "test:clone-fixture": "node scripts/controlled-clone-fixture.mjs",
     "test:public-clone": "node scripts/public-clone-pilot.mjs",
-    "release:check": "npm run check:scripts && npm run validate:skill && npm run verify:vendor && npm run verify:archive-pointers && npm test && npm run build && npm run verify:temp-install && npm run test:inspiration-plumbing && npm run test:clone-fixture && node scripts/inspiration-eval-approval.mjs check"
+    "ci:check": "npm run check:scripts && npm run validate:skill && npm run verify:vendor && npm run verify:archive-pointers && npm test && npm run build && npm run verify:temp-install && npm run test:inspiration-fixture && npm run test:clone-fixture",
+    "release:check": "npm run ci:check && node scripts/inspiration-eval-approval.mjs check"
   },
   "dependencies": {
     "react": "19.2.6",

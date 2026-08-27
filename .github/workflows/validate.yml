@@ -28,5 +28,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Release checks
-        run: npm run release:check
+      - name: CI checks
+        run: npm run ci:check

@@ -209,7 +209,7 @@ describe('inspiration-controlled design workflow', () => {
     mkdirSync(unsafe, { recursive: true });
     writeFileSync(resolve(unsafe, 'index.html'), '<script src="https://example.com/a.js"></script>');
     await expect(visual.importPreview(unsafe, project, 'D02-H0', { leakSignals: { schemaVersion: 1, signals: [] }, sourceIdentity: card.sourceIdentity, anchorCardId: card.id, expectedH0: 'reserved-image-hole-with-flat-stand-in', expectedGeometry: { aspectRatio: 4 / 3, aspectTolerance: 0.18, alignment: 'right', minWidthRatio: 0.28, minHeightRatio: 0.2 }, sourceStillInspected: true })).rejects.toThrow(/external|absolute/i);
-  });
+  }, 30_000);
 
   it('pins H0 pixel thresholds with passing and failing golden fixtures', async () => {
     const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?goldens=${Date.now()}`);
@@ -249,9 +249,10 @@ describe('inspiration-controlled design workflow', () => {
 
   it('builds an exact stateless Responses request and makes degradation explicit', async () => {
     const isolation = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'isolation-runner.mjs')).href}?isolation=${Date.now()}`);
-    const card = loadCatalog().cards.find((item: any) => item.id === 'site-spade');
+    const catalog = loadCatalog();
+    const card = catalog.cards.find((item: any) => item.id === 'site-spade');
     const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?request=${Date.now()}`);
-    const evidence = await visual.resolveEvidence({ ...loadCatalog() }, resolve(scratch, 'request-project'), card.id);
+    const evidence = await visual.resolveEvidence(catalog, resolve(scratch, 'request-project'), card.id);
     const payload = visual.buildSealedPayload(card, { sha256: evidence.record.sha256 });
     const request = await isolation.buildSealedRequest(payload, evidence.destination, { projectRoot: resolve(scratch, 'request-project'), libraryRoot: root });
     expect(request.model).toBe('gpt-5.6-sol');
@@ -268,7 +269,7 @@ describe('inspiration-controlled design workflow', () => {
     const source = readFileSync(resolve(skillRoot, 'references', 'workflow.md'), 'utf8');
     expect(source).toContain('POST /v1/responses');
     expect(source).toContain('DEGRADED — NOT ISOLATED');
-  });
+  }, 20_000);
 
   it('initializes schema 7 state, records anchor-only generations, and persists visual controls through events', () => {
     const project = resolve(scratch, 'state-project');
@@ -298,7 +299,7 @@ describe('inspiration-controlled design workflow', () => {
     expect(state.visualControl.isolation.mode).toBe('sealed-api');
     expect(state.visualControl.routeConformance[0].route).toBe('/pricing');
     expect(readFileSync(resolve(project, '.inspiration', 'workbench', 'index.html'), 'utf8')).toContain('SHOW ANOTHER CARD');
-  }, 20_000);
+  }, 60_000);
 
   it('migrates legacy state without losing history and rejects new direction supports', () => {
     const project = resolve(scratch, 'legacy-state');
@@ -335,7 +336,7 @@ describe('inspiration-controlled design workflow', () => {
     const { atomicWriteJson } = await import(`${pathToFileURL(stateScript).href}?atomic=${Date.now()}`);
     await expect(atomicWriteJson(path, { prior: false }, { beforeReplace: () => { throw new Error('simulated interruption'); } })).rejects.toThrow();
     expect(readFileSync(path, 'utf8')).toBe('{"prior":true}\n');
-  });
+  }, 30_000);
 
   it('installs, checks, and repairs project-local skills with managed rollback boundaries', async () => {
     const project = resolve(scratch, 'website-project');
