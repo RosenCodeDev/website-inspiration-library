@@ -8,6 +8,12 @@ import { discoverBrowser } from '../skills/design-taste-injection/scripts/browse
 
 const root = resolve(import.meta.dirname, '..');
 const available = (command, args = ['--version']) => spawnSync(command, args, { encoding: 'utf8', shell: process.platform === 'win32' }).status === 0;
+const codexCommand = () => process.env.CODEX_EXECUTABLE ?? (process.platform === 'win32' ? 'codex.exe' : 'codex');
+const codexLogin = () => {
+  const result = spawnSync(codexCommand(), ['login', 'status'], { encoding: 'utf8', shell: process.platform === 'win32' });
+  const detail = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+  return { available: result.status === 0, chatgpt: /logged in using chatgpt/i.test(detail) };
+};
 const doctorProject = async (target) => {
   const lines = [];
   let healthy = true;
@@ -21,8 +27,10 @@ const doctorProject = async (target) => {
   const project = await checkProject(target);
   report(project.healthy ? 'OK' : 'FIX', 'Project skills', project.healthy ? project.destination : 'run npm run setup:project -- <website-project-root>'); healthy &&= Boolean(project.healthy);
   const browser = discoverBrowser(); report(browser ? 'OK' : 'FIX', 'Rendered H0 validation', browser ?? 'install Chrome, Edge, or Chromium'); healthy &&= Boolean(browser);
+  const codex = codexLogin();
+  report(codex.available && codex.chatgpt ? 'OK' : 'FIX', 'Codex subscription runner', codex.available && codex.chatgpt ? 'Codex CLI is signed in with ChatGPT' : 'run codex login and sign in with ChatGPT'); healthy &&= codex.available && codex.chatgpt;
   const apiConfigured = Boolean(process.env.OPENAI_API_KEY);
-  report(apiConfigured ? 'OK' : 'OPTIONAL', 'Sealed Responses API', apiConfigured ? 'OPENAI_API_KEY is configured' : 'set OPENAI_API_KEY for isolated automatic generation; degraded generation still requires one-run approval');
+  report('OPTIONAL', 'Sealed API benchmark', apiConfigured ? 'OPENAI_API_KEY is configured for explicit opt-in benchmarking' : 'not configured; normal generation and release evaluation use the Codex subscription');
   console.log(['Design Taste Injection project doctor', ...lines, '', healthy ? 'READY: required project setup is healthy.' : 'NOT READY: complete the FIX items above.'].join('\n'));
   if (!healthy) process.exitCode = 1;
   return { healthy, lines };

@@ -49,12 +49,12 @@ Pins and exclusions never imply approval to advance.
 - Automatic selection uses primary category, page-role eligibility, anchor strength, source/still quality, and verified usability only.
 - Never use project semantics, industry, audience, brand palette, category constitution, prior project usage, or cross-card complementarity to choose an anchor.
 - Inspect the selected still before writing first-pass HTML. Never inspect motion for visual-direction generation.
-- Generate first-pass directions through the stateless, tool-free sealed Responses API in [workflow.md]. Never substitute a context-aware run automatically or call a degraded run isolated.
+- Generate first-pass directions through the ChatGPT-authenticated ephemeral Codex runner in [workflow.md]. Record it as context-limited, not API-isolated. The stateless Responses API is an explicit optional benchmark, never the automatic default.
 - The first pass uses `previewScope: focused-category-preview` and is exactly a hero plus one opening module. For image-led cards `H0` reserves the future image geometry with a flat stand-in; decorative code art cannot substitute for the image.
 - Freeze an anchor-derived visual contract after direction approval. Project context can then fill content, architecture, and functionality but cannot average or replace the anchor's visual language.
 - Inner pages inherit the frozen system while using page-appropriate structures; they do not repeat the landing-page hero.
 - Render every generation at `.inspiration/previews/<generation-id>/index.html` before recording it.
-- Preserve source identity safely: automatic generation requires a current human-reviewed identity inventory; exact reviewed metadata drives scans, while ambiguous resemblance receives human review and is never automatically deleted.
+- Preserve source identity safely: automatic generation requires a current fingerprinted identity inventory. Record whether it is Codex-drafted or human-reviewed; current Codex-drafted inventories remain generation guardrails, not legal or independent QA review. Ambiguous resemblance receives human review and is never automatically deleted.
 
 ## Conditional Routes
 

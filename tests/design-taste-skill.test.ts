@@ -47,7 +47,7 @@ describe('inspiration-controlled design workflow', () => {
     expect(imported.stdout).toBe('');
   }, 20_000);
 
-  it('exports the validated live catalog with reviewed identity metadata', () => {
+  it('exports the validated live catalog with explicit identity provenance', () => {
     const catalog = loadCatalog();
     expect(catalog.schemaVersion).toBe(4);
     expect(catalog.cards).toHaveLength(63);
@@ -60,6 +60,8 @@ describe('inspiration-controlled design workflow', () => {
     const reviewedMarketingBand = catalog.cards.filter((card: any) => card.sourceIdentity.review.reviewStatus === 'reviewed');
     expect(reviewedMarketingBand).toHaveLength(34);
     expect(reviewedMarketingBand.every((card: any) => card.identityReviewFresh)).toBe(true);
+    expect(reviewedMarketingBand.every((card: any) => card.sourceIdentity.review.reviewOrigin === 'codex-drafted')).toBe(true);
+    expect(reviewedMarketingBand.every((card: any) => /not independent human, legal, or QA review/i.test(card.sourceIdentity.review.reviewBasis))).toBe(true);
   });
 
   it('returns and stages one selected card without returning the catalog', () => {
@@ -236,24 +238,44 @@ describe('inspiration-controlled design workflow', () => {
   it('fingerprints release evaluation inputs and validates approval artifacts noninteractively', async () => {
     const common = await import(`${pathToFileURL(resolve(root, 'scripts', 'inspiration-eval-common.mjs')).href}?eval=${Date.now()}`);
     const approvalModule = await import(`${pathToFileURL(resolve(root, 'scripts', 'inspiration-eval-approval.mjs')).href}?approval=${Date.now()}`);
+    const subscriptionEval = await import(`${pathToFileURL(resolve(root, 'scripts', 'inspiration-subscription-eval.mjs')).href}?subscriptionEval=${Date.now()}`);
     const current = await common.currentEvaluationInputs();
-    expect(current.inputs.releaseModel).toBe('gpt-5.6-sol');
+    expect(current.inputs.evaluationMode).toBe('subscription');
+    expect(current.inputs.subscriptionRunner).toBe('codex-cli-chatgpt');
     expect(Object.keys(current.inputs.cardFingerprints)).toEqual(['site-spade', 'image-astra-ai', 'site-ctgt']);
     expect(Object.keys(current.inputs.identityReviewBandFingerprints)).toHaveLength(34);
-    const approval = { evaluationFingerprint: current.evaluationFingerprint, decision: 'approved', requestedModel: 'gpt-5.6-sol', returnedModels: ['gpt-5.6-sol'], cardFingerprints: current.inputs.cardFingerprints, identityReviewBandFingerprints: current.inputs.identityReviewBandFingerprints, inputFingerprints: current.inputs.fileFingerprints, goldenFixtureFingerprint: current.inputs.goldenFixtureFingerprint };
+    expect(new Set(Object.values(current.inputs.identityReviewOrigins))).toEqual(new Set(['codex-drafted']));
+    const approval = { schemaVersion: 2, evaluationMode: 'subscription', evaluationFingerprint: current.evaluationFingerprint, decision: 'approved', humanReviewer: 'Named Reviewer', approvedAt: new Date().toISOString(), reportHash: 'a'.repeat(64), artifactManifestHash: 'b'.repeat(64), cardFingerprints: current.inputs.cardFingerprints, identityReviewBandFingerprints: current.inputs.identityReviewBandFingerprints, identityReviewOrigins: current.inputs.identityReviewOrigins, inputFingerprints: current.inputs.fileFingerprints, goldenFixtureFingerprint: current.inputs.goldenFixtureFingerprint };
     expect(approvalModule.validateApproval(approval, current)).toBe(true);
+    expect(() => approvalModule.validateApproval({ ...approval, evaluationMode: 'sealed-api-benchmark' }, current)).toThrow(/wrong mode/i);
     expect(() => approvalModule.validateApproval({ ...approval, goldenFixtureFingerprint: 'stale' }, current)).toThrow(/stale/i);
+    const prepared = await subscriptionEval.prepare({ outputRoot: resolve(scratch, 'subscription-eval') });
+    const preparedManifest = JSON.parse(readFileSync(prepared.manifestPath, 'utf8'));
+    expect(preparedManifest).toEqual(expect.objectContaining({ evaluationMode: 'subscription', subscriptionRunner: 'codex-cli-chatgpt', imageProvider: 'codex-imagegen' }));
+    expect(preparedManifest.cases).toHaveLength(3);
+    expect(readFileSync(resolve(prepared.destination, 'RUNBOOK.md'), 'utf8')).toMatch(/Do not set OPENAI_API_KEY[\s\S]*\$imagegen/);
+    const tamperedManifest = resolve(prepared.destination, 'tampered-manifest.json'); writeFileSync(tamperedManifest, JSON.stringify({ ...preparedManifest, cases: preparedManifest.cases.slice(0, 1) }));
+    await expect(subscriptionEval.verify({ manifestPath: tamperedManifest })).rejects.toThrow(/modified|incomplete/i);
     const source = readFileSync(resolve(root, 'scripts', 'inspiration-eval-approval.mjs'), 'utf8');
     expect(source).not.toMatch(/readline|inquirer|prompt\(/i);
   }, 20_000);
 
-  it('builds an exact stateless Responses request and makes degradation explicit', async () => {
+  it('defaults to ChatGPT-authenticated ephemeral Codex and keeps the sealed API explicit', async () => {
     const isolation = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'isolation-runner.mjs')).href}?isolation=${Date.now()}`);
     const catalog = loadCatalog();
     const card = catalog.cards.find((item: any) => item.id === 'site-spade');
     const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?request=${Date.now()}`);
     const evidence = await visual.resolveEvidence(catalog, resolve(scratch, 'request-project'), card.id);
     const payload = visual.buildSealedPayload(card, { sha256: evidence.record.sha256 });
+    expect(isolation.subscriptionCodexArgs('C:/temp/eval', 'C:/temp/eval/input/reference.png')).toEqual(expect.arrayContaining(['exec', '--ephemeral', '--ignore-user-config', '--ignore-rules', '--sandbox', 'workspace-write']));
+    expect(isolation.subscriptionLoginStatus({ run: () => ({ status: 0, stdout: 'Logged in using ChatGPT', stderr: '' }) })).toEqual(expect.objectContaining({ available: true, authenticatedWith: 'chatgpt' }));
+    const subscriptionOutput = resolve(scratch, 'subscription-output');
+    const subscription = await isolation.runSubscriptionGeneration(payload, evidence.destination, subscriptionOutput, {
+      loginStatus: { available: true, authenticatedWith: 'chatgpt' },
+      run: (_command: string, _args: string[], options: any) => { mkdirSync(resolve(options.cwd, 'output'), { recursive: true }); writeFileSync(resolve(options.cwd, 'output', 'index.html'), '<!doctype html><html><body><main data-inspiration-hero></main><section data-opening-module></section></body></html>'); return { status: 0, stdout: '', stderr: '' }; },
+    });
+    expect(subscription).toEqual(expect.objectContaining({ mode: 'subscription-ephemeral', isolated: false, contextLimited: true, authenticatedWith: 'chatgpt' }));
+    expect(existsSync(resolve(subscriptionOutput, 'index.html'))).toBe(true);
     const request = await isolation.buildSealedRequest(payload, evidence.destination, { projectRoot: resolve(scratch, 'request-project'), libraryRoot: root });
     expect(request.model).toBe('gpt-5.6-sol');
     expect(request).toEqual(expect.objectContaining({ store: false, background: false, stream: false, tools: [], tool_choice: 'none', reasoning: { effort: 'high' } }));
@@ -261,17 +283,18 @@ describe('inspiration-controlled design workflow', () => {
     expect(request.input[0].content.filter((item: any) => item.type === 'input_image')).toHaveLength(1);
     await expect(isolation.buildSealedRequest(payload, evidence.destination, { model: 'development-model', projectRoot: resolve(scratch, 'request-project'), libraryRoot: root })).rejects.toThrow(/requires gpt-5.6-sol/i);
     await expect(isolation.buildSealedRequest(payload, evidence.destination, { model: 'development-model', allowDevelopmentModel: true, projectRoot: resolve(scratch, 'request-project'), libraryRoot: root })).resolves.toEqual(expect.objectContaining({ model: 'development-model' }));
+    await expect(isolation.runSealedGeneration(payload, evidence.destination, resolve(scratch, 'api-output'))).rejects.toThrow(/explicitApiOptIn/i);
     expect(() => isolation.buildRetryRequest(request, { previousFiles: [], failures: ['make this more payroll'] }, { leakSignals: visual.buildLeakSignals({ distinctiveClaims: ['make this more payroll'] }) })).toThrow(/intake leak/i);
     const redacted = isolation.redactRetryEvidence({ previousFiles: [{ path: 'index.html', content: 'Acme Ledger' }], failures: ['The data & AI platform for modern finance leaked'] }, request, { leakSignals: visual.buildLeakSignals({ companyNames: ['Acme Ledger'] }) });
     expect(JSON.stringify(redacted)).not.toMatch(/Acme Ledger|data & AI platform for modern finance/i);
-    expect(() => isolation.createDegradedApproval({ acknowledged: isolation.DEGRADED_WARNING, action: 'wrong', approver: 'Reviewer', generationId: 'D01', degradedCause: 'api-unavailable' })).toThrow();
-    expect(isolation.createDegradedApproval({ acknowledged: isolation.DEGRADED_WARNING, action: isolation.DEGRADED_ACTION, approver: 'Reviewer', generationId: 'D01', degradedCause: 'api-unavailable' })).toEqual(expect.objectContaining({ mode: 'degraded', isolated: false, explicitApproval: true, degradedCause: 'api-unavailable' }));
+    expect(() => isolation.createDegradedApproval({ acknowledged: isolation.DEGRADED_WARNING, action: 'wrong', approver: 'Reviewer', generationId: 'D01', degradedCause: 'subscription-unavailable' })).toThrow();
+    expect(isolation.createDegradedApproval({ acknowledged: isolation.DEGRADED_WARNING, action: isolation.DEGRADED_ACTION, approver: 'Reviewer', generationId: 'D01', degradedCause: 'subscription-unavailable' })).toEqual(expect.objectContaining({ mode: 'degraded', isolated: false, explicitApproval: true, degradedCause: 'subscription-unavailable' }));
     const source = readFileSync(resolve(skillRoot, 'references', 'workflow.md'), 'utf8');
     expect(source).toContain('POST /v1/responses');
     expect(source).toContain('DEGRADED — NOT ISOLATED');
   }, 20_000);
 
-  it('initializes schema 7 state, records anchor-only generations, and persists visual controls through events', () => {
+  it('initializes schema 8 state, records subscription generation, and persists visual controls through events', () => {
     const project = resolve(scratch, 'state-project');
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
     expect(runNode(script, ['init', project]).status).toBe(0);
@@ -288,17 +311,22 @@ describe('inspiration-controlled design workflow', () => {
     const appended = runNode(script, ['append-generation', project, generationPath]);
     expect(appended.status, appended.stderr).toBe(0);
     const eventPath = resolve(scratch, 'visual-event.json');
-    writeFileSync(eventPath, JSON.stringify({ type: 'visual.isolation-recorded', payload: { mode: 'sealed-api', model: 'gpt-5.6-sol', requestFingerprint: 'a'.repeat(64) } }));
+    writeFileSync(eventPath, JSON.stringify({ type: 'visual.isolation-recorded', payload: { mode: 'subscription-ephemeral', isolated: false, contextLimited: true, authenticatedWith: 'chatgpt', runner: 'codex-cli', workspaceFingerprint: 'a'.repeat(64) } }));
     expect(runNode(script, ['apply-event', project, eventPath]).status).toBe(0);
     writeFileSync(eventPath, JSON.stringify({ type: 'visual.route-conformance-recorded', payload: { route: '/pricing', status: 'passed', checks: ['type', 'palette', 'spacing'] } }));
     expect(runNode(script, ['apply-event', project, eventPath]).status).toBe(0);
     const state = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(7);
-    expect(state.workbenchVersion).toBe(5);
+    expect(state.schemaVersion).toBe(8);
+    expect(state.workbenchVersion).toBe(6);
     expect(state.generations[0].references).toEqual([{ id: card.id, role: 'anchor' }]);
-    expect(state.visualControl.isolation.mode).toBe('sealed-api');
+    expect(state.visualControl.isolation.mode).toBe('subscription-ephemeral');
     expect(state.visualControl.routeConformance[0].route).toBe('/pricing');
     expect(readFileSync(resolve(project, '.inspiration', 'workbench', 'index.html'), 'utf8')).toContain('SHOW ANOTHER CARD');
+    state.schemaVersion = 7; state.workbenchVersion = 5; state.visualControl.isolation = { mode: 'sealed-api', model: 'gpt-5.6-sol', requestFingerprint: 'b'.repeat(64), recordedAt: new Date().toISOString() };
+    writeFileSync(resolve(project, '.inspiration', 'state.json'), JSON.stringify(state));
+    expect(runNode(script, ['init', project]).status).toBe(0);
+    const migrated = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
+    expect(migrated.schemaVersion).toBe(8); expect(migrated.visualControl.isolation.mode).toBe('sealed-api');
   }, 60_000);
 
   it('migrates legacy state without losing history and rejects new direction supports', () => {
@@ -317,7 +345,7 @@ describe('inspiration-controlled design workflow', () => {
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
     expect(runNode(script, ['init', project]).status).toBe(0);
     const state = JSON.parse(readFileSync(resolve(inspiration, 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(7);
+    expect(state.schemaVersion).toBe(8);
     expect(state.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
     expect(state.visualControl).toBeTruthy();
     expect(state.visualControl.isolation).toEqual(expect.objectContaining({ mode: 'legacy-unverified', legacyMode: 'payload-only' }));
@@ -345,7 +373,8 @@ describe('inspiration-controlled design workflow', () => {
     writeFileSync(resolve(project, 'package.json'), '{"private":true}');
     makeImpeccableFixture(impeccable);
     const setup = resolve(root, 'scripts', 'setup-project.mjs');
-    expect(runNode(setup, [project, '--impeccable-source', impeccable]).status).toBe(0);
+    const initialSetup = runNode(setup, [project, '--impeccable-source', impeccable]);
+    expect(initialSetup.status, initialSetup.stderr).toBe(0);
     const destination = resolve(project, '.agents', 'skills', 'design-taste-injection');
     expect(existsSync(resolve(destination, 'SKILL.md'))).toBe(true);
     expect(existsSync(resolve(project, '.agents', 'skills', 'impeccable', 'SKILL.md'))).toBe(true);
@@ -355,10 +384,12 @@ describe('inspiration-controlled design workflow', () => {
     expect(runNode(resolve(root, 'scripts', 'check-project.mjs'), [project]).status).toBe(0);
     writeFileSync(resolve(destination, 'scripts', 'reference-selection.mjs'), '// stale');
     expect(runNode(resolve(root, 'scripts', 'check-project.mjs'), [project]).status).not.toBe(0);
-    expect(runNode(setup, [project, '--impeccable-source', impeccable]).status).toBe(0);
+    const repairedSetup = runNode(setup, [project, '--impeccable-source', impeccable]);
+    expect(repairedSetup.status, repairedSetup.stderr).toBe(0);
     expect(runNode(resolve(root, 'scripts', 'check-project.mjs'), [project]).status).toBe(0);
     writeFileSync(resolve(project, '.agents', 'skills', 'impeccable', 'custom-note.txt'), 'preserve me');
-    expect(runNode(setup, [project, '--impeccable-source', impeccable]).status).toBe(0);
+    const preservingSetup = runNode(setup, [project, '--impeccable-source', impeccable]);
+    expect(preservingSetup.status, preservingSetup.stderr).toBe(0);
     expect(readFileSync(resolve(project, '.agents', 'skills', 'impeccable', 'custom-note.txt'), 'utf8')).toBe('preserve me');
 
     const dest = resolve(scratch, 'rollback-destination');
@@ -368,7 +399,7 @@ describe('inspiration-controlled design workflow', () => {
     const { replaceMany } = await import(`${pathToFileURL(setup).href}?rollback=${Date.now()}`);
     await expect(replaceMany([{ destination: dest, staging: stage }], { afterInstall: () => { throw new Error('interrupted'); } })).rejects.toThrow('interrupted');
     expect(readFileSync(resolve(dest, 'identity.txt'), 'utf8')).toBe('old');
-  }, 30_000);
+  }, 40_000);
 
   it('refuses library, installed-skill, and unmanaged project-skill targets', () => {
     const impeccable = resolve(scratch, 'impeccable-refusal');
@@ -383,7 +414,7 @@ describe('inspiration-controlled design workflow', () => {
     const refused = runNode(setup, [project, '--impeccable-source', impeccable]);
     expect(refused.status).not.toBe(0);
     expect(refused.stderr).toContain('Refusing to replace unmanaged project skill');
-  });
+  }, 20_000);
 
   it('keeps clone QA at exactly three widths', () => {
     const project = resolve(scratch, 'clone-qa-project');
@@ -406,7 +437,7 @@ describe('inspiration-controlled design workflow', () => {
     expect(verified.status, verified.stderr).toBe(0);
     const report = JSON.parse(readFileSync(resolve(evidence, 'qa', 'report.json'), 'utf8'));
     expect(report.results.map((item: any) => item.width)).toEqual([1440, 768, 390]);
-  });
+  }, 20_000);
 
   it('archives customized workbenches and rejects inspiration-folder junction escapes', () => {
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');

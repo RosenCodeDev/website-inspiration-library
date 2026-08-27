@@ -116,6 +116,7 @@ export const SourceIdentitySchema = z.object({
   }),
   review: z.object({
     reviewStatus: z.enum(['unreviewed', 'reviewed']),
+    reviewOrigin: z.enum(['codex-drafted', 'human-reviewed']).nullable(),
     reviewedAt: z.string().nullable(),
     reviewedBy: z.string().nullable(),
     reviewBasis: z.string().nullable(),

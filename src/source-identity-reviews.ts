@@ -11,17 +11,19 @@ type ReviewedIdentity = {
   sourceSpecificExclusions: string[];
   reviewedAt: string;
   reviewedBy: string;
+  reviewOrigin: 'codex-drafted' | 'human-reviewed';
   reviewBasis: string;
   reviewFingerprint: string;
 };
 
 const reviewedAt = '2026-08-27';
-const reviewedBy = 'Codex maintainer review';
-const reviewBasis = 'Canonical still, reviewed provenance, source metadata, visible source copy, and source-specific identity inventory.';
+const reviewedBy = 'Codex-authored identity inventory';
+const reviewOrigin = 'codex-drafted' as const;
+const reviewBasis = 'Canonical still, provenance, source metadata, visible source copy, and source-specific identity inventory. This is a generation guardrail, not independent human, legal, or QA review.';
 const pendingFingerprint = '0'.repeat(64);
 const review = (input: Partial<ReviewedIdentity> & Pick<ReviewedIdentity, 'distinctiveClaims'>): ReviewedIdentity => ({
   exactCopy: [], knownMarkAssetIds: [], knownMarkAssetHashes: [], characters: [], products: [], people: [], packaging: [], interfaceFragments: [], sourceSpecificExclusions: [],
-  reviewedAt, reviewedBy, reviewBasis, reviewFingerprint: pendingFingerprint, ...input,
+  reviewedAt, reviewedBy, reviewOrigin, reviewBasis, reviewFingerprint: pendingFingerprint, ...input,
 });
 
 export const sourceIdentityReviews: Record<string, ReviewedIdentity> = {

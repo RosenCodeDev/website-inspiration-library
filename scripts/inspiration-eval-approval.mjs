@@ -9,31 +9,32 @@ const approvalsRoot = resolve(root, 'tests', 'inspiration-eval', 'approvals');
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
 const approvalPath = (fingerprint) => resolve(approvalsRoot, `${fingerprint}.json`);
 const validateApproval = (approval, current) => {
-  if (approval.evaluationFingerprint !== current.evaluationFingerprint || approval.decision !== 'approved') throw new Error('Inspiration-eval approval is stale or not approved.');
-  if (approval.requestedModel !== current.inputs.releaseModel || approval.returnedModels?.some((model) => model !== current.inputs.releaseModel)) throw new Error('Approval does not attest the pinned release model.');
-  if (hash(approval.cardFingerprints) !== hash(current.inputs.cardFingerprints) || hash(approval.identityReviewBandFingerprints) !== hash(current.inputs.identityReviewBandFingerprints) || hash(approval.inputFingerprints) !== hash(current.inputs.fileFingerprints) || approval.goldenFixtureFingerprint !== current.inputs.goldenFixtureFingerprint) throw new Error('Inspiration-eval approval inputs are stale.');
+  if (approval.schemaVersion !== 2 || approval.evaluationMode !== 'subscription' || approval.evaluationFingerprint !== current.evaluationFingerprint || approval.decision !== 'approved') throw new Error('Subscription inspiration-eval approval is stale, from the wrong mode, or not approved.');
+  if (typeof approval.humanReviewer !== 'string' || !approval.humanReviewer.trim() || !Number.isFinite(Date.parse(approval.approvedAt)) || !/^[a-f0-9]{64}$/.test(approval.reportHash ?? '') || !/^[a-f0-9]{64}$/.test(approval.artifactManifestHash ?? '')) throw new Error('Subscription inspiration-eval approval is missing named-review evidence.');
+  if (hash(approval.cardFingerprints) !== hash(current.inputs.cardFingerprints) || hash(approval.identityReviewBandFingerprints) !== hash(current.inputs.identityReviewBandFingerprints) || hash(approval.identityReviewOrigins) !== hash(current.inputs.identityReviewOrigins) || hash(approval.inputFingerprints) !== hash(current.inputs.fileFingerprints) || approval.goldenFixtureFingerprint !== current.inputs.goldenFixtureFingerprint) throw new Error('Inspiration-eval approval inputs are stale.');
   return true;
 };
 const approve = async ({ reportPath, reviewer }) => {
   if (!reportPath || !reviewer?.trim()) throw new Error('Usage: npm run approve:inspiration-eval -- --report <report.json> --reviewer <name>');
   const report = await readJson(resolve(reportPath));
   const current = await currentEvaluationInputs();
-  if (!report.machinePassed || report.evaluationFingerprint !== current.evaluationFingerprint) throw new Error('The evaluation did not pass or its fingerprint is stale.');
-  if (report.requestedModel !== current.inputs.releaseModel || report.returnedModels?.some((model) => model !== current.inputs.releaseModel)) throw new Error('The evaluation did not exclusively use the pinned release model.');
+  if (!report.machinePassed || report.evaluationMode !== 'subscription' || report.evaluationFingerprint !== current.evaluationFingerprint) throw new Error('The subscription evaluation did not pass or its fingerprint is stale. API benchmark reports cannot satisfy release approval.');
   const artifact = {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    evaluationMode: 'subscription',
     evaluationFingerprint: current.evaluationFingerprint,
     reportHash: hash(report),
     artifactManifestHash: hash(report.artifactManifest),
     cardFingerprints: current.inputs.cardFingerprints,
     identityReviewBandFingerprints: current.inputs.identityReviewBandFingerprints,
+    identityReviewOrigins: current.inputs.identityReviewOrigins,
     inputFingerprints: current.inputs.fileFingerprints,
     goldenFixtureFingerprint: current.inputs.goldenFixtureFingerprint,
     frozenContractFingerprints: report.frozenContractFingerprints,
-    requestedModel: report.requestedModel,
-    returnedModels: report.returnedModels,
+    subscriptionRunner: current.inputs.subscriptionRunner,
+    imageProvider: current.inputs.imageProvider,
     machineScores: report.machineScores,
-    evaluatorScores: report.evaluatorScores,
+    imageGeneration: report.imageGeneration,
     humanReviewer: reviewer.trim(),
     approvedAt: new Date().toISOString(),
     decision: 'approved',

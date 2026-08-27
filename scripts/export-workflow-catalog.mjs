@@ -58,6 +58,7 @@ const loadCatalog = async () => {
         sourceIdentity,
         identityReviewFingerprint,
         identityReviewFresh: sourceIdentity.review.reviewStatus === 'reviewed'
+          && ['codex-drafted', 'human-reviewed'].includes(sourceIdentity.review.reviewOrigin)
           && sourceIdentity.review.reviewFingerprint === identityReviewFingerprint,
         media: reference.media,
         quality: reference.quality,

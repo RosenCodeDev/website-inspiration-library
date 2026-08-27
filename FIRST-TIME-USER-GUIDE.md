@@ -47,9 +47,9 @@ npm run check:project -- C:\path\to\website-project
 npm run doctor:project -- C:\path\to\website-project
 ```
 
-Restart Codex in the website project after installation or updates. Codex discovers repository skills from `.agents/skills`.
+Restart Codex in the website project after installation or updates. Codex discovers repository skills from `.agents/skills`. Run `codex login status` and confirm the CLI is signed in with ChatGPT; the doctor treats that subscription login as required for default automatic direction generation.
 
-For isolated automatic direction generation, set `OPENAI_API_KEY` in the environment that launches Codex. The doctor reports this as optional because the explicitly approved degraded path remains available, but without the key automatic generation cannot use the sealed Responses API.
+`OPENAI_API_KEY` is not required for ordinary project use, Codex image generation, or the formal subscription evaluation. It is optional and used only when you explicitly select the sealed API benchmark.
 
 ## 4. Remove older global installations
 
@@ -85,7 +85,7 @@ Provide:
 - Audience: who must understand or act.
 - Materials and Requirements: content, files, functionality, brand requirements, and constraints.
 
-The workflow uses those facts for architecture, content, and functionality. First-pass visual directions remain isolated from them and are driven by one library card and its still.
+The workflow uses those facts for architecture, content, and functionality. First-pass visual directions are generated in an ephemeral context-limited Codex task driven by one library card and its still; this is not described as API-grade isolation.
 
 ## 6. What to expect
 
@@ -102,9 +102,11 @@ The selector uses primary category, page-role eligibility, anchor strength, stil
 
 ## 7. Isolation behavior
 
-Automatic first-pass directions use a stateless, tool-free Responses API call with the pinned `gpt-5.6-sol` model. The request contains one validated card payload and one still as an in-memory image; it omits conversation state, previous response IDs, project context, the catalog, category profiles, other cards, absolute paths, and motion clips.
+Automatic first-pass directions use an ephemeral Codex CLI task authenticated through the ChatGPT subscription. Its temporary workspace contains one validated card payload, one still, the rendered prompt, and an output directory. It has no conversation history and is labeled `CODEX SUBSCRIPTION — EPHEMERAL, NOT API-ISOLATED`.
 
-If the API is unavailable or a sealed call fails, the current thread may run only after you select the exact warning acknowledgement and then choose `RUN DEGRADED GENERATION`. Every such run is one-generation-only, recorded as `degraded`, and labeled `DEGRADED — NOT ISOLATED` throughout review. It is never called isolated and approval is never remembered.
+The stateless, tool-free Responses API path is an optional explicit benchmark. It requires `OPENAI_API_KEY`, is never selected automatically, and is not a prerequisite for a normal website project or release evaluation.
+
+If the subscription runner is unavailable or fails, the current thread may run only after you select the exact warning acknowledgement and then choose `RUN DEGRADED GENERATION`. Every such run is one-generation-only, recorded as `degraded`, and labeled `DEGRADED — NOT ISOLATED` throughout review. Approval is never remembered.
 
 The coordinator, rather than the model, validates the rendered hero slot and writes `output-contract.json`. Earlier `fresh-agent` and `payload-only` records migrate to `legacy-unverified`.
 

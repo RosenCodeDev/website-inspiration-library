@@ -43,3 +43,5 @@ next-env.d.ts
 /library-*-preview.png
 /library-preview.png
 /.inspiration-eval/
+/.inspiration-api-eval/
+/.pnpm-store/

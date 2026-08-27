@@ -14,7 +14,7 @@ An automatic anchor must:
 - List the requested page role in `anchorUses`.
 - Have usable or canonical still evidence with positive dimensions.
 - Have a valid image recipe or reviewed `kind:none` reason.
-- Have a current human-reviewed identity inventory whose fingerprint still matches its source, provenance, URL, and canonical still.
+- Have a current fingerprinted identity inventory whose fingerprint still matches its source, provenance, URL, and canonical still. Its `reviewOrigin` states whether it is Codex-drafted or human-reviewed; neither status is a legal clearance.
 
 `limited` evidence is not eligible for automatic anchoring. `kind:none` remains eligible when its reason and `permittedMethod` give usable reviewed code-native or authorized-media direction.
 
@@ -38,11 +38,11 @@ Tests check provenance: no profile object or namespace, no profile dependency in
 
 ## Identity metadata
 
-Every card separates deterministic `sourceIdentity.derived` metadata from `sourceIdentity.reviewed` exclusions and review provenance. Names, aliases, domains, URLs, and still hashes are derived scanner inputs; they do not count as human review. Exact copy, claims, marks, characters, products, people, packaging, interface fragments, and source-specific exclusions are reviewed.
+Every card separates deterministic `sourceIdentity.derived` metadata from the curated exclusions retained under the compatibility field `sourceIdentity.reviewed`. Names, aliases, domains, URLs, and still hashes are derived scanner inputs. Exact copy, claims, marks, characters, products, people, packaging, interface fragments, and source-specific exclusions may be Codex-drafted or human-reviewed; `reviewOrigin` is authoritative.
 
-The review fingerprint covers the source identity, provenance, canonical URL, source evidence, and still checksum. A covered change makes the review stale. Stale or unreviewed cards remain browsable and usable in the manual prompt workbench, but automatic selection and generation must reject them.
+The inventory fingerprint covers the source identity, provenance, canonical URL, source evidence, and still checksum. A covered change makes the inventory stale. Stale or uncurated cards remain browsable and usable in the manual prompt workbench, but automatic selection and generation must reject them.
 
-Runtime code does not infer identity through OCR, logo shapes, colors, or approximate resemblance. Exact automatic text blocking uses domains and distinctive multiword reviewed signals; ambiguous single-word names remain prompt exclusions and human-QA signals rather than automatic deletion rules. Human visual review may compare the result with the still and flag ambiguity without changing metadata or automatically deleting content.
+Runtime code does not infer identity through OCR, logo shapes, colors, or approximate resemblance. Exact automatic text blocking uses domains and distinctive multiword curated signals; ambiguous single-word names remain prompt exclusions and optional human-QA signals rather than automatic deletion rules. A person may compare the result with the still and flag ambiguity without changing metadata or automatically deleting content.
 
 ## Maintenance boundary
 

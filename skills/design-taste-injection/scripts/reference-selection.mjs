@@ -59,6 +59,7 @@ const anchorEligible = (card, rawRequest) => {
     && card.workflow.anchorUses.includes(request.pageUse)
     && card.quality.tier !== 'limited'
     && card.sourceIdentity?.review?.reviewStatus === 'reviewed'
+    && ['codex-drafted', 'human-reviewed'].includes(card.sourceIdentity?.review?.reviewOrigin)
     && card.identityReviewFresh === true
     && stillUsable(card)
     && recipeUsable(card);

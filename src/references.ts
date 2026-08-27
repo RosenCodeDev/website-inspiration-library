@@ -28,8 +28,8 @@ const sourceIdentityFor = (seed: Seed): ReferenceEntry['sourceIdentity'] => {
             interfaceFragments: uniqueText(reviewed.interfaceFragments), sourceSpecificExclusions: uniqueText(reviewed.sourceSpecificExclusions),
         } : { exactCopy: [], distinctiveClaims: [], knownMarkAssetIds: [], knownMarkAssetHashes: [], characters: [], products: [], people: [], packaging: [], interfaceFragments: [], sourceSpecificExclusions: [] },
         review: reviewed
-            ? { reviewStatus: 'reviewed', reviewedAt: reviewed.reviewedAt, reviewedBy: reviewed.reviewedBy, reviewBasis: reviewed.reviewBasis, reviewFingerprint: reviewed.reviewFingerprint }
-            : { reviewStatus: 'unreviewed', reviewedAt: null, reviewedBy: null, reviewBasis: null, reviewFingerprint: null },
+            ? { reviewStatus: 'reviewed', reviewOrigin: reviewed.reviewOrigin, reviewedAt: reviewed.reviewedAt, reviewedBy: reviewed.reviewedBy, reviewBasis: reviewed.reviewBasis, reviewFingerprint: reviewed.reviewFingerprint }
+            : { reviewStatus: 'unreviewed', reviewOrigin: null, reviewedAt: null, reviewedBy: null, reviewBasis: null, reviewFingerprint: null },
     };
 };
 const buildEntry = (seed: Seed): ReferenceEntry => {

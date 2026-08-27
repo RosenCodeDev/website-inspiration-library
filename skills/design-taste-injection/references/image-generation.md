@@ -22,7 +22,7 @@ For `kind:none`, the reviewed reason is the instruction: build the visual in cod
 
 ## Reference and identity
 
-Give the model the selected still and explicitly require inspection. Match visual relationships and feel, not source content or identity. Exclude reviewed source names, marks, copy, claims, people, products, characters, interfaces, and assets. Keep meaningful text and controls in HTML.
+Give the model the selected still and explicitly require inspection. Match visual relationships and feel, not source content or identity. Exclude curated source names, marks, copy, claims, people, products, characters, interfaces, and assets. Keep meaningful text and controls in HTML. A `codex-drafted` inventory is a generation guardrail, not independent human, legal, or QA review.
 
 Never provide a motion clip or extracted frames. Never provide project intake, brand colors, industry, audience, other cards, the catalog, or category profiles.
 

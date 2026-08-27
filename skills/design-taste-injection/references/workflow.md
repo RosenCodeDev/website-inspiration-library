@@ -44,7 +44,7 @@ Never provide motion clips or frames to the visual agent. Never provide the cata
 
 ## 3. Build the sealed brief
 
-Build the payload from the selected card alone with `buildSealedPayload`. It contains card identity, descriptors, tags, card-authored observed brief, staged still, canonical image recipe or reviewed `kind:none` reason, neutral copy envelopes, placement, reviewed source-identity exclusions, viewport, and output contract.
+Build the payload from the selected card alone with `buildSealedPayload`. It contains card identity, descriptors, tags, card-authored observed brief, staged still, canonical image recipe or curated `kind:none` reason, neutral copy envelopes, placement, curated source-identity exclusions, viewport, and output contract.
 
 Render the visual prompt in five blocks:
 
@@ -58,15 +58,15 @@ The card's `Composition:` and `Avoid:` guidance is allowed. The builder does not
 
 Create `.inspiration/leak-signals.json` from exact intake-derived names, phrases, domains, claims, brand color names, and hex values. It is a guardrail, not proof of isolation.
 
-## 4. Generate through the sealed API
+## 4. Generate through the Codex subscription
 
-Build the complete outbound request with `isolation-runner.mjs`. It must be one stateless `POST /v1/responses` request using the pinned release model `gpt-5.6-sol`, `store:false`, no conversation or prior response, no tools, high reasoning, one selected still as a data URL, and strict coordinator-owned structured output. A non-release model is allowed only behind an explicit development override; record the requested and returned model and show `SEALED API — DEVELOPMENT MODEL`. Release evaluation never permits this override.
+Use `isolation-runner.mjs run-subscription` by default. It creates a temporary workspace containing only the sealed payload, rendered prompt, output directory, and one selected still, then launches an ephemeral Codex CLI task authenticated with ChatGPT. The runner ignores user configuration and project rules, loads no conversation history, and receives no project or library path.
 
-Serialize and validate the exact request before transmission. Scan its text envelope for intake, paths, catalog fields, sibling cards, motion, and category constitutions. Do not send project data, absolute paths, or external metadata. API capability, model, or schema errors stop sealed generation and never trigger a context-aware fallback automatically.
+Record this mode as `subscription-ephemeral` with `isolated:false` and `contextLimited:true`. It materially limits accidental context bleed, but it is not the same hard transport boundary as a stateless API request and must never be presented as API-isolated. The workbench label remains `CODEX SUBSCRIPTION — EPHEMERAL, NOT API-ISOLATED`.
 
-At most two stateless retries are permitted. A retry contains only the original sealed request, prior generated files, a rendered screenshot, machine-validation failures, and a generic correction instruction. Rebuild and rescan the retry envelope; never add product, industry, audience, or project-language hints.
+The stateless tool-free `POST /v1/responses` path remains available only through `run-api`, an explicit opt-in with `OPENAI_API_KEY`. It preserves the sealed request validation, pinned release model, no-history request, strict structured output, and at most two sanitized retries. Never select it automatically or make it a normal project prerequisite.
 
-If sealed generation is unavailable or fails, offer `degraded` execution only behind the exact unselected warning “This generation can see project intake and is not isolated.” and a separate `RUN DEGRADED GENERATION` action. Record approver, timestamp, generation ID, and `isolationMode: degraded`. Keep `DEGRADED — NOT ISOLATED` visible throughout review. Never remember approval. Earlier `fresh-agent` and `payload-only` state migrates to `legacy-unverified`.
+If the subscription runner is unavailable or fails, offer current-thread `degraded` execution only behind the exact unselected warning “This generation can see project intake and is not isolated.” and a separate `RUN DEGRADED GENERATION` action. Record approver, timestamp, generation ID, and the `subscription-unavailable` or `subscription-failure` cause. Keep `DEGRADED — NOT ISOLATED` visible throughout review and never remember approval. Earlier `fresh-agent` and `payload-only` state remains `legacy-unverified`.
 
 ## 5. Generate and import H0
 
@@ -89,7 +89,7 @@ For `kind:none`, follow the reviewed reason: construct genuinely code-native vis
 
 Generated markup must contain one `data-inspiration-hero` and one `data-opening-module`. Image-led and authorized-media H0 also require an empty `data-future-image-slot` and a sibling `data-protected-copy-region`; code-native H0 requires `data-code-native-hero` and its reviewed method.
 
-The API output writes only to a temporary directory and may not create `output-contract.json`. The coordinator validates containment and permitted files, scans intake and exact source identity, inspects computed styles and slot geometry, hides protected-copy siblings, measures the composed slot pixels, restores copy, and captures the final preview. Only the coordinator writes the observed output contract. It then atomically imports the result and appends the generation event. Show the source still beside the preview in the workbench.
+Generated output writes only to a temporary directory and may not create `output-contract.json`. The coordinator validates containment and permitted files, scans intake and exact source identity, inspects computed styles and slot geometry, hides protected-copy siblings, measures the composed slot pixels, restores copy, and captures the final preview. Only the coordinator writes the observed output contract. It then atomically imports the result and appends the generation event. Show the source still beside the preview in the workbench.
 
 These focused directions are direction shopping, not the final design gate.
 

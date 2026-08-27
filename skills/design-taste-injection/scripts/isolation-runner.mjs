@@ -1,14 +1,65 @@
 #!/usr/bin/env node
 import { existsSync, realpathSync } from 'node:fs';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { dirname, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertContainedPath } from './path-safety.mjs';
-import { assertSealedPayload, renderVisualPrompt, scanExactSignals, scanSourceIdentity } from './visual-contract.mjs';
+import { assertSealedPayload, renderVisualPrompt, scanExactSignals, scanSourceIdentity, validatePreviewTree } from './visual-contract.mjs';
 
 const RELEASE_MODEL = 'gpt-5.6-sol';
 const DEGRADED_WARNING = 'This generation can see project intake and is not isolated.';
 const DEGRADED_ACTION = 'RUN DEGRADED GENERATION';
+const SUBSCRIPTION_MODE = 'subscription-ephemeral';
+const commandResult = (command, args, options = {}) => spawnSync(command, args, { encoding: 'utf8', timeout: options.timeout ?? 300_000, maxBuffer: 20 * 1024 * 1024, ...options });
+const codexExecutable = () => process.env.CODEX_EXECUTABLE ?? (process.platform === 'win32' ? 'codex.exe' : 'codex');
+const subscriptionCodexArgs = (workspace, stillPath) => [
+  'exec', '--ephemeral', '--ignore-user-config', '--ignore-rules', '--sandbox', 'workspace-write',
+  '--skip-git-repo-check', '-C', workspace, '-i', stillPath,
+  'Read only PROMPT.md, payload.json, and the attached reference image. Build the requested local preview under output/. Do not inspect any path outside this temporary workspace. Do not create output-contract.json.',
+];
+const subscriptionLoginStatus = (options = {}) => {
+  const result = (options.run ?? commandResult)(options.codex ?? codexExecutable(), ['login', 'status'], { timeout: options.timeout ?? 30_000, shell: process.platform === 'win32' });
+  const detail = `${result.stdout ?? ''}\n${result.stderr ?? ''}`.trim();
+  return { available: result.status === 0, authenticatedWith: /logged in using chatgpt/i.test(detail) ? 'chatgpt' : /api key/i.test(detail) ? 'api-key' : 'unknown', detail };
+};
+const createSubscriptionWorkspace = async (evidencePath, payload, options = {}) => {
+  assertSealedPayload(payload, { requireChecksum: true });
+  const workspace = options.workspace ?? await mkdtemp(resolve(tmpdir(), 'design-taste-subscription-'));
+  const input = resolve(workspace, 'input'); const output = resolve(workspace, 'output');
+  await mkdir(input, { recursive: true }); await mkdir(output, { recursive: true });
+  const referenceName = `reference${extname(evidencePath) || '.png'}`; const reference = resolve(input, referenceName);
+  await cp(evidencePath, reference);
+  const sealed = structuredClone(payload); sealed.reference.stillPath = `input/${referenceName}`;
+  const serializedPayload = `${JSON.stringify(sealed, null, 2)}\n`; const prompt = `${renderVisualPrompt(sealed)}\n`;
+  await writeFile(resolve(workspace, 'payload.json'), serializedPayload, 'utf8');
+  await writeFile(resolve(workspace, 'PROMPT.md'), prompt, 'utf8');
+  const workspaceFingerprint = createHash('sha256').update(serializedPayload).update(prompt).update(await readFile(reference)).digest('hex');
+  return { workspace, input, output, reference, payload: sealed, workspaceFingerprint, temporary: !options.workspace };
+};
+const runSubscriptionGeneration = async (payload, stillPath, outputRoot, options = {}) => {
+  const login = options.loginStatus ?? subscriptionLoginStatus(options);
+  if (!login.available) throw new Error('Codex CLI is unavailable or not signed in. Run codex login with ChatGPT subscription access.');
+  if (login.authenticatedWith !== 'chatgpt') throw new Error('Subscription generation requires Codex CLI signed in with ChatGPT, not an API key.');
+  const workspace = await createSubscriptionWorkspace(stillPath, payload, options);
+  try {
+    const args = subscriptionCodexArgs(workspace.workspace, workspace.reference);
+    const result = (options.run ?? commandResult)(options.codex ?? codexExecutable(), args, { cwd: workspace.workspace, timeout: options.timeout ?? 600_000, shell: process.platform === 'win32' });
+    if (result.status !== 0) throw new Error(result.stderr?.trim() || result.stdout?.trim() || 'Subscription-backed Codex generation failed.');
+    await validatePreviewTree(workspace.output);
+    await rm(outputRoot, { recursive: true, force: true }); await mkdir(dirname(outputRoot), { recursive: true }); await cp(workspace.output, outputRoot, { recursive: true });
+    const validation = options.validateAttempt ? await options.validateAttempt(outputRoot, { attempt: 0, result }) : null;
+    return {
+      mode: SUBSCRIPTION_MODE, isolationMode: SUBSCRIPTION_MODE, isolated: false, contextLimited: true,
+      authenticatedWith: 'chatgpt', runner: 'codex-cli', workspaceFingerprint: workspace.workspaceFingerprint,
+      validation, stdout: result.stdout?.trim() ?? '', stderr: result.stderr?.trim() ?? '',
+    };
+  } finally {
+    if (workspace.temporary && options.keepWorkspace !== true) await rm(workspace.workspace, { recursive: true, force: true });
+  }
+};
 const outputSchema = {
   type: 'object', additionalProperties: false, required: ['files', 'inspection'],
   properties: {
@@ -53,10 +104,10 @@ const validateIdentityPlacement = (payload, prompt) => {
   const payloadMatches = scanExactSignals(sanitizedPayload, signalDocument);
   const promptWithoutAllowedIdentityLines = prompt.split(/\r?\n/).filter((line, index, lines) => {
     const previous = lines[index - 1] ?? '';
-    return !line.startsWith('Exclude these reviewed source identities exactly:') && previous !== 'REFERENCE';
+    return !line.startsWith('Exclude these curated source identities exactly:') && previous !== 'REFERENCE';
   }).join('\n');
   const promptMatches = scanExactSignals(promptWithoutAllowedIdentityLines, signalDocument);
-  if (payloadMatches.length || promptMatches.length) throw new Error(`Sealed API request contains source identity outside reviewed exclusion metadata: ${(payloadMatches[0] ?? promptMatches[0]).value}`);
+  if (payloadMatches.length || promptMatches.length) throw new Error(`Sealed API request contains source identity outside curated exclusion metadata: ${(payloadMatches[0] ?? promptMatches[0]).value}`);
 };
 const buildSealedRequest = async (payload, stillPath, guards = {}) => {
   assertSealedPayload(payload, { requireChecksum: true });
@@ -135,6 +186,7 @@ const materializeOutput = async (output, outputRoot, expectedStillSha256) => {
   if (!existsSync(resolve(outputRoot, 'index.html'))) throw new Error('Structured output is missing index.html.');
 };
 const runSealedGeneration = async (payload, stillPath, outputRoot, options = {}) => {
+  if (options.explicitApiOptIn !== true) throw new Error('Sealed API generation requires explicitApiOptIn: true. Subscription-backed Codex is the default.');
   const original = await buildSealedRequest(payload, stillPath, options.guards); let request = original; let lastError;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const result = await postResponses(request, options); await materializeOutput(result.output, outputRoot, payload.reference.sha256);
@@ -153,17 +205,18 @@ const runSealedGeneration = async (payload, stillPath, outputRoot, options = {})
 const createDegradedApproval = ({ acknowledged, action, approver, generationId, degradedCause, reason }) => {
   if (acknowledged !== DEGRADED_WARNING || action !== DEGRADED_ACTION) throw new Error('Degraded generation requires the exact warning acknowledgement and explicit action.');
   if (!approver?.trim() || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(generationId ?? '')) throw new Error('Degraded approval requires an approver and valid generation ID.');
-  if (!['api-unavailable', 'sealed-api-failure'].includes(degradedCause)) throw new Error('Degraded generation is available only after unavailable API configuration or a sealed API failure.');
+  if (!['subscription-unavailable', 'subscription-failure'].includes(degradedCause)) throw new Error('Degraded generation is available only after the subscription-backed Codex runner is unavailable or fails.');
   return { mode: 'degraded', isolationMode: 'degraded', isolated: false, warning: DEGRADED_WARNING, action: DEGRADED_ACTION, approver, generationId, degradedCause, reason: reason ?? degradedCause, approvedAt: new Date().toISOString(), explicitApproval: true };
 };
 
 const main = async () => {
   const [command, first, second, third] = process.argv.slice(2);
   if (command === 'build-request' && first && second) { const payload = JSON.parse(await readFile(resolve(first), 'utf8')); console.log(JSON.stringify(await buildSealedRequest(payload, resolve(second)), null, 2)); return; }
-  if (command === 'run' && first && second && third) { const payload = JSON.parse(await readFile(resolve(first), 'utf8')); console.log(JSON.stringify(await runSealedGeneration(payload, resolve(second), resolve(third)), null, 2)); return; }
-  throw new Error('Usage: isolation-runner.mjs build-request <payload.json> <still> | run <payload.json> <still> <output-root>');
+  if ((command === 'run' || command === 'run-subscription') && first && second && third) { const payload = JSON.parse(await readFile(resolve(first), 'utf8')); console.log(JSON.stringify(await runSubscriptionGeneration(payload, resolve(second), resolve(third)), null, 2)); return; }
+  if (command === 'run-api' && first && second && third) { const payload = JSON.parse(await readFile(resolve(first), 'utf8')); console.log(JSON.stringify(await runSealedGeneration(payload, resolve(second), resolve(third), { explicitApiOptIn: true }), null, 2)); return; }
+  throw new Error('Usage: isolation-runner.mjs build-request <payload.json> <still> | run-subscription <payload.json> <still> <output-root> | run-api <payload.json> <still> <output-root>');
 };
 const isDirect = Boolean(process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)));
 if (isDirect) main().catch((error) => { console.error(`Isolation runner: ${error.message}`); process.exitCode = 1; });
 
-export { DEGRADED_ACTION, DEGRADED_WARNING, RELEASE_MODEL, buildRetryRequest, buildSealedRequest, createDegradedApproval, materializeOutput, outputSchema, postResponses, redactRetryEvidence, runSealedGeneration, validateIdentityPlacement, validateSealedRequest };
+export { DEGRADED_ACTION, DEGRADED_WARNING, RELEASE_MODEL, SUBSCRIPTION_MODE, buildRetryRequest, buildSealedRequest, createDegradedApproval, createSubscriptionWorkspace, materializeOutput, outputSchema, postResponses, redactRetryEvidence, runSealedGeneration, runSubscriptionGeneration, subscriptionCodexArgs, subscriptionLoginStatus, validateIdentityPlacement, validateSealedRequest };

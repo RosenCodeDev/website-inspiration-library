@@ -61,8 +61,8 @@ const sourceIdentityScanSignals = (identity) => sourceIdentitySignals(identity).
   const normalized = normalizeText(value); return normalized.includes('.') || normalized.split(/\s+/).filter(Boolean).length >= 2;
 });
 const assertReviewedIdentity = (card) => {
-  if (card?.sourceIdentity?.review?.reviewStatus !== 'reviewed') throw new Error(`Card identity inventory is not reviewed: ${card?.id ?? '(missing)'}`);
-  if (card.identityReviewFresh !== true || card.sourceIdentity.review.reviewFingerprint !== card.identityReviewFingerprint) throw new Error(`Card identity review is stale: ${card.id}`);
+  if (card?.sourceIdentity?.review?.reviewStatus !== 'reviewed' || !['codex-drafted', 'human-reviewed'].includes(card.sourceIdentity.review.reviewOrigin)) throw new Error(`Card identity inventory is not curated: ${card?.id ?? '(missing)'}`);
+  if (card.identityReviewFresh !== true || card.sourceIdentity.review.reviewFingerprint !== card.identityReviewFingerprint) throw new Error(`Card identity inventory is stale: ${card.id}`);
 };
 const geometryFromCard = (card, futureHero) => {
   const guidance = `${futureHero.prompt ?? futureHero.reason ?? ''} ${card.brief ?? ''}`.toLowerCase();
@@ -115,7 +115,7 @@ const renderVisualPrompt = (payload) => {
     'PLACEMENT', `Composition: ${payload.placement.composition}\nSpacing: ${payload.placement.spacing}\nProtected regions and crop: ${payload.placement.protectedRegions}`, '',
     'OUTPUT CONTRACT', `Build exactly one polished hero and one opening module at ${payload.output.viewport.width}×${payload.output.viewport.height}. Mark them data-inspiration-hero and data-opening-module. Return only permitted local files under ${payload.output.directory}/. Do not create output-contract.json; the coordinator owns validation evidence.`,
     h0Instruction, payload.output.geometry ? `Reserved-slot geometry contract: ${JSON.stringify(payload.output.geometry)}.` : '', `Use neutral placeholder copy within these character envelopes: ${JSON.stringify(payload.copyEnvelopes)}.`,
-    `Exclude these reviewed source identities exactly: ${payload.identityExclusions.exactSignals.join(' | ') || 'none recorded'}. Do not reproduce known source marks or assets.`,
+    `Exclude these curated source identities exactly: ${payload.identityExclusions.exactSignals.join(' | ') || 'none recorded'}. Do not reproduce known source marks or assets.`,
   ].join('\n');
 };
 const constitutionSentences = (profile) => Object.values(profile ?? {}).filter((value) => typeof value === 'string' && value.trim());
@@ -150,7 +150,7 @@ const resolveEvidence = async (catalog, projectRoot, cardId) => {
   assertContainedPath(source, catalog.publicAssetRoot);
   if (!existsSync(source) || !(await stat(source)).isFile()) throw new Error(`Canonical still is missing: ${card.media.detailImage}`);
   const bytes = await readFile(source); const sha256 = hashBytes(bytes);
-  if (!card.sourceIdentity.derived.assetHashes.includes(sha256)) throw new Error(`Canonical still hash is not represented in reviewed identity metadata: ${cardId}`);
+  if (!card.sourceIdentity.derived.assetHashes.includes(sha256)) throw new Error(`Canonical still hash is not represented in curated identity metadata: ${cardId}`);
   const evidenceRoot = resolve(project, '.inspiration', 'evidence'); assertContainedPath(evidenceRoot, project); await mkdir(evidenceRoot, { recursive: true });
   const extension = extname(source).toLowerCase() || '.png'; const destination = resolve(evidenceRoot, `${card.id}-${sha256.slice(0, 16)}${extension}`); assertContainedPath(destination, evidenceRoot);
   if (!existsSync(destination)) await writeFile(destination, bytes);
@@ -164,7 +164,7 @@ const walk = async (root, directory = root, output = []) => {
 };
 const validatePreviewTree = async (outputRoot) => {
   const root = canonicalPath(outputRoot); const entry = resolve(root, 'index.html'); assertContainedPath(entry, root);
-  if (!existsSync(entry) || !(await stat(entry)).isFile()) throw new Error('Isolated output is missing index.html.');
+  if (!existsSync(entry) || !(await stat(entry)).isFile()) throw new Error('Generated output is missing index.html.');
   const files = await walk(root); const allowed = /^(?:index\.html|styles\.css|script\.js|assets\/[A-Za-z0-9._/-]+)$/;
   for (const file of files) {
     if (file.relativePath === 'output-contract.json') throw new Error('Generated output may not supply coordinator-owned output-contract.json.');
@@ -277,7 +277,7 @@ const importPreview = async (temporaryOutputRoot, projectRoot, generationId, gua
   const validated = await validatePreviewTree(temporaryOutputRoot); const intakeMatches = scanExactSignals(validated.combined, guards.leakSignals);
   if (intakeMatches.length) throw new Error(`Preview contains intake leak signal: ${intakeMatches[0].value}`);
   const identityMatches = scanSourceIdentity(validated.combined, guards.sourceIdentity); if (identityMatches.length) throw new Error(`Preview contains source identity signal: ${identityMatches[0].value}`);
-  const assetMatches = await scanKnownAssetHashes(validated.files, guards.sourceIdentity); if (assetMatches.length) throw new Error(`Preview contains a reviewed source asset hash: ${assetMatches[0].path}`);
+  const assetMatches = await scanKnownAssetHashes(validated.files, guards.sourceIdentity); if (assetMatches.length) throw new Error(`Preview contains a curated source asset hash: ${assetMatches[0].path}`);
   const rendered = await validateRenderedH0(temporaryOutputRoot, { expectedH0: guards.expectedH0, expectedGeometry: guards.expectedGeometry, expectedCodeNativeMethod: guards.expectedCodeNativeMethod, viewport: guards.viewport, browserPath: guards.browserPath });
   const contract = { schemaVersion: 2, scope: 'hero-and-opening-module', anchorCardId: guards.anchorCardId, supportingCardIds: [], sourceStillInspected: guards.sourceStillInspected === true, motionMediaUsed: false, heroCount: rendered.observed.heroCount, openingModuleCount: rendered.observed.openingModuleCount, h0Mode: guards.expectedH0, validator: { thresholds: rendered.thresholds, slotMetrics: rendered.slotMetrics, geometry: rendered.geometry, observed: rendered.observed } };
   if (!contract.sourceStillInspected) throw new Error('Coordinator evidence does not prove the selected still was inspected.');

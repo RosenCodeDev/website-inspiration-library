@@ -9,7 +9,7 @@ import { artifactManifest, currentEvaluationInputs, hash, RELEASE_CARD_IDS, RELE
 import { assertNoConstitution, buildLeakSignals, buildSealedPayload, importPreview, renderVisualPrompt, resolveEvidence, scanSourceIdentity, validatePreviewTree } from '../skills/design-taste-injection/scripts/visual-contract.mjs';
 import { materializeOutput, postResponses, runSealedGeneration } from '../skills/design-taste-injection/scripts/isolation-runner.mjs';
 
-const enabled = () => process.env.RUN_PAID_INSPIRATION_EVAL === '1';
+const enabled = () => process.env.RUN_API_INSPIRATION_EVAL === '1';
 const pageOutputSchema = {
   type: 'object', additionalProperties: false, required: ['files', 'contractFingerprint'],
   properties: {
@@ -35,12 +35,13 @@ const responseRequest = (input, schema, name, images = []) => ({
   input: [{ role: 'user', content: [{ type: 'input_text', text: input }, ...images.map((image_url) => ({ type: 'input_image', image_url, detail: 'high' }))] }],
   tools: [], tool_choice: 'none', reasoning: { effort: 'high' }, text: { format: { type: 'json_schema', name, strict: true, schema } },
 });
-const frozenContract = (card) => ({
-  cardId: card.id, typography: card.brief.Typography, palette: card.brief.Palette, spacing: card.brief.Spacing,
-  composition: card.brief.Composition, texture: card.brief.Texture, hierarchy: card.brief.Hierarchy,
+const parseBrief = (brief) => Object.fromEntries(String(brief).split(/\r?\n/).map((line) => { const separator = line.indexOf(':'); return separator > 0 ? [line.slice(0, separator).trim(), line.slice(separator + 1).trim()] : null; }).filter(Boolean));
+const frozenContract = (card) => { const brief = parseBrief(card.brief); return {
+  cardId: card.id, typography: brief.Typography, palette: brief.Palette, spacing: brief.Spacing,
+  composition: brief.Composition, texture: brief.Texture, hierarchy: brief.Hierarchy,
   imageTreatment: card.imageRecipe.kind === 'none' ? card.imageRecipe.reason : card.imageRecipe.prompt,
-  never: card.brief.Avoid,
-});
+  never: brief.Avoid,
+}; };
 const verifyFullPage = async (directory, kind, contractFingerprint, identity) => {
   const tree = await validatePreviewTree(directory); const html = await readFile(resolve(directory, 'index.html'), 'utf8');
   const fingerprintMeta = html.match(/<meta\s+name=["']anchor-contract-fingerprint["']\s+content=["']([a-f0-9]{64})["']\s*\/?\s*>/i)?.[1];
@@ -84,10 +85,10 @@ const evaluatePair = async ({ homepageScreenshot, denseScreenshot, cardId, brief
 };
 
 const runEvaluation = async () => {
-  if (!enabled()) throw new Error('Paid evaluation is disabled. Set RUN_PAID_INSPIRATION_EVAL=1 explicitly.');
+  if (!enabled()) throw new Error('Optional API benchmark is disabled. Set RUN_API_INSPIRATION_EVAL=1 explicitly.');
   if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is required.');
   const current = await currentEvaluationInputs(); const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${current.evaluationFingerprint.slice(0, 12)}`;
-  const artifactRoot = resolve(root, '.inspiration-eval', runId); const temporaryRoot = await mkdtemp(resolve(tmpdir(), 'inspiration-release-eval-'));
+  const artifactRoot = resolve(root, '.inspiration-api-eval', runId); const temporaryRoot = await mkdtemp(resolve(tmpdir(), 'inspiration-api-benchmark-'));
   const projectRoot = resolve(temporaryRoot, 'project'); await mkdir(projectRoot, { recursive: true }); await mkdir(artifactRoot, { recursive: true });
   const returnedModels = []; const evaluatorScores = []; const frozenContractFingerprints = {};
   const leakSignals = buildLeakSignals({ productNames: syntheticBriefs.map((brief) => brief.product), distinctiveClaims: syntheticBriefs.map((brief) => brief.description) });
@@ -99,6 +100,7 @@ const runEvaluation = async () => {
       assertNoConstitution(payload, renderVisualPrompt(payload), current.catalog.categoryProfiles[card.primaryCategory]);
       const h0Output = resolve(temporaryRoot, 'h0-output', cardId); const expectedH0 = payload.output.h0;
       const h0 = await runSealedGeneration(payload, evidence.destination, h0Output, {
+        explicitApiOptIn: true,
         guards: { projectRoot, libraryRoot: root, leakSignals, sourceIdentity: card.sourceIdentity },
         validateAttempt: async (directory) => importPreview(directory, projectRoot, `${cardId}-h0`, { leakSignals, sourceIdentity: card.sourceIdentity, anchorCardId: card.id, expectedH0, expectedGeometry: payload.output.geometry, expectedCodeNativeMethod: payload.futureHero.permittedMethod, sourceStillInspected: true }),
       });
@@ -117,11 +119,11 @@ const runEvaluation = async () => {
     if (returnedModels.some((model) => model !== RELEASE_MODEL)) throw new Error('One or more calls returned a non-release model.');
     const manifest = await artifactManifest(artifactRoot);
     const report = {
-      schemaVersion: 1, createdAt: new Date().toISOString(), evaluationFingerprint: current.evaluationFingerprint,
+      schemaVersion: 2, evaluationMode: 'sealed-api-benchmark', createdAt: new Date().toISOString(), evaluationFingerprint: current.evaluationFingerprint,
       requestedModel: RELEASE_MODEL, returnedModels: [...new Set(returnedModels)], machinePassed: true,
       machineScores: { generatedH0: RELEASE_CARD_IDS.length, integratedPages: RELEASE_CARD_IDS.length * syntheticBriefs.length * 2, contextBriefs: syntheticBriefs.length },
       evaluatorScores, evaluatorSummary: { mean, minimum }, frozenContractFingerprints, artifactManifest: manifest,
-      humanApprovalRequired: true,
+      humanApprovalRequired: false, releaseApprovalEligible: false,
     };
     const reportPath = resolve(artifactRoot, 'report.json'); await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
     return { reportPath, report };

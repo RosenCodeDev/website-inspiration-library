@@ -15,7 +15,7 @@ Write state only through `project-state.mjs apply-event`. Start the loopback wor
 
 ## Preview import
 
-The sealed API response is materialized only in a temporary workspace. The coordinator validates output containment, permitted filenames, local references, intake leaks, exact source identity, renderability, and H0 evidence before atomically importing it to `.inspiration/previews/<generation-id>/`.
+Subscription or explicitly requested sealed-API output is materialized only in a temporary workspace. The coordinator validates output containment, permitted filenames, local references, intake leaks, exact source identity, renderability, and H0 evidence before atomically importing it to `.inspiration/previews/<generation-id>/`.
 
 Every generation must resolve to `../previews/<generation-id>/index.html`. The state event is applied only after that file exists and renders.
 
