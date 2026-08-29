@@ -15,7 +15,7 @@ Explicit invocation: `$design-taste-injection`.
 2. Locate this project-installed skill's `config/library.json`. If absent or invalid, stop and ask the user to run `npm run setup:project -- <website-project-root>` from the Website Inspiration Library, then restart Codex in the website project.
 3. Confirm the current workspace is the target website project, not the library or skill source. Never place website output in a protected location.
 4. Resolve every skill-relative script and reference from the directory containing this `SKILL.md`.
-5. Initialize or resume `.inspiration` with `project-state.mjs init`.
+5. Initialize or resume `.inspiration` with `node <installed-skill-root>/scripts/project-state.mjs init <website-project-root>`. The project root is a positional argument; never use `--project-root`. It must exactly match `config/library.json` so state stays at the installed website-project root.
 6. Persist changes only through `project-state.mjs apply-event`, `reference-selection.mjs propose-and-save`, and `reference-selection.mjs action-and-save`.
 7. Inspect the project and supplied materials for content, structure, and functionality. Do not expose that intake to visual-direction generation.
 

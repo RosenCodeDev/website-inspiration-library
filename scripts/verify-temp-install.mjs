@@ -22,6 +22,14 @@ const verifyTemporaryInstallation = async () => {
       const result = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
       if (result.status !== 0) throw new Error(result.stderr.trim() || `${script} failed`);
     }
+    const stateScript = resolve(project, '.agents', 'skills', 'design-taste-injection', 'scripts', 'project-state.mjs');
+    const initialized = spawnSync(process.execPath, [stateScript, 'init', project], { cwd: project, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+    if (initialized.status !== 0 || !existsSync(resolve(project, '.inspiration', 'state.json'))) throw new Error(initialized.stderr.trim() || 'Installed project state initialization failed.');
+    const malformed = spawnSync(process.execPath, [stateScript, 'init', '--project-root', project], { cwd: project, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+    if (malformed.status === 0 || existsSync(resolve(project, '--project-root'))) throw new Error('Installed initializer accepted --project-root or created a stray folder.');
+    const nestedProject = resolve(project, 'site');
+    const nested = spawnSync(process.execPath, [stateScript, 'init', nestedProject], { cwd: project, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+    if (nested.status === 0 || existsSync(nestedProject)) throw new Error('Installed initializer accepted a folder other than its configured project root.');
     console.log('Temporary project-scoped skill installation is complete and fingerprint-current.');
   } finally {
     await rm(temporaryHome, { recursive: true, force: true });

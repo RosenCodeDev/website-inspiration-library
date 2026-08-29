@@ -6,9 +6,10 @@ import { cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:
 import { basename, dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { discoverBrowser } from './browser-discovery.mjs';
-import { assertContainedPath, canonicalPath } from './path-safety.mjs';
+import { assertContainedPath, assertProjectRootPath, canonicalPath } from './path-safety.mjs';
 
 const H0_THRESHOLDS = Object.freeze({ inset: 4, maxQuantizedColors: 12, maxEdgeDensity: 0.02, maxLuminanceStdDev: 12 });
+const skillRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const hashBytes = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const unique = (values) => [...new Set(values.filter(Boolean))];
 const normalizeText = (value) => String(value ?? '').normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -144,8 +145,7 @@ const resolveEvidence = async (catalog, projectRoot, cardId) => {
   if (!card) throw new Error(`Unknown card: ${cardId}`);
   assertReviewedIdentity(card);
   if (!card.media?.detailImage || card.quality?.width <= 0 || card.quality?.height <= 0) throw new Error(`Card has no usable canonical still: ${cardId}`);
-  const libraryRoot = canonicalPath(catalog.libraryRoot); const project = canonicalPath(projectRoot);
-  if (project === libraryRoot) throw new Error('Evidence cannot be written into the inspiration-library repository.');
+  const project = await assertProjectRootPath(projectRoot, skillRoot, catalog.libraryRoot);
   const source = resolve(catalog.publicAssetRoot, card.media.detailImage.replace(/^[/\\]+/, ''));
   assertContainedPath(source, catalog.publicAssetRoot);
   if (!existsSync(source) || !(await stat(source)).isFile()) throw new Error(`Canonical still is missing: ${card.media.detailImage}`);
@@ -330,7 +330,8 @@ const importPreview = async (temporaryOutputRoot, projectRoot, generationId, gua
   const contract = { schemaVersion: 2, scope: 'hero-and-opening-module', anchorCardId: guards.anchorCardId, supportingCardIds: [], sourceStillInspected: guards.sourceStillInspected === true, motionMediaUsed: false, heroCount: rendered.observed.heroCount, openingModuleCount: rendered.observed.openingModuleCount, h0Mode: guards.expectedH0, validator: { thresholds: rendered.thresholds, slotMetrics: rendered.slotMetrics, geometry: rendered.geometry, observed: rendered.observed } };
   if (!contract.sourceStillInspected) throw new Error('Coordinator evidence does not prove the selected still was inspected.');
   await writeFile(resolve(validated.root, 'output-contract.json'), `${JSON.stringify(contract, null, 2)}\n`, 'utf8');
-  const previewsRoot = resolve(canonicalPath(projectRoot), '.inspiration', 'previews'); const destination = resolve(previewsRoot, generationId); assertContainedPath(destination, previewsRoot);
+  const project = await assertProjectRootPath(projectRoot, skillRoot, process.env.DESIGN_TASTE_LIBRARY_ROOT);
+  const previewsRoot = resolve(project, '.inspiration', 'previews'); const destination = resolve(previewsRoot, generationId); assertContainedPath(destination, previewsRoot);
   if (existsSync(destination)) throw new Error(`Preview destination already exists: ${generationId}`); await mkdir(previewsRoot, { recursive: true });
   const staging = `${destination}.importing-${process.pid}-${Date.now()}`; await cp(temporaryOutputRoot, staging, { recursive: true, force: false, errorOnExist: true });
   try { await rename(staging, destination); } catch (error) { await rm(staging, { recursive: true, force: true }); throw error; }

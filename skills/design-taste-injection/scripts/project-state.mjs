@@ -5,7 +5,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { assertContainedPath, assertIndependentPath, canonicalPath } from './path-safety.mjs';
+import { assertContainedPath, assertProjectRootPath, canonicalPath } from './path-safety.mjs';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
@@ -51,8 +51,7 @@ const libraryRoot = async () => {
   return resolve((await readJson(configPath)).libraryRoot);
 };
 const assertProjectRoot = async (projectRoot) => {
-  const protectedRoots = [skillRoot, await libraryRoot()].filter(Boolean);
-  return assertIndependentPath(projectRoot, protectedRoots);
+  return assertProjectRootPath(projectRoot, skillRoot, await libraryRoot());
 };
 
 const emptyState = (projectRoot) => {
@@ -802,17 +801,26 @@ const saveReferenceSession = async (rawRoot, session) => {
   const state = await loadState(projectRoot, paths);
   await applyEvent(projectRoot, paths, state, { type: 'references.session-saved', payload: session }, { quiet: true });
 };
+const usage = 'Usage: project-state.mjs init|validate|get <project-root> | apply-event|append-generation|append-decision <project-root> <record.json>';
+const parseCliArgs = (args) => {
+  const [command, ...operands] = args;
+  const requiredOperands = ['init', 'validate', 'get'].includes(command) ? 1
+    : ['apply-event', 'append-generation', 'append-decision'].includes(command) ? 2 : null;
+  if (requiredOperands === null) throw new Error(usage);
+  if (typeof operands[0] === 'string' && operands[0].startsWith('-')) throw new Error(`project-root is positional; do not use --project-root. ${usage}`);
+  if (operands.length !== requiredOperands) throw new Error(usage);
+  return { command, rawRoot: operands[0], recordPath: operands[1] };
+};
 const main = async () => {
-  const [command = 'help', rawRoot = process.cwd(), recordPath] = process.argv.slice(2);
+  const { command, rawRoot, recordPath } = parseCliArgs(process.argv.slice(2));
   if (command === 'init') return init(rawRoot);
   if (command === 'validate') return validate(rawRoot);
-  if (command === 'apply-event' && recordPath) return applyFromPath(rawRoot, recordPath);
-  if (command === 'append-generation' && recordPath) return appendCompatibility(rawRoot, recordPath, 'generation');
-  if (command === 'append-decision' && recordPath) return appendCompatibility(rawRoot, recordPath, 'decision');
+  if (command === 'apply-event') return applyFromPath(rawRoot, recordPath);
+  if (command === 'append-generation') return appendCompatibility(rawRoot, recordPath, 'generation');
+  if (command === 'append-decision') return appendCompatibility(rawRoot, recordPath, 'decision');
   if (command === 'get') return console.log(JSON.stringify(await readProjectState(rawRoot), null, 2));
-  console.log('Usage: project-state.mjs init|validate|get <project-root> | apply-event|append-generation|append-decision <project-root> <record.json>');
 };
 const isDirectExecution = () => Boolean(process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)));
 if (isDirectExecution()) main().catch((error) => fail(error.message));
 
-export { applyEvent, assertProjectRoot, atomicWriteJson, emptyState, migrateState, readProjectState, saveReferenceSession, statePaths, validateState };
+export { applyEvent, assertProjectRoot, atomicWriteJson, emptyState, migrateState, parseCliArgs, readProjectState, saveReferenceSession, statePaths, validateState };

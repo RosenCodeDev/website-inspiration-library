@@ -1,4 +1,5 @@
 import { existsSync, realpathSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 
 const isWithin = (candidate, root) => {
@@ -37,4 +38,22 @@ const assertContainedPath = (candidate, root) => {
   return canonicalCandidate;
 };
 
-export { assertContainedPath, assertIndependentPath, canonicalPath, isWithin };
+const assertProjectRootPath = async (candidate, installedSkillRoot, fallbackLibraryRoot = null) => {
+  if (typeof candidate !== 'string' || !candidate.trim()) throw new Error('project folder is required');
+  const skillPath = canonicalPath(installedSkillRoot);
+  const configPath = resolve(skillPath, 'config', 'library.json');
+  if (!existsSync(configPath)) return assertIndependentPath(candidate, [skillPath, fallbackLibraryRoot].filter(Boolean));
+
+  const config = JSON.parse(await readFile(configPath, 'utf8'));
+  if (config.scope !== 'project' || typeof config.projectRoot !== 'string' || !config.projectRoot.trim()
+    || typeof config.libraryRoot !== 'string' || !config.libraryRoot.trim()) {
+    throw new Error(`installed project configuration is invalid: ${configPath}`);
+  }
+  const target = canonicalPath(candidate);
+  const configuredProject = canonicalPath(config.projectRoot);
+  if (target !== configuredProject) throw new Error(`project folder must match configured website project: ${configuredProject}`);
+  if (skillPath === configuredProject || !isWithin(skillPath, configuredProject)) throw new Error(`installed skill is outside its configured website project: ${skillPath}`);
+  return assertIndependentPath(target, [config.libraryRoot]);
+};
+
+export { assertContainedPath, assertIndependentPath, assertProjectRootPath, canonicalPath, isWithin };

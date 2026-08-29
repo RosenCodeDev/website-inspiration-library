@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { discoverBrowser } from './browser-discovery.mjs';
-import { assertContainedPath, assertIndependentPath } from './path-safety.mjs';
+import { assertContainedPath, assertProjectRootPath } from './path-safety.mjs';
 
 const scriptRoot = resolve(import.meta.dirname, '..');
 const configPath = resolve(scriptRoot, 'config', 'library.json');
@@ -37,8 +37,7 @@ const preflight = async (projectArg, cardId, generationId) => {
   if (!projectArg || !cardId || !generationId) throw new Error('Usage: clone-runtime.mjs preflight <project-root> <card-id> <generation-id>');
   if (!safeGenerationId(generationId)) throw new Error('generation-id contains unsupported characters');
   const { config, value } = await catalog();
-  const libraryRoot = resolve(config.libraryRoot);
-  const projectRoot = assertIndependentPath(projectArg, [libraryRoot, scriptRoot]);
+  const projectRoot = await assertProjectRootPath(projectArg, scriptRoot, config.libraryRoot);
   const card = value.cards.find((entry) => entry.id === cardId);
   if (!card) throw new Error(`Unknown reference: ${cardId}`);
   if (card.workflow.cloneMode !== 'verified-clone-remix') throw new Error(`${card.title} is ${card.workflow.cloneMode}, not verified-clone-remix.`);
@@ -129,7 +128,8 @@ const validateManifest = (manifest, generationId) => {
 const verify = async (projectArg, generationId, manifestArg) => {
   if (!projectArg || !generationId || !manifestArg) throw new Error('Usage: clone-runtime.mjs verify <project-root> <generation-id> <manifest.json>');
   if (!safeGenerationId(generationId)) throw new Error('generation-id contains unsupported characters');
-  const projectRoot = resolve(projectArg);
+  const config = await installedConfig();
+  const projectRoot = await assertProjectRootPath(projectArg, scriptRoot, config.libraryRoot);
   const evidenceRoot = resolve(projectRoot, '.inspiration', 'clone', generationId);
   const qaRoot = resolve(evidenceRoot, 'qa');
   const manifestPath = resolve(manifestArg);
@@ -140,7 +140,6 @@ const verify = async (projectArg, generationId, manifestArg) => {
   ]);
   validateManifest(manifest, generationId);
 
-  const config = await installedConfig();
   const requireFromLibrary = createRequire(resolve(config.libraryRoot, 'package.json'));
   const pixelmatchPath = requireFromLibrary.resolve('pixelmatch');
   const pixelmatch = (await import(pathToFileURL(pixelmatchPath).href)).default;
