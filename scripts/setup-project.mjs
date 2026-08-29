@@ -15,6 +15,9 @@ const positional = () => process.argv.slice(2).filter((value, index, values) => 
 const valueAfter = (flag) => { const index = process.argv.indexOf(flag); return index >= 0 ? process.argv[index + 1] : null; };
 const hasFlag = (flag) => process.argv.includes(flag);
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
+const npxInvocation = (args, platform = process.platform, commandProcessor = process.env.ComSpec) => platform === 'win32'
+  ? { executable: commandProcessor ?? 'cmd.exe', args: ['/d', '/s', '/c', 'npx.cmd', ...args] }
+  : { executable: 'npx', args };
 const findPersonalSkill = (name) => [
   resolve(homedir(), '.agents', 'skills', name),
   resolve(process.env.CODEX_HOME ?? resolve(homedir(), '.codex'), 'skills', name),
@@ -42,9 +45,9 @@ const installImpeccableInto = async (stagingSkills, options = {}) => {
   const scratch = resolve(tmpdir(), `design-taste-impeccable-${process.pid}-${Date.now()}`);
   await mkdir(scratch, { recursive: true });
   try {
-    const executable = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-    const result = spawnSync(executable, ['--yes', 'impeccable', 'install', '--providers=codex', '--scope=project'], { cwd: scratch, encoding: 'utf8', timeout: 180_000 });
-    if (result.status !== 0) throw new Error(result.stderr.trim() || 'Impeccable project installation failed.');
+    const invocation = npxInvocation(['--yes', 'impeccable', 'install', '--providers=codex', '--scope=project']);
+    const result = spawnSync(invocation.executable, invocation.args, { cwd: scratch, encoding: 'utf8', timeout: 180_000 });
+    if (result.status !== 0) throw new Error(result.stderr?.trim() || result.error?.message || result.stdout?.trim() || 'Impeccable project installation failed.');
     const generated = resolve(scratch, '.agents', 'skills', 'impeccable');
     if (!existsSync(resolve(generated, 'SKILL.md'))) throw new Error('Impeccable installer did not create a project skill.');
     await cp(generated, destination, { recursive: true, force: false, errorOnExist: true });
@@ -140,4 +143,4 @@ const main = async () => {
 const isDirect = Boolean(process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)));
 if (isDirect) main().catch((error) => { console.error(`Project setup failed: ${error.message}`); process.exitCode = 1; });
 
-export { assertTarget, replaceMany, setupProject, validateCatalog };
+export { assertTarget, npxInvocation, replaceMany, setupProject, validateCatalog };

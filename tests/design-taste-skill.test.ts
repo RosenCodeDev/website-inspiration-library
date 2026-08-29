@@ -500,7 +500,12 @@ describe('inspiration-controlled design workflow', () => {
     const stage = resolve(scratch, 'rollback-staging');
     mkdirSync(dest, { recursive: true }); mkdirSync(stage, { recursive: true });
     writeFileSync(resolve(dest, 'identity.txt'), 'old'); writeFileSync(resolve(stage, 'identity.txt'), 'new');
-    const { replaceMany } = await import(`${pathToFileURL(setup).href}?rollback=${Date.now()}`);
+    const { npxInvocation, replaceMany } = await import(`${pathToFileURL(setup).href}?rollback=${Date.now()}`);
+    expect(npxInvocation(['--version'], 'win32', 'C:\\Windows\\System32\\cmd.exe')).toEqual({
+      executable: 'C:\\Windows\\System32\\cmd.exe',
+      args: ['/d', '/s', '/c', 'npx.cmd', '--version'],
+    });
+    expect(npxInvocation(['--version'], 'linux')).toEqual({ executable: 'npx', args: ['--version'] });
     await expect(replaceMany([{ destination: dest, staging: stage }], { afterInstall: () => { throw new Error('interrupted'); } })).rejects.toThrow('interrupted');
     expect(readFileSync(resolve(dest, 'identity.txt'), 'utf8')).toBe('old');
   }, 40_000);

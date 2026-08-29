@@ -2,6 +2,31 @@
 
 The Website Inspiration Library is a browse-only catalog plus the source of the Design Taste Injection workflow. Website output belongs in a separate website repository.
 
+## TL;DR: first-time setup
+
+From PowerShell, replace the two placeholder paths with the library repository and independent website project paths. Keep the quotation marks so paths containing spaces work correctly.
+
+```powershell
+cd "C:\path\to\website-inspiration-library"
+
+npm install
+npm test
+npm run build
+
+npm run setup:project -- "C:\path\to\website-project"
+npm run check:project -- "C:\path\to\website-project"
+npm run doctor:project -- "C:\path\to\website-project"
+```
+
+If the doctor reports missing Codex subscription authentication, complete the browser sign-in and rerun the doctor:
+
+```powershell
+codex login
+npm run doctor:project -- "C:\path\to\website-project"
+```
+
+When the doctor reports `READY`, restart Codex in the website project and invoke `$design-taste-injection` together with the initial website brief.
+
 ## 1. Prepare the library
 
 From this repository:
