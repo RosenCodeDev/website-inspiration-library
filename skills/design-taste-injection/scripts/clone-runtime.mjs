@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { discoverBrowser } from './browser-discovery.mjs';
-import { assertContainedPath, assertProjectRootPath } from './path-safety.mjs';
+import { assertContainedPath, assertProjectRootPath, canonicalPath } from './path-safety.mjs';
 
 const scriptRoot = resolve(import.meta.dirname, '..');
 const configPath = resolve(scriptRoot, 'config', 'library.json');
@@ -73,7 +73,8 @@ const validatePreflight = async (preflightPath, projectRoot, evidenceRoot, gener
   if (!existsSync(preflightPath)) throw new Error('Matching clone preflight record is required before QA.');
   const record = await readJson(preflightPath);
   if (record.schemaVersion !== 2 || record.generationId !== generationId
-    || resolve(record.projectRoot ?? '') !== projectRoot || resolve(record.evidenceRoot ?? '') !== evidenceRoot
+    || typeof record.projectRoot !== 'string' || canonicalPath(record.projectRoot) !== canonicalPath(projectRoot)
+    || typeof record.evidenceRoot !== 'string' || canonicalPath(record.evidenceRoot) !== canonicalPath(evidenceRoot)
     || JSON.stringify(record.requiredWidths) !== JSON.stringify(requiredWidths)) {
     throw new Error('Clone preflight record does not match this project and generation.');
   }

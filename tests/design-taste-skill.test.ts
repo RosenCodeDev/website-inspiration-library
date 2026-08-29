@@ -544,6 +544,8 @@ describe('inspiration-controlled design workflow', () => {
     mkdirSync(project, { recursive: true });
     makeImpeccableFixture(impeccable);
     expect(runNode(resolve(root, 'scripts', 'setup-project.mjs'), [project, '--impeccable-source', impeccable]).status).toBe(0);
+    const projectAlias = resolve(scratch, 'clone-qa-project-alias');
+    symlinkSync(project, projectAlias, process.platform === 'win32' ? 'junction' : 'dir');
     const runtime = resolve(project, '.agents', 'skills', 'design-taste-injection', 'scripts', 'clone-runtime.mjs');
     const wrongRoot = resolve(project, 'site');
     const wrongPreflight = runNode(runtime, ['preflight', wrongRoot, 'site-spade', 'QA-WRONG']);
@@ -551,8 +553,9 @@ describe('inspiration-controlled design workflow', () => {
     expect(wrongPreflight.stderr).toContain('must match configured website project');
     expect(existsSync(wrongRoot)).toBe(false);
     const evidence = resolve(project, '.inspiration', 'clone', 'QA1');
+    const evidenceAlias = resolve(projectAlias, '.inspiration', 'clone', 'QA1');
     mkdirSync(evidence, { recursive: true });
-    writeFileSync(resolve(evidence, 'preflight.json'), JSON.stringify({ schemaVersion: 2, generationId: 'QA1', cardId: 'site-spade', projectRoot: project, evidenceRoot: evidence, requiredWidths: [1440, 768, 390] }));
+    writeFileSync(resolve(evidence, 'preflight.json'), JSON.stringify({ schemaVersion: 2, generationId: 'QA1', cardId: 'site-spade', projectRoot: projectAlias, evidenceRoot: evidenceAlias, requiredWidths: [1440, 768, 390] }));
     const pairs = [1440, 768, 390].map((width) => {
       const original = resolve(evidence, `original-${width}.png`); const clone = resolve(evidence, `clone-${width}.png`);
       const png = new PNG({ width, height: 2 }); png.data.fill(255); const bytes = PNG.sync.write(png);
@@ -560,7 +563,7 @@ describe('inspiration-controlled design workflow', () => {
     });
     const manifest = resolve(evidence, 'qa-manifest.json');
     writeFileSync(manifest, JSON.stringify({ schemaVersion: 2, generationId: 'QA1', pairs }));
-    const verified = runNode(runtime, ['verify', project, 'QA1', manifest]);
+    const verified = runNode(runtime, ['verify', projectAlias, 'QA1', manifest]);
     expect(verified.status, verified.stderr).toBe(0);
     const report = JSON.parse(readFileSync(resolve(evidence, 'qa', 'report.json'), 'utf8'));
     expect(report.results.map((item: any) => item.width)).toEqual([1440, 768, 390]);
