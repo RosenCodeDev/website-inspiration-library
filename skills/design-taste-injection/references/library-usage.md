@@ -24,7 +24,7 @@ Score only anchor strength, source/still quality, and page-role reproducibility.
 
 Pins and exclusions are explicit user controls. Directions contain one anchor and no supports.
 
-`USE CUSTOM CARDS` is an explicit selection route, not an automatic recommendation. Resolve each supplied item by stable ID, exact title, or canonical URL, preserve supplied order, deduplicate exact repeats, and do not cap the number of cards or require category diversity. A custom card may bypass automatic category, page-role, score-band, and limited-quality gates. It must still have readable still evidence and an executable image recipe or reviewed method. Available identity exclusions stay in the one-card payload; stale identity metadata adds a prominent warning and blocks advancement until identity QA passes.
+`displayName` is the canonical user-facing card name. `title` remains descriptive internal metadata and a compatibility alias. `USE CUSTOM CARDS` is an explicit selection route, not an automatic recommendation. Resolve each supplied item by stable ID, exact display name, legacy exact title, source name, or canonical URL, preserve supplied order, deduplicate exact repeats, and do not cap the number of cards or require category diversity. A custom card may bypass automatic category, page-role, score-band, and limited-quality gates. It must still have readable still evidence and an executable image recipe or reviewed method. Available identity exclusions stay in the one-card payload; stale identity metadata adds a prominent warning and blocks advancement until identity QA passes.
 
 ## Still resolver
 

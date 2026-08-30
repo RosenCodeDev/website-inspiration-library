@@ -2,10 +2,14 @@ import { ReferenceManifestSchema, type Category, type ReferenceEntry, } from './
 import { referenceContent } from './reference-content';
 import { getReferenceWorkflow } from './workflow-intelligence';
 import { sourceIdentityReviews } from './source-identity-reviews';
-type Seed = Omit<ReferenceEntry, 'brief' | 'imageRecipe' | 'filters' | 'cardDescriptor' | 'styleDescriptor' | 'description' | 'scope' | 'interfaceInventory' | 'designSystem' | 'tags' | 'media' | 'workflow' | 'sourceIdentity'> & {
+type Seed = Omit<ReferenceEntry, 'displayName' | 'brief' | 'imageRecipe' | 'filters' | 'cardDescriptor' | 'styleDescriptor' | 'description' | 'scope' | 'interfaceInventory' | 'designSystem' | 'tags' | 'media' | 'workflow' | 'sourceIdentity'> & {
     extraFilters?: Category[];
     media: Omit<ReferenceEntry['media'], 'motionNotes'> & { motionNotes?: string };
 };
+const displayNameFor = (seed: Pick<Seed, 'title' | 'source'>) => (
+    seed.source.siteName?.trim()
+    || seed.title.split(' — ')[0].replace(/ Portal$/, '').trim()
+);
 const uniqueText = (values: Array<string | undefined>) => Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
 const authorizedMediaNoneIds = new Set(['site-sstr', 'site-watch', 'site-system-patch', 'site-oqoqo', 'site-human-made', 'site-jitter']);
 const codeNativeMethods: Record<string, string> = {
@@ -54,6 +58,7 @@ const buildEntry = (seed: Seed): ReferenceEntry => {
     const { extraFilters: _extraFilters, ...entry } = seed;
     return {
         ...entry,
+        displayName: displayNameFor(seed),
         cardDescriptor: content.cardDescriptor,
         styleDescriptor: content.styleDescriptor,
         description: content.description,
@@ -578,6 +583,9 @@ export const references = ReferenceManifestSchema.parse(orderedIds.map((id, inde
         throw new Error(`Missing reference seed: ${id}`);
     return buildEntry({ ...seed, order: index + 1 });
 }));
+const normalizedDisplayNames = references.map((reference) => reference.displayName.toLocaleLowerCase());
+if (new Set(normalizedDisplayNames).size !== normalizedDisplayNames.length)
+    throw new Error('Reference display names must be case-insensitively unique.');
 export const categories: Array<'All' | Category> = [
     'All',
     'Print-Tech Paper',

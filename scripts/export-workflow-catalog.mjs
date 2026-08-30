@@ -43,6 +43,7 @@ const loadCatalog = async () => {
         id: reference.id,
         order: reference.order,
         title: reference.title,
+        displayName: reference.displayName,
         cardDescriptor: reference.cardDescriptor,
         styleDescriptor: reference.styleDescriptor,
         description: reference.description,
@@ -67,7 +68,7 @@ const loadCatalog = async () => {
       return { ...card, fingerprint: fingerprint(card) };
     }));
     const core = {
-      schemaVersion: 4,
+      schemaVersion: 5,
       libraryRoot: root,
       publicAssetRoot: resolve(root, 'public'),
       categories: categories.filter((category) => category !== 'All'),

@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { discoverBrowser } from './browser-discovery.mjs';
+import { cardDisplayName } from './card-names.mjs';
 import { assertContainedPath, assertProjectRootPath, canonicalPath } from './path-safety.mjs';
 
 const scriptRoot = resolve(import.meta.dirname, '..');
@@ -40,7 +41,7 @@ const preflight = async (projectArg, cardId, generationId) => {
   const projectRoot = await assertProjectRootPath(projectArg, scriptRoot, config.libraryRoot);
   const card = value.cards.find((entry) => entry.id === cardId);
   if (!card) throw new Error(`Unknown reference: ${cardId}`);
-  if (card.workflow.cloneMode !== 'verified-clone-remix') throw new Error(`${card.title} is ${card.workflow.cloneMode}, not verified-clone-remix.`);
+  if (card.workflow.cloneMode !== 'verified-clone-remix') throw new Error(`${cardDisplayName(card)} is ${card.workflow.cloneMode}, not verified-clone-remix.`);
   if (!card.source.url) throw new Error('Verified clone reference has no source URL.');
   const browser = discoverBrowser();
   if (!browser) throw new Error('No supported Chrome, Edge, or Chromium browser was found. Set DESIGN_TASTE_BROWSER_PATH if it is installed in a nonstandard location.');
@@ -54,6 +55,7 @@ const preflight = async (projectArg, cardId, generationId) => {
     generationId,
     cardId,
     title: card.title,
+    displayName: cardDisplayName(card),
     url: card.source.url,
     cloneMode: card.workflow.cloneMode,
     cloneReason: card.workflow.cloneReason,

@@ -3,6 +3,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cardDisplayName } from './card-names.mjs';
 import { readProjectState } from './project-state.mjs';
 import { resolveEvidence } from './visual-contract.mjs';
 
@@ -17,26 +18,27 @@ const markdownPath = (path) => path.replaceAll('\\', '/');
 const markdownAlt = (value) => String(value).replaceAll('\\', '\\\\').replaceAll('[', '\\[').replaceAll(']', '\\]');
 const renderReviewMarkdown = (catalog, batch, evidenceBySlot) => {
   if (!batch?.items?.length) throw new Error('An active reference batch is required.');
-  const lines = [`# Anchor review — ${batch.items.length} direction${batch.items.length === 1 ? '' : 's'}`, '', 'Reply once with `ACCEPT ALL`, or list one or more per-slot actions such as `R01 ACCEPT`, `R02 SHOW ANOTHER CARD`, `R03 SWAP`, `R04 PIN THIS CARD`, `R05 DO NOT USE THIS CARD`, or `USE CUSTOM CARDS: <IDs, exact titles, or canonical URLs>`.', ''];
+  const lines = [`# Anchor review — ${batch.items.length} direction${batch.items.length === 1 ? '' : 's'}`, '', 'Reply once with `ACCEPT ALL`, or list one or more per-slot actions such as `R01 ACCEPT`, `R02 SHOW ANOTHER CARD`, `R03 SWAP`, `R04 PIN THIS CARD`, `R05 DO NOT USE THIS CARD`, or `USE CUSTOM CARDS: <IDs, exact display names, legacy exact titles, source names, or canonical URLs>`.', ''];
   for (const item of batch.items) {
     const card = catalog.cards.find((candidate) => candidate.id === item.session?.currentSet?.anchor?.id);
     const evidence = evidenceBySlot[item.slotId];
     if (!card) throw new Error(`Review slot ${item.slotId} references an unknown card.`);
     if (!evidence || !isAbsolute(evidence.destination) || !existsSync(evidence.destination)) throw new Error(`Review slot ${item.slotId} is missing a staged absolute image.`);
     const qualityScore = Math.round(Number(card.quality?.confidence ?? 0) * 100);
+    const displayName = cardDisplayName(card);
     const summary = briefValue(card.brief, 'Preserve') || card.styleDescriptor || card.cardDescriptor;
     const tradeoff = briefValue(card.brief, 'Avoid') || card.quality?.note || 'Review fit against the project requirements before acceptance.';
     const warnings = [...new Set([...(item.warnings ?? []), ...(evidence.warnings ?? [])])];
     lines.push(
       `## ${item.slotId} — ${item.category}`,
       '',
-      `- **Card:** ${card.title} (${card.id})`,
+      `- **Card:** ${displayName} (${card.id})`,
       `- **Quality:** ${qualityScore}/100 · ${card.quality.tier}`,
       `- **Status:** ${item.reviewStatus}`,
       `- **Direction:** ${summary}`,
       `- **Tradeoff:** ${tradeoff}`,
       '',
-      `![${markdownAlt(`${item.slotId} — ${card.title}`)}](<${markdownPath(evidence.destination)}>)`,
+      `![${markdownAlt(`${item.slotId} — ${displayName}`)}](<${markdownPath(evidence.destination)}>)`,
       '',
     );
     if (warnings.length) lines.push(`> **Identity warning:** ${warnings.join(' ')}`, '', '> This direction cannot advance until the required identity-QA checkpoint passes.', '');

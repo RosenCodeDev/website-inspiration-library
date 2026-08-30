@@ -39,6 +39,7 @@ describe('inspiration-controlled design workflow', () => {
       'scripts/skill-integrity.mjs', 'scripts/export-workflow-catalog.mjs', 'scripts/validate-skill.mjs',
       'scripts/verify-temp-install.mjs', 'scripts/controlled-clone-fixture.mjs', 'scripts/clone-plumbing-smoke.mjs',
       'skills/design-taste-injection/scripts/library.mjs', 'skills/design-taste-injection/scripts/project-state.mjs',
+      'skills/design-taste-injection/scripts/card-names.mjs',
       'skills/design-taste-injection/scripts/design-review.mjs',
       'skills/design-taste-injection/scripts/reference-selection.mjs', 'skills/design-taste-injection/scripts/reference-review.mjs', 'skills/design-taste-injection/scripts/rotation-ledger.mjs',
       'skills/design-taste-injection/scripts/visual-contract.mjs', 'skills/design-taste-injection/scripts/isolation-runner.mjs',
@@ -51,10 +52,11 @@ describe('inspiration-controlled design workflow', () => {
 
   it('exports the validated live catalog with explicit identity provenance', () => {
     const catalog = loadCatalog();
-    expect(catalog.schemaVersion).toBe(4);
+    expect(catalog.schemaVersion).toBe(5);
     expect(catalog.cards).toHaveLength(63);
     expect(catalog.categories).toHaveLength(7);
     for (const card of catalog.cards) {
+      expect(card.displayName).toEqual(expect.any(String));
       expect(card.fingerprint).toMatch(/^[a-f0-9]{16}$/);
       expect(card.sourceIdentity.derived).toEqual(expect.objectContaining({ sourceNames: expect.any(Array), aliases: expect.any(Array), domains: expect.any(Array), assetHashes: expect.any(Array) }));
       expect(card.sourceIdentity.reviewed).toEqual(expect.objectContaining({ exactCopy: expect.any(Array), distinctiveClaims: expect.any(Array), knownMarkAssetIds: expect.any(Array), knownMarkAssetHashes: expect.any(Array), sourceSpecificExclusions: expect.any(Array) }));
@@ -155,6 +157,15 @@ describe('inspiration-controlled design workflow', () => {
     expect(large.items.map((item: any) => item.session.currentSet.anchor.id)).toEqual(overTwenty.map((card: any) => card.id));
     const one = selection.createCustomBatch(catalog, { pageUse: 'marketing', identifiers: [eligible[0].title] });
     expect(one.items).toHaveLength(1);
+    const expectedNames = {
+      'X Business': 'site-x-advertising', Paper: 'site-paper', Cursor: 'site-cursor', Oqoqo: 'site-oqoqo', Stillness: 'image-stillness',
+    };
+    for (const [name, id] of Object.entries(expectedNames)) expect(selection.resolveCardIdentifier(catalog, name).id).toBe(id);
+    expect(selection.resolveCardIdentifier(catalog, 'X Advertising').id).toBe('site-x-advertising');
+    for (const card of catalog.cards) {
+      expect(selection.resolveCardIdentifier(catalog, card.displayName).id).toBe(card.id);
+      expect(selection.resolveCardIdentifier(catalog, card.title).id).toBe(card.id);
+    }
     const urlEligible = eligible.filter((card: any) => typeof card.source?.url === 'string');
     const urlCategory = urlEligible.find((card: any) => urlEligible.filter((candidate: any) => candidate.primaryCategory === card.primaryCategory).length >= 3).primaryCategory;
     const sameCategory = urlEligible.filter((card: any) => card.primaryCategory === urlCategory).slice(0, 3);
@@ -171,7 +182,11 @@ describe('inspiration-controlled design workflow', () => {
     expect(() => visual.buildSealedPayload(staleLimited, { allowIdentityWarning: true })).not.toThrow();
     const noRecipe = { ...source, id: 'custom-no-recipe', imageRecipe: null };
     expect(() => selection.createCustomBatch({ ...catalog, cards: [...catalog.cards, noRecipe] }, { pageUse: 'marketing', identifiers: [noRecipe.id] })).toThrow(/recipe|method/i);
-    expect(() => selection.resolveCardIdentifier(catalog, `${eligible[0].title.slice(0, 5)}`)).toThrow(/resolve exactly/i);
+    const legacy = { ...source, id: 'legacy-name', title: 'Legacy — Detail', displayName: undefined, source: { ...source.source, siteName: undefined } };
+    expect(selection.resolveCardIdentifier({ ...catalog, cards: [...catalog.cards, legacy] }, 'Legacy').id).toBe(legacy.id);
+    const ambiguous = { ...source, id: 'duplicate-paper-name', title: 'Another Internal Title', displayName: 'Paper', source: { ...source.source, siteName: 'Another Source' } };
+    expect(() => selection.resolveCardIdentifier({ ...catalog, cards: [...catalog.cards, ambiguous] }, 'Paper')).toThrow(/ambiguous/i);
+    expect(() => selection.resolveCardIdentifier(catalog, 'Pap')).toThrow(/resolve exactly/i);
   });
 
   it('renders every batch slot as deterministic inline image Markdown', async () => {
@@ -188,6 +203,12 @@ describe('inspiration-controlled design workflow', () => {
     expect(markdown).not.toContain('```');
     expect(() => review.assertReviewMarkdown(markdown, batch, evidence)).not.toThrow();
     expect(() => review.assertReviewMarkdown(markdown.replace(/!\[(?:\\.|[^\]])*\]\(<[^>]+>\)/, 'C:/plain/path.png'), batch, evidence)).toThrow(/exactly 7 inline images/i);
+    const customBatch = selection.createCustomBatch(catalog, { pageUse: 'marketing', identifiers: ['X Business'] });
+    const xCard = catalog.cards.find((card: any) => card.id === 'site-x-advertising');
+    const customEvidence = { R01: { destination: resolve(catalog.publicAssetRoot, xCard.media.detailImage.replace(/^[/\\]+/, '')), warnings: [] } };
+    const customMarkdown = review.renderReviewMarkdown(catalog, customBatch, customEvidence);
+    expect(customMarkdown).toContain('**Card:** X Business (site-x-advertising)');
+    expect(customMarkdown).not.toContain('**Card:** X Advertising');
   });
 
   it('uses a seeded exhaustion-before-repeat shuffle with refresh, pins, and exclusions', async () => {
@@ -246,6 +267,7 @@ describe('inspiration-controlled design workflow', () => {
     const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?payload=${Date.now()}`);
     const payload = visual.buildSealedPayload(card, { directionId: 'D01', generationId: 'D01-H0', stillPath: 'input/reference.png', sha256: 'a'.repeat(64) });
     const prompt = visual.renderVisualPrompt(payload);
+    expect(payload.card.name).toBe(card.displayName);
     expect(payload.futureHero.prompt).toBe(card.imageRecipe.prompt);
     expect(payload.card.observedBrief.Composition).toBeTruthy();
     expect(payload.card.observedBrief.Avoid).toBeTruthy();
@@ -287,6 +309,7 @@ describe('inspiration-controlled design workflow', () => {
     const project = resolve(scratch, 'evidence-project');
     const evidence = await visual.resolveEvidence(catalog, project, card.id);
     expect(evidence.record.cardId).toBe(card.id);
+    expect(evidence.record.cardName).toBe(card.displayName);
     expect(evidence.record.sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(existsSync(evidence.destination)).toBe(true);
     expect(evidence.record.inspected).toBe(false);

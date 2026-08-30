@@ -77,6 +77,26 @@ describe('reference manifest', () => {
     expect(new Set(references.map((entry) => entry.id)).size).toBe(63);
   });
 
+  it('publishes unique canonical display names matching the frontend labels', () => {
+    const normalized = references.map((entry) => entry.displayName.toLocaleLowerCase());
+    expect(new Set(normalized).size).toBe(references.length);
+    for (const entry of references) {
+      const expected = entry.source.siteName?.trim() || entry.title.split(' — ')[0].replace(/ Portal$/, '').trim();
+      expect(entry.displayName, entry.id).toBe(expected);
+    }
+    expect(Object.fromEntries(['site-x-advertising', 'site-paper', 'site-cursor', 'site-oqoqo', 'image-stillness']
+      .map((id) => {
+        const entry = references.find((reference) => reference.id === id)!;
+        return [id, entry.displayName];
+      }))).toEqual({
+      'site-x-advertising': 'X Business',
+      'site-paper': 'Paper',
+      'site-cursor': 'Cursor',
+      'site-oqoqo': 'Oqoqo',
+      'image-stillness': 'Stillness',
+    });
+  });
+
   it('has one canonical authored-content record for every reference', () => {
     expect(Object.keys(referenceContent)).toHaveLength(63);
     expect(new Set(Object.keys(referenceContent))).toEqual(new Set(references.map((entry) => entry.id)));
@@ -375,7 +395,7 @@ describe('reference manifest', () => {
   it('builds complete concise copy outputs for agents', () => {
     for (const entry of references) {
       const packet = buildAgentPacket(entry);
-      expect(packet).toContain(`Reference: ${entry.title}`);
+      expect(packet).toContain(`Reference: ${entry.displayName}`);
       expect(packet).toContain(`Scope: ${entry.scope}`);
       expect(packet).toContain(`Interface inventory: ${entry.interfaceInventory}`);
       expect(packet).toContain('STRUCTURED DESIGN BRIEF');
@@ -389,6 +409,8 @@ describe('reference manifest', () => {
         expect(prompt).toContain('Higgsfield or another capable image model is optional');
       }
     }
+    const paper = references.find((entry) => entry.id === 'site-paper')!;
+    expect(buildAgentPacket(paper)).not.toContain(`Reference: ${paper.title}`);
   });
 
   it('does not claim fine-detail reliability for limited YouTube frames', () => {

@@ -128,6 +128,7 @@ export const ReferenceEntrySchema = z.object({
   id: z.string().min(1),
   order: z.number().int().positive(),
   title: z.string().min(1),
+  displayName: z.string().min(1),
   cardDescriptor: z.string().min(1),
   styleDescriptor: z.string().min(1),
   description: z.string().min(1),

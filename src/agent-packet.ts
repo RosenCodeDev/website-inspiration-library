@@ -30,7 +30,7 @@ export const buildAgentPacket = (reference: ReferenceEntry) => {
     'AGENT PACKET',
     'Use this evidence to design a responsive, accessible interface. Preserve the defining relationships; adapt copy and implementation details to the new product.',
     '',
-    `Reference: ${reference.title}`,
+    `Reference: ${reference.displayName}`,
     `Style: ${reference.styleDescriptor}`,
     `Description: ${reference.description}`,
     `Scope: ${reference.scope}`,

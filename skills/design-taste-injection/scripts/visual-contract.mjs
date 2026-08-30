@@ -6,6 +6,7 @@ import { cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:
 import { basename, dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { discoverBrowser } from './browser-discovery.mjs';
+import { cardDisplayName } from './card-names.mjs';
 import { assertContainedPath, assertProjectRootPath, canonicalPath } from './path-safety.mjs';
 
 const H0_THRESHOLDS = Object.freeze({ inset: 4, maxQuantizedColors: 12, maxEdgeDensity: 0.02, maxLuminanceStdDev: 12 });
@@ -109,7 +110,7 @@ const buildSealedPayload = (card, options = {}) => {
   const h0 = futureHero.kind === 'none' && futureHero.noneMode === 'code-native' ? 'code-native' : 'reserved-image-hole-with-flat-stand-in';
   const payload = {
     schemaVersion: 2, directionId, generationId,
-    card: { id: card.id, name: card.title, category: card.primaryCategory, descriptor: card.cardDescriptor, styleDescriptor: card.styleDescriptor, tags: [...card.tags], observedBrief },
+    card: { id: card.id, name: cardDisplayName(card), category: card.primaryCategory, descriptor: card.cardDescriptor, styleDescriptor: card.styleDescriptor, tags: [...card.tags], observedBrief },
     reference: { stillPath: options.stillPath ?? `reference${extname(card.media.detailImage) || '.png'}`, sha256: options.sha256 ?? null, width: card.quality.width, height: card.quality.height, qualityTier: card.quality.tier, reliableFor: [...card.quality.reliableFor] },
     futureHero,
     placement: { composition: observedBrief.Composition ?? '', spacing: observedBrief.Spacing ?? '', protectedRegions: futureHero.kind === 'none' ? futureHero.reason : futureHero.prompt },
@@ -182,7 +183,7 @@ const resolveEvidence = async (catalog, projectRoot, cardId, options = {}) => {
   const evidenceRoot = resolve(project, '.inspiration', 'evidence'); assertContainedPath(evidenceRoot, project); await mkdir(evidenceRoot, { recursive: true });
   const extension = extname(source).toLowerCase() || '.png'; const destination = resolve(evidenceRoot, `${card.id}-${sha256.slice(0, 16)}${extension}`); assertContainedPath(destination, evidenceRoot);
   if (!existsSync(destination)) await writeFile(destination, bytes);
-  const record = { schemaVersion: 2, cardId: card.id, cardName: card.title, file: basename(destination), sha256, width: card.quality.width, height: card.quality.height, qualityTier: card.quality.tier, identityReviewFingerprint: card.identityReviewFingerprint, inspected: false, resolvedAt: new Date().toISOString() };
+  const record = { schemaVersion: 2, cardId: card.id, cardName: cardDisplayName(card), file: basename(destination), sha256, width: card.quality.width, height: card.quality.height, qualityTier: card.quality.tier, identityReviewFingerprint: card.identityReviewFingerprint, inspected: false, resolvedAt: new Date().toISOString() };
   await writeFile(resolve(evidenceRoot, `${card.id}-${sha256.slice(0, 16)}.json`), `${JSON.stringify(record, null, 2)}\n`, 'utf8');
   return { card, source, destination, record, warnings, requiresIdentityQa: warnings.length > 0 };
 };

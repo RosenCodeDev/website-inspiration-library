@@ -31,11 +31,6 @@ const formatDescriptor = (descriptor: string) => descriptor.replace(/\s*\/\s*/g,
 
 const formatSummary = (reference: ReferenceEntry) => reference.description;
 
-const displayTitle = (reference: ReferenceEntry) => (
-  reference.source.siteName
-  ?? reference.title.split(' — ')[0].replace(/ Portal$/, '')
-);
-
 const qualityDefinitions = {
   canonical: 'Verified original, live capture, or high-resolution unaltered supplied source. Reliable for detailed design analysis.',
   usable: 'Reliable for composition, palette, imagery, and broad hierarchy, but not fine typography or texture.',
@@ -188,7 +183,7 @@ function HoverMotionPreview({
           loop
           playsInline
           preload="auto"
-          aria-label={`${reference.title} motion preview`}
+          aria-label={`${reference.displayName} motion preview`}
           onPlaying={() => setFrameReady(true)}
           onError={() => {
             setVideoFailed(true);
@@ -218,7 +213,7 @@ function CardPreview({
     <HoverMotionPreview
       reference={reference}
       imageSrc={reference.media.poster}
-      imageAlt={`${reference.title} website reference`}
+      imageAlt={`${reference.displayName} website reference`}
       className="card-media"
       active={active}
       reducedMotion={reducedMotion}
@@ -376,8 +371,8 @@ function ReferenceCard({
         aria-haspopup={manualPromptsVisible ? undefined : 'dialog'}
         aria-pressed={manualPromptsVisible ? manualSelected : undefined}
         aria-label={manualPromptsVisible
-          ? `${manualSelected ? 'Remove' : 'Add'} ${reference.title} ${manualSelected ? 'from' : 'to'} manual prompts`
-          : `Open ${reference.title} reference details`}
+          ? `${manualSelected ? 'Remove' : 'Add'} ${reference.displayName} ${manualSelected ? 'from' : 'to'} manual prompts`
+          : `Open ${reference.displayName} reference details`}
         onClick={(event) => {
           if (manualPromptsVisible) onManualSelect(reference);
           else onOpen(reference, event.currentTarget);
@@ -392,7 +387,7 @@ function ReferenceCard({
         />
         <div className="card-copy">
           <div className="card-heading">
-            <h2>{displayTitle(reference)}</h2>
+            <h2>{reference.displayName}</h2>
             <p className="descriptor" title={formatDescriptor(reference.styleDescriptor)}>{reference.cardDescriptor}</p>
           </div>
           <OptimizedCardTags tags={reference.tags} />
@@ -470,7 +465,7 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
         <HoverMotionPreview
           reference={reference}
           imageSrc={reference.media.detailImage}
-          imageAlt={`${reference.title} full reference`}
+          imageAlt={`${reference.displayName} full reference`}
           className="detail-visual"
           active={motionActive}
           reducedMotion={reducedMotion}
@@ -483,7 +478,7 @@ function DetailModal({ reference, onClose }: { reference: ReferenceEntry; onClos
           <div className="detail-heading">
             <div>
               <p className="detail-index">Reference {pad(reference.order)} of {references.length}</p>
-              <h2 id="detail-title">{displayTitle(reference)}</h2>
+              <h2 id="detail-title">{reference.displayName}</h2>
             </div>
             <p className="detail-kicker">{formatDescriptor(reference.styleDescriptor)}</p>
           </div>

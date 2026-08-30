@@ -10,10 +10,7 @@ export const manualPromptStageNames = [
   'Add tweak bar',
 ] as const;
 
-export const promptReferenceName = (reference: ReferenceEntry) => (
-  reference.source.siteName
-  ?? reference.title.split(' — ')[0].replace(/ Portal$/, '')
-);
+export const promptReferenceName = (reference: ReferenceEntry) => reference.displayName;
 
 export const primaryCategoryReferences = (
   catalog: readonly ReferenceEntry[],
@@ -78,7 +75,7 @@ const directionBlock = (reference: ReferenceEntry, index: number) => {
     : reference.imageRecipe.prompt;
 
   return [
-    `--- DIRECTION ${index + 1} (v${index + 1}) — ${reference.primaryCategory.toUpperCase()} — ${reference.title.toUpperCase()} [${reference.id}] ---`,
+    `--- DIRECTION ${index + 1} (v${index + 1}) — ${reference.primaryCategory.toUpperCase()} — ${reference.displayName.toUpperCase()} [${reference.id}] ---`,
     '',
     `Aesthetic: ${reference.styleDescriptor} — ${reference.description}`,
     `Tags: ${reference.tags.join(', ')}.`,
@@ -86,7 +83,7 @@ const directionBlock = (reference: ReferenceEntry, index: number) => {
     'Observed visual relationships:',
     observed,
     '',
-    `Reference: Inspect the canonical still for stable card ID ${reference.id}, card name “${reference.title}.” Match its visual relationships and feel, not its source content or identity. Inspect still imagery only; do not inspect motion media.`,
+    `Reference: Inspect the canonical still for stable card ID ${reference.id}, card name “${reference.displayName}.” Match its visual relationships and feel, not its source content or identity. Inspect still imagery only; do not inspect motion media.`,
     '',
     `Future hero: ${futureHero}`,
     '',
@@ -125,7 +122,7 @@ export const buildVariantsPrompt = (
   if (!winningReference) return '[SELECT A WINNING DIRECTION AFTER REVIEWING PROMPT 1 OUTPUT]';
   const version = versionLabel || '[version number placeholder]';
   return [
-    `Let’s go with ${version}, the ${winningReference.primaryCategory} direction anchored by ${winningReference.title} [${winningReference.id}].`,
+    `Let’s go with ${version}, the ${winningReference.primaryCategory} direction anchored by ${winningReference.displayName} [${winningReference.id}].`,
     '',
     'Generate three different versions of that exact aesthetic. Change the body formats at minimum; you may also vary section rhythm, navigation treatment, information density, and composition.',
     '',
@@ -148,7 +145,7 @@ export const buildHeroImagesPrompt = ({
 }) => {
   const version = variantLabel || '[version number placeholder]';
   const referenceName = anchor
-    ? `${anchor.title} [${anchor.id}]`
+    ? `${anchor.displayName} [${anchor.id}]`
     : '[chosen variant reference image placeholder]';
   const recipe = anchor
     ? (anchor.imageRecipe.kind === 'none' ? anchor.imageRecipe.reason : anchor.imageRecipe.prompt)
@@ -165,7 +162,7 @@ export const buildHeroImagesPrompt = ({
     '',
     'Inspect the canonical still for every explicitly selected reference below. Match their relevant visual relationships and feel, not their source content or identity:',
     references.length > 0
-      ? references.map((reference) => `- ${reference.title} [${reference.id}]${anchor?.id === reference.id ? ' — chosen variant reference image' : ' — explicit additional reference'}`).join('\n')
+      ? references.map((reference) => `- ${reference.displayName} [${reference.id}]${anchor?.id === reference.id ? ' — chosen variant reference image' : ' — explicit additional reference'}`).join('\n')
       : '- [chosen variant reference image placeholder]',
     '',
     'Give me four distinct hero images that fit this page and its exact composition. Keep the protected copy regions and crop geometry already established by the selected variant. Make all four high quality and 2K. Use the configured image-generation tool if it is available; otherwise, use the Higgsfield MCP. Do not change the page layout while generating the options. Pull up all four results when finished.',

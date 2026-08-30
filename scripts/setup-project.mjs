@@ -23,7 +23,8 @@ const findPersonalSkill = (name) => [
   resolve(process.env.CODEX_HOME ?? resolve(homedir(), '.codex'), 'skills', name),
 ].find((candidate) => existsSync(resolve(candidate, 'SKILL.md')));
 const validateCatalog = (catalog) => {
-  if (!catalog || catalog.schemaVersion !== 4 || !Array.isArray(catalog.cards) || !catalog.cards.length || !Array.isArray(catalog.categories) || !catalog.categories.length) throw new Error('The validated catalog must use schema 4 and contain cards and categories.');
+  if (!catalog || catalog.schemaVersion !== 5 || !Array.isArray(catalog.cards) || !catalog.cards.length || !Array.isArray(catalog.categories) || !catalog.categories.length) throw new Error('The validated catalog must use schema 5 and contain cards and categories.');
+  if (catalog.cards.some((card) => typeof card.displayName !== 'string' || !card.displayName.trim())) throw new Error('Catalog cards require a canonical displayName.');
   if (catalog.cards.some((card) => !card.sourceIdentity || !card.media?.detailImage)) throw new Error('Catalog cards require source identity and a canonical still.');
 };
 const exportCatalog = () => {

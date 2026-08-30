@@ -82,10 +82,11 @@ describe('manual prompt workflow', () => {
   });
 
   it('keeps selection inside the three-variant prompt', () => {
-    const reference = references[0];
+    const reference = references.find((entry) => entry.id === 'site-paper')!;
     const prompt = buildVariantsPrompt(reference, 'v1');
 
-    expect(prompt).toContain(`anchored by ${reference.title} [${reference.id}]`);
+    expect(prompt).toContain(`anchored by ${reference.displayName} [${reference.id}]`);
+    expect(prompt).not.toContain(reference.title);
     expect(prompt).toContain('Change the body formats at minimum');
     expect(prompt).toContain('Do not introduce visual influence from any other direction');
     expect(prompt).toContain('Add v1a/, v1b/, and v1c/ to the existing `design-review-entries` block');
@@ -112,18 +113,20 @@ describe('manual prompt workflow', () => {
   });
 
   it('includes only the chosen anchor and explicit Prompt 3 references', () => {
-    const category = manualCategories[0];
-    const categoryCards = primaryCategoryReferences(references, category);
-    const anchor = categoryCards[0];
-    const additional = [categoryCards[2], categoryCards[5]];
-    const omitted = categoryCards[1];
+    const anchor = references.find((entry) => entry.id === 'site-paper')!;
+    const additional = [
+      references.find((entry) => entry.id === 'site-cursor')!,
+      references.find((entry) => entry.id === 'site-oqoqo')!,
+    ];
+    const omitted = references.find((entry) => entry.id === 'image-stillness')!;
     const prompt = buildHeroImagesPrompt({ variantLabel: 'v1b', anchor, additionalReferences: additional });
 
-    expect(prompt).toContain(`${anchor.title} [${anchor.id}] — chosen variant reference image`);
+    expect(prompt).toContain(`${anchor.displayName} [${anchor.id}] — chosen variant reference image`);
     for (const reference of additional) {
-      expect(prompt).toContain(`${reference.title} [${reference.id}] — explicit additional reference`);
+      expect(prompt).toContain(`${reference.displayName} [${reference.id}] — explicit additional reference`);
+      expect(prompt).not.toContain(reference.title);
     }
-    expect(prompt).not.toContain(`${omitted.title} [${omitted.id}]`);
+    expect(prompt).not.toContain(`${omitted.displayName} [${omitted.id}]`);
     expect(prompt).toContain('four distinct hero images');
     expect(prompt).toContain('high quality and 2K');
   });

@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { cardDisplayName, cardIdentifierNames } from './card-names.mjs';
 import { getBag, readLedger, saveBag, writeLedger } from './rotation-ledger.mjs';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -316,9 +317,10 @@ const applyAction = (catalog, rawSession, rawAction, fallbackRequest) => {
 const slotIdFor = (index) => `R${String(index + 1).padStart(2, '0')}`;
 const warningsForCard = (card, pageUse) => {
   const warnings = [];
-  if (!card.workflow.anchorUses.includes(pageUse)) warnings.push(`Explicit override: ${card.title} is not curated for ${pageUse} anchoring.`);
-  if (card.quality.tier === 'limited') warnings.push(`Limited still evidence may reduce visual fidelity for ${card.title}.`);
-  if (!identityReviewCurrent(card)) warnings.push(`Source-identity safeguards for ${card.title} are missing or stale; identity QA is required before advancement.`);
+  const name = cardDisplayName(card);
+  if (!card.workflow.anchorUses.includes(pageUse)) warnings.push(`Explicit override: ${name} is not curated for ${pageUse} anchoring.`);
+  if (card.quality.tier === 'limited') warnings.push(`Limited still evidence may reduce visual fidelity for ${name}.`);
+  if (!identityReviewCurrent(card)) warnings.push(`Source-identity safeguards for ${name} are missing or stale; identity QA is required before advancement.`);
   return warnings;
 };
 const itemFromSession = (catalog, session, index, origin) => {
@@ -375,14 +377,12 @@ const resolveCardIdentifier = (catalog, identifier) => {
   const byId = catalog.cards.find((card) => card.id === value);
   if (byId) return byId;
   const lowered = value.toLocaleLowerCase();
-  const titleMatches = catalog.cards.filter((card) => card.title.toLocaleLowerCase() === lowered);
-  if (titleMatches.length === 1) return titleMatches[0];
-  const siteMatches = catalog.cards.filter((card) => card.source?.siteName?.toLocaleLowerCase() === lowered);
-  if (siteMatches.length === 1) return siteMatches[0];
+  const nameMatches = catalog.cards.filter((card) => cardIdentifierNames(card).some((name) => name.toLocaleLowerCase() === lowered));
+  if (nameMatches.length === 1) return nameMatches[0];
   const targetUrl = normalizedUrl(value);
   const urlMatches = targetUrl ? catalog.cards.filter((card) => normalizedUrl(card.source?.url) === targetUrl) : [];
   if (urlMatches.length === 1) return urlMatches[0];
-  const matches = [...new Map([...titleMatches, ...siteMatches, ...urlMatches].map((card) => [card.id, card])).values()];
+  const matches = [...new Map([...nameMatches, ...urlMatches].map((card) => [card.id, card])).values()];
   if (matches.length > 1) throw new Error(`Ambiguous custom card identifier "${value}": ${matches.map((card) => card.id).join(', ')}`);
   throw new Error(`Custom card identifier did not resolve exactly: ${value}`);
 };
@@ -391,7 +391,7 @@ const resolveCustomCards = (catalog, identifiers) => {
   const cards = []; const seen = new Set(); const notices = [];
   for (const identifier of identifiers) {
     const card = resolveCardIdentifier(catalog, identifier);
-    if (seen.has(card.id)) { notices.push(`Duplicate custom card ignored: ${card.title} [${card.id}]`); continue; }
+    if (seen.has(card.id)) { notices.push(`Duplicate custom card ignored: ${cardDisplayName(card)} [${card.id}]`); continue; }
     if (!customCardEligible(card)) throw new Error(`Custom card has no readable still or executable recipe/method: ${card.id}`);
     seen.add(card.id); cards.push(card);
   }
