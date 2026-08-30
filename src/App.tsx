@@ -611,6 +611,11 @@ export default function App() {
     ));
   };
 
+  const unselectAllManualReferences = () => {
+    setManualSelectionMode('manual');
+    setManualSelectedIds(new Set());
+  };
+
   const toggleManualReference = (reference: ReferenceEntry) => {
     setActivePreviewId(null);
     setManualSelectionMode('manual');
@@ -688,6 +693,7 @@ export default function App() {
           mode={manualSelectionMode}
           onModeChange={changeManualSelectionMode}
           onReshuffle={reshuffleManualSelection}
+          onUnselectAll={unselectAllManualReferences}
           onReview={() => setManualPromptOpen(true)}
           reviewButtonRef={reviewPromptTrigger}
           inert={overlayOpen}

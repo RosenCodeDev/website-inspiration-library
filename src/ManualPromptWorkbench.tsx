@@ -60,6 +60,7 @@ export function ManualPromptDock({
   mode,
   onModeChange,
   onReshuffle,
+  onUnselectAll,
   onReview,
   reviewButtonRef,
   inert,
@@ -68,6 +69,7 @@ export function ManualPromptDock({
   mode: ManualSelectionMode;
   onModeChange: (mode: ManualSelectionMode) => void;
   onReshuffle: () => void;
+  onUnselectAll: () => void;
   onReview: () => void;
   reviewButtonRef: RefObject<HTMLButtonElement | null>;
   inert: boolean;
@@ -111,6 +113,7 @@ export function ManualPromptDock({
       </div>
       <div className="manual-prompt-actions">
         <button type="button" disabled={mode !== 'random'} onClick={onReshuffle}>Reshuffle</button>
+        <button type="button" disabled={references.length === 0} onClick={onUnselectAll}>Unselect all</button>
         <button
           ref={reviewButtonRef}
           className="manual-prompt-primary"

@@ -141,6 +141,7 @@ describe('manual prompt workflow', () => {
     const workbench = readFileSync(resolve(process.cwd(), 'src', 'ManualPromptWorkbench.tsx'), 'utf8');
     expect(workbench).toContain('Manual prompts');
     expect(workbench).toContain('Review prompt');
+    expect(workbench).toContain('Unselect all');
     expect(workbench).toContain('Download design review template');
     expect(workbench.indexOf('Download design review template')).toBeLessThan(workbench.indexOf('Copy prompt'));
     expect(workbench).not.toContain('Prompt Pack');
