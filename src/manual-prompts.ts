@@ -10,6 +10,9 @@ export const manualPromptStageNames = [
   'Add tweak bar',
 ] as const;
 
+export const manualBuildDirectionHeading = 'MULTI-CARD, CONTEXT-SHARED — NOT SEALED';
+export const manualBuildDirectionDescription = 'Each direction is visible within one shared model context.';
+
 export const promptReferenceName = (reference: ReferenceEntry) => reference.displayName;
 
 export const primaryCategoryReferences = (
@@ -94,9 +97,6 @@ const directionBlock = (reference: ReferenceEntry, index: number) => {
 };
 
 export const buildDirectionsPrompt = (selected: readonly ReferenceEntry[]) => [
-  'MULTI-CARD, CONTEXT-SHARED — NOT SEALED',
-  'This combined manual prompt keeps each direction visually independent, but every direction is visible within one shared model context.',
-  '',
   'Build a landing page for “[PRODUCT]” — [ONE-SENTENCE DESCRIPTION].',
   '',
   'Intent: [DESIRED FEELING, POSITIONING, AND THREE-SECOND IMPRESSION].',

@@ -12,6 +12,8 @@ import {
   buildHeroImagesPrompt,
   buildTweakBarPrompt,
   buildVariantsPrompt,
+  manualBuildDirectionDescription,
+  manualBuildDirectionHeading,
   manualPromptStageNames,
   primaryCategoryReferences,
   promptReferenceName,
@@ -374,7 +376,14 @@ export function ManualPromptModal({
             )}
             <div className="manual-prompt-sheet">
               <header>
-                <strong>{manualPromptStageNames[stage - 1]}</strong>
+                <strong>
+                  {stage === 1 ? (
+                    <>
+                      <span>{manualBuildDirectionHeading}</span>
+                      <span>{manualBuildDirectionDescription}</span>
+                    </>
+                  ) : manualPromptStageNames[stage - 1]}
+                </strong>
                 <div>
                   <span className="manual-prompt-copy-status" role="status" aria-live="polite">{copyStatus}</span>
                   {stage === 1 && (

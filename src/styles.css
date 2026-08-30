@@ -1091,10 +1091,22 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 }
 
 .manual-prompt-sheet > header > strong {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-height: 34px;
+  overflow: hidden;
   color: var(--manual-accent);
-  font: 700 9px/1 var(--mono);
+  font: 700 9px/1.15 var(--mono);
   text-transform: uppercase;
 }
+
+.manual-prompt-sheet > header > strong span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.manual-prompt-sheet > header > strong span + span { margin-top: 3px; }
 
 .manual-prompt-sheet > header > div {
   display: flex;
@@ -1157,6 +1169,7 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
     width: 100%;
     max-height: calc(100vh - 20px);
   }
+  .manual-prompt-sheet > header > strong { max-height: 44px; }
   .manual-prompt-dialog-head { padding: 18px; }
   .manual-prompt-dialog-head h2 { font-size: 28px; }
   .manual-prompt-dialog-layout { grid-template-columns: 1fr; min-height: 0; }
@@ -1177,4 +1190,11 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   .manual-prompt-reference-fieldset { grid-column: auto; }
   .manual-prompt-reference-picker { grid-template-columns: 1fr; }
   .manual-prompt-sheet pre { min-height: 260px; max-height: 40vh; font-size: 10px; }
+}
+
+@media (min-width: 901px) {
+  .manual-prompt-sheet > header > div {
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+  }
 }

@@ -7,6 +7,8 @@ import {
   buildDirectionsPrompt,
   buildHeroImagesPrompt,
   buildVariantsPrompt,
+  manualBuildDirectionDescription,
+  manualBuildDirectionHeading,
   primaryCategoryReferences,
   randomPrimarySelection,
   reshufflePrimarySelection,
@@ -55,7 +57,8 @@ describe('manual prompt workflow', () => {
     expect(prompt).toContain(`stable card ID ${selected[0].id}`);
     expect(prompt).toContain('Inspect still imagery only; do not inspect motion media.');
     expect(prompt).toContain('Do NOT blend directions.');
-    expect(prompt).toContain('MULTI-CARD, CONTEXT-SHARED — NOT SEALED');
+    expect(prompt).not.toContain(manualBuildDirectionHeading);
+    expect(prompt).not.toContain(manualBuildDirectionDescription);
     expect(prompt).toContain('using the attached `Design Review Template.html`');
     expect(prompt).toContain(`\`V1\` → \`v1/index.html\` through \`V${selected.length}\` → \`v${selected.length}/index.html\``);
     expect(prompt).toContain(selected[0].imageRecipe.kind === 'none'
