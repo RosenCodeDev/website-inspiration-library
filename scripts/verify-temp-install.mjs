@@ -24,7 +24,7 @@ const verifyTemporaryInstallation = async () => {
     }
     const stateScript = resolve(project, '.agents', 'skills', 'design-taste-injection', 'scripts', 'project-state.mjs');
     const initialized = spawnSync(process.execPath, [stateScript, 'init', project], { cwd: project, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
-    if (initialized.status !== 0 || !existsSync(resolve(project, '.inspiration', 'state.json'))) throw new Error(initialized.stderr.trim() || 'Installed project state initialization failed.');
+    if (initialized.status !== 0 || !existsSync(resolve(project, '.inspiration', 'state.json')) || !existsSync(resolve(project, '.inspiration', 'Design Review.html'))) throw new Error(initialized.stderr.trim() || 'Installed project state initialization failed.');
     const malformed = spawnSync(process.execPath, [stateScript, 'init', '--project-root', project], { cwd: project, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
     if (malformed.status === 0 || existsSync(resolve(project, '--project-root'))) throw new Error('Installed initializer accepted --project-root or created a stray folder.');
     const nestedProject = resolve(project, 'site');

@@ -11,6 +11,7 @@ import {
   randomPrimarySelection,
   reshufflePrimarySelection,
 } from '../src/manual-prompts';
+import { buildManualDesignReviewTemplate, designReviewTemplateFilename } from '../src/design-review-template';
 
 const manualCategories = categories.slice(1) as Category[];
 
@@ -55,6 +56,8 @@ describe('manual prompt workflow', () => {
     expect(prompt).toContain('Inspect still imagery only; do not inspect motion media.');
     expect(prompt).toContain('Do NOT blend directions.');
     expect(prompt).toContain('MULTI-CARD, CONTEXT-SHARED — NOT SEALED');
+    expect(prompt).toContain('using the attached `Design Review Template.html`');
+    expect(prompt).toContain(`\`V1\` → \`v1/index.html\` through \`V${selected.length}\` → \`v${selected.length}/index.html\``);
     expect(prompt).toContain(selected[0].imageRecipe.kind === 'none'
       ? selected[0].imageRecipe.reason
       : selected[0].imageRecipe.prompt);
@@ -69,6 +72,7 @@ describe('manual prompt workflow', () => {
     for (const selected of cases) {
       const prompt = buildDirectionsPrompt(selected);
       expect(prompt).toContain(`Create ${selected.length} version${selected.length === 1 ? '' : 's'} of this page, each in its own folder (v1/ ... v${selected.length}/)`);
+      expect(prompt).toContain(`\`V1\` → \`v1/index.html\` through \`V${selected.length}\` → \`v${selected.length}/index.html\``);
       expect(prompt).toContain('Do NOT blend directions.');
       const positions = selected.map((reference) => prompt.indexOf(`stable card ID ${reference.id}`));
       expect(positions.every((position) => position >= 0)).toBe(true);
@@ -84,6 +88,27 @@ describe('manual prompt workflow', () => {
     expect(prompt).toContain(`anchored by ${reference.title} [${reference.id}]`);
     expect(prompt).toContain('Change the body formats at minimum');
     expect(prompt).toContain('Do not introduce visual influence from any other direction');
+    expect(prompt).toContain('Add v1a/, v1b/, and v1c/ to the existing `design-review-entries` block');
+  });
+
+  it('downloads an unlimited design-review recipe with a dynamic initial count', () => {
+    expect(designReviewTemplateFilename).toBe('Design Review Template.html');
+    for (const count of [1, manualCategories.length, 23]) {
+      const template = buildManualDesignReviewTemplate(count);
+      expect(template).toContain(`name="design-review-initial-version-count" content="${count}"`);
+      expect(template).toContain(`through V${count} -> v${count}/index.html`);
+      expect(template).toContain('id="design-review-entries"');
+      expect(template).toMatch(/id="design-review-entries">\s*\[\]\s*<\/script>/);
+      expect(template).toContain('It accepts any number of design entries.');
+      expect(template).toContain('class="version-rail"');
+      expect(template).toContain('class="comparison-row"');
+      expect(template).not.toContain('__INITIAL_VERSION_COUNT__');
+      expect(template).not.toContain('__DESIGN_REVIEW_ENTRIES__');
+    }
+    const source = readFileSync(resolve(process.cwd(), 'src', 'manual-prompts.ts'), 'utf8');
+    const templateSource = readFileSync(resolve(process.cwd(), 'skills', 'design-taste-injection', 'assets', 'design-review-template.html'), 'utf8');
+    expect(source).not.toContain('through `V7`');
+    expect(templateSource).not.toContain('through V7 -> v7/index.html');
   });
 
   it('includes only the chosen anchor and explicit Prompt 3 references', () => {
@@ -116,6 +141,8 @@ describe('manual prompt workflow', () => {
     const workbench = readFileSync(resolve(process.cwd(), 'src', 'ManualPromptWorkbench.tsx'), 'utf8');
     expect(workbench).toContain('Manual prompts');
     expect(workbench).toContain('Review prompt');
+    expect(workbench).toContain('Download design review template');
+    expect(workbench.indexOf('Download design review template')).toBeLessThan(workbench.indexOf('Copy prompt'));
     expect(workbench).not.toContain('Prompt Pack');
     expect(workbench).not.toContain('Review prompt pack');
   });

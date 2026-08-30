@@ -61,6 +61,7 @@ Pins and exclusions never imply approval to advance.
 - After hero selection, add the contract-constrained development tweak bar, apply accepted values to source, build one representative dense page, and prove the tweak bar is absent from production.
 - Inner pages inherit the frozen system while using page-appropriate structures; they do not repeat the landing-page hero.
 - Render every generation at `.inspiration/previews/<generation-id>/index.html` before recording it.
+- After validated state changes, let the coordinator atomically regenerate `.inspiration/Design Review.html` from every recorded preview. Never ask a model to author, restyle, or populate this consolidated viewer, and never pass its entries to a direction child.
 - Record schema-v11 typed lineage through `project-state.mjs`: batched reference review, direction, three-variant batch, build-path shell, hero batch, tweak lifecycle, implementation, and final. IDs are readable labels; typed fields are authoritative.
 - Preserve source identity safely: automatic generation requires a current fingerprinted identity inventory. Record whether it is Codex-drafted or human-reviewed; current Codex-drafted inventories remain generation guardrails, not legal or independent QA review. Ambiguous resemblance receives human review and is never automatically deleted.
 

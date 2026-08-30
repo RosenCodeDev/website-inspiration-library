@@ -8,9 +8,9 @@ import { verifyVendorInventory } from './skill-integrity.mjs';
 const root = resolve(import.meta.dirname, '..');
 const skillRoot = resolve(root, 'skills', 'design-taste-injection');
 const required = [
-  'SKILL.md', 'agents/openai.yaml', 'assets/workbench-template.html', 'references/clone-remix.md',
+  'SKILL.md', 'agents/openai.yaml', 'assets/design-review-template.html', 'assets/workbench-template.html', 'references/clone-remix.md',
   'references/workbench.md', 'scripts/browser-discovery.mjs', 'scripts/clone-runtime.mjs',
-  'scripts/path-safety.mjs', 'scripts/project-state.mjs', 'scripts/reference-selection.mjs', 'scripts/reference-review.mjs', 'scripts/rotation-ledger.mjs',
+  'scripts/design-review.mjs', 'scripts/path-safety.mjs', 'scripts/project-state.mjs', 'scripts/reference-selection.mjs', 'scripts/reference-review.mjs', 'scripts/rotation-ledger.mjs',
   'scripts/visual-contract.mjs', 'scripts/isolation-runner.mjs', 'scripts/serve-workbench.mjs',
 ];
 

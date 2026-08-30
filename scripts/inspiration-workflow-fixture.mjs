@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { existsSync, realpathSync } from 'node:fs';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -96,6 +96,9 @@ const runFixture = async (options = {}) => {
     await apply({ type: 'verification.completed', payload: { checks: ['responsive widths', 'keyboard flow', 'contrast', 'reduced motion', 'production build'] } });
     await apply({ type: 'workflow.status-changed', payload: { status: 'complete' } });
     const validationErrors = validateState(state, project, catalog); if (validationErrors.length) throw new Error(validationErrors.join('; '));
+    const designReview = await readFile(paths.designReview, 'utf8');
+    if (!designReview.includes(`"id": "${finalId}"`) || !designReview.includes(`"path": "previews/${finalId}/index.html"`)) throw new Error('Consolidated Design Review did not retain the final generation.');
+    if (designReview.includes('PayrollFox') || designReview.includes('regional payroll directors') || designReview.includes('#fc1234')) throw new Error('Intake leak signals entered the consolidated Design Review.');
 
     const result = { passed: true, provesModelQuality: false, schemaVersion: state.schemaVersion, status: state.status, categoryCount: coverage.categoryCount, directionCount: state.generations.filter((item) => item.stage === 'direction').length, variantCount: state.generations.filter((item) => item.stage === 'variant').length, heroCount: state.generations.filter((item) => item.stage === 'hero').length, requestFingerprint: fingerprint(request), requestModel: request.model, importedPreview: imported.preview, protectedLayoutFingerprint: buildLayout.fingerprint, tweakBarStatus: state.visualControl.tweakBar.status };
     return options.keep ? { ...result, project } : result;

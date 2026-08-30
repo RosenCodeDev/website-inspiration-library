@@ -39,6 +39,7 @@ describe('inspiration-controlled design workflow', () => {
       'scripts/skill-integrity.mjs', 'scripts/export-workflow-catalog.mjs', 'scripts/validate-skill.mjs',
       'scripts/verify-temp-install.mjs', 'scripts/controlled-clone-fixture.mjs', 'scripts/clone-plumbing-smoke.mjs',
       'skills/design-taste-injection/scripts/library.mjs', 'skills/design-taste-injection/scripts/project-state.mjs',
+      'skills/design-taste-injection/scripts/design-review.mjs',
       'skills/design-taste-injection/scripts/reference-selection.mjs', 'skills/design-taste-injection/scripts/reference-review.mjs', 'skills/design-taste-injection/scripts/rotation-ledger.mjs',
       'skills/design-taste-injection/scripts/visual-contract.mjs', 'skills/design-taste-injection/scripts/isolation-runner.mjs',
       'skills/design-taste-injection/scripts/clone-runtime.mjs', 'skills/design-taste-injection/scripts/serve-workbench.mjs',
@@ -414,6 +415,27 @@ describe('inspiration-controlled design workflow', () => {
     expect(source).toContain('DEGRADED — NOT ISOLATED');
   }, 20_000);
 
+  it('renders an unlimited, path-safe Design Review manifest without fixed slots', async () => {
+    const review = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'design-review.mjs')).href}?review=${Date.now()}`);
+    const entries = Array.from({ length: 24 }, (_, index) => ({
+      id: `D${String(index + 1).padStart(2, '0')}`,
+      name: `Direction ${index + 1}`,
+      path: `previews/D${String(index + 1).padStart(2, '0')}/index.html`,
+    }));
+    const html = await review.renderDesignReviewHtml(entries);
+    expect(html).toContain('name="design-review-initial-version-count" content="24"');
+    expect(html).toContain('through V24 -> v24/index.html');
+    expect(html).toContain('"id": "D24"');
+    expect(html).toContain('"path": "previews/D24/index.html"');
+    expect(html).toContain('width:fit-content;max-width:100%');
+    expect(html).not.toContain('__DESIGN_REVIEW_ENTRIES__');
+    await expect(review.renderDesignReviewHtml([{ id: 'D01', name: 'Unsafe', path: '../outside/index.html' }])).rejects.toThrow(/safe relative path/i);
+    await expect(review.renderDesignReviewHtml([
+      { id: 'D01', name: 'One', path: 'previews/D01/index.html' },
+      { id: 'D01', name: 'Two', path: 'previews/D02/index.html' },
+    ])).rejects.toThrow(/duplicate/i);
+  });
+
   it('creates unique one-card workspaces and excludes sibling, feedback, intake, and prior-output sentinels', async () => {
     const catalog = loadCatalog();
     const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?sentinel=${Date.now()}`);
@@ -515,6 +537,10 @@ describe('inspiration-controlled design workflow', () => {
     expect(state.visualControl.isolationRuns.D01).toEqual(expect.objectContaining({ generationId: 'D01', mode: 'subscription-ephemeral', outputMode: 'structured-manifest' }));
     expect(state.visualControl.routeConformance[0].route).toBe('/pricing');
     expect(readFileSync(resolve(project, '.inspiration', 'workbench', 'index.html'), 'utf8')).toContain('SHOW ANOTHER CARD');
+    const designReview = readFileSync(resolve(project, '.inspiration', 'Design Review.html'), 'utf8');
+    expect(designReview).toContain('"id": "D01"');
+    expect(designReview).toContain('"path": "previews/D01/index.html"');
+    expect(designReview).not.toContain('"activeBatch"');
     const priorBatch = state.references.activeBatch;
     state.decisions.push({ action: 'PRESERVE MIGRATION DECISION', summary: 'Schema-v10 decisions survive batch migration.', stage: 'intake', createdAt: new Date().toISOString() });
     state.schemaVersion = 10; state.workbenchVersion = 7; state.references.activeSession = priorBatch.items[0].session; delete state.references.activeBatch; state.references.pinned = state.references.activeSession.pinned;
@@ -522,6 +548,7 @@ describe('inspiration-controlled design workflow', () => {
     expect(runNode(script, ['init', project]).status).toBe(0);
     const migrated = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
     expect(migrated.schemaVersion).toBe(11); expect(migrated.references.activeBatch.items).toHaveLength(1); expect(migrated.references.activeBatch.items[0].session.currentSet.anchor.id).toBe(card.id); expect(migrated.generations[0].id).toBe('D01'); expect(migrated.decisions.some((decision: any) => decision.action === 'PRESERVE MIGRATION DECISION')).toBe(true); expect(migrated.visualControl.isolation.mode).toBe('subscription-ephemeral'); expect(migrated.visualControl.isolationRuns.D01.mode).toBe('subscription-ephemeral'); expect(migrated.visualControl.tweakBar.status).toBe('pending');
+    expect(readFileSync(resolve(project, '.inspiration', 'Design Review.html'), 'utf8')).toContain('"id": "D01"');
   }, 60_000);
 
   it('blocks a stale custom direction until its identity-QA checkpoint passes', () => {

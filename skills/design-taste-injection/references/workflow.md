@@ -101,6 +101,8 @@ Generated markup must contain one `data-inspiration-hero` and one `data-opening-
 
 The child returns structured output and may not create `output-contract.json`. The coordinator materializes it in a temporary directory, validates containment and permitted files, scans intake and exact source identity, inspects computed styles and slot geometry, hides protected-copy siblings, measures the composed slot pixels, restores copy, and captures the final preview. Only the coordinator writes the observed output contract. It then atomically imports the result, appends the generation event, and records execution provenance for that generation ID. Show the source still beside the preview in the workbench.
 
+Every successful generation event also regenerates `.inspiration/Design Review.html` from validated state. Use that friendly file for the top-rail consolidated comparison; it references each existing preview folder and never enters a sealed request.
+
 These focused directions are direction shopping, not the final design gate.
 
 ## 6. Freeze the contract and plan three variants

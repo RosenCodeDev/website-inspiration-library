@@ -18,6 +18,10 @@ import {
   type ManualPromptStage,
   type ManualSelectionMode,
 } from './manual-prompts';
+import {
+  buildManualDesignReviewTemplate,
+  designReviewTemplateFilename,
+} from './design-review-template';
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
@@ -142,6 +146,17 @@ const writeClipboard = async (text: string) => {
   }
 };
 
+const downloadTextFile = (filename: string, content: string) => {
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/html;charset=utf-8' }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+};
+
 export function ManualPromptModal({
   catalog,
   categories,
@@ -226,6 +241,15 @@ export function ManualPromptModal({
   const copyPrompt = async () => {
     const copied = await writeClipboard(prompt);
     setCopyStatus(copied ? 'Copied' : 'Copy failed');
+    window.setTimeout(() => setCopyStatus(''), 1500);
+  };
+
+  const downloadDesignReviewTemplate = () => {
+    downloadTextFile(
+      designReviewTemplateFilename,
+      buildManualDesignReviewTemplate(selectedReferences.length),
+    );
+    setCopyStatus('Template downloaded');
     window.setTimeout(() => setCopyStatus(''), 1500);
   };
 
@@ -350,6 +374,9 @@ export function ManualPromptModal({
                 <strong>{manualPromptStageNames[stage - 1]}</strong>
                 <div>
                   <span className="manual-prompt-copy-status" role="status" aria-live="polite">{copyStatus}</span>
+                  {stage === 1 && (
+                    <button type="button" onClick={downloadDesignReviewTemplate}>Download design review template</button>
+                  )}
                   <button type="button" onClick={copyPrompt}>Copy prompt</button>
                 </div>
               </header>

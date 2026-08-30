@@ -1099,6 +1099,8 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
 .manual-prompt-sheet > header > div {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
 }
 

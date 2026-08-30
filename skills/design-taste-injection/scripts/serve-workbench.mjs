@@ -33,6 +33,7 @@ const createWorkbenchServer = (projectRoot) => {
   const canonicalProject = canonicalPath(projectRoot);
   const workbenchRoot = assertContainedPath(resolve(canonicalProject, '.inspiration'), canonicalProject);
   if (!existsSync(resolve(workbenchRoot, 'workbench', 'index.html'))) throw new Error('Design Workbench is missing. Run project-state.mjs init first.');
+  if (!existsSync(resolve(workbenchRoot, 'Design Review.html'))) throw new Error('Design Review is missing. Run project-state.mjs init first.');
   const server = createServer((request, response) => {
     if (!['GET', 'HEAD'].includes(request.method ?? 'GET')) { sendText(response, 405, 'Method not allowed'); return; }
     let pathname;
@@ -90,6 +91,7 @@ const main = async () => {
   const requestedPort = Number(process.argv[3] ?? 4317);
   if (!Number.isInteger(requestedPort) || requestedPort < 0 || requestedPort > 65535) throw new Error('Workbench port must be an integer from 0 to 65535.');
   const result = await listenWithFallback(projectRoot, requestedPort);
+  console.log(`Design Review: http://${host}:${result.port}/Design%20Review.html`);
   console.log(`Design Workbench: http://${host}:${result.port}/`);
 };
 

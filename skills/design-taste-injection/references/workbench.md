@@ -7,11 +7,14 @@ The workbench is the project's single visual decision record:
 |-- evidence/<card-id>-<fingerprint>.<ext>
 |-- leak-signals.json
 |-- state.json
+|-- Design Review.html
 |-- previews/<generation-id>/index.html
 `-- workbench/index.html
 ```
 
-Write state only through `project-state.mjs apply-event`. Start the loopback workbench server with `serve-workbench.mjs` and open the exact address it prints.
+Write state only through `project-state.mjs apply-event`. The coordinator regenerates `Design Review.html` from validated generation state; models never edit it. It uses the approved top-rail layout to load every preview from its existing generation folder and compare any two without moving or duplicating assets. The internal workbench remains the evidence, isolation, and lineage record.
+
+Start the loopback workbench server with `serve-workbench.mjs`. Open the printed Design Review address for consolidated comparison and the Design Workbench address for workflow history.
 
 ## Preview import
 

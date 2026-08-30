@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { assertContainedPath, assertProjectRootPath, canonicalPath } from './path-safety.mjs';
+import { renderDesignReviewHtml } from './design-review.mjs';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
@@ -390,12 +391,12 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
 
 const statePaths = (projectRoot) => {
   const inspirationRoot = resolve(projectRoot, '.inspiration');
-  return { inspirationRoot, state: resolve(inspirationRoot, 'state.json'), workbench: resolve(inspirationRoot, 'workbench', 'index.html'), workbenchArchive: resolve(inspirationRoot, 'workbench', 'archive'), previews: resolve(inspirationRoot, 'previews') };
+  return { inspirationRoot, state: resolve(inspirationRoot, 'state.json'), designReview: resolve(inspirationRoot, 'Design Review.html'), workbench: resolve(inspirationRoot, 'workbench', 'index.html'), workbenchArchive: resolve(inspirationRoot, 'workbench', 'archive'), previews: resolve(inspirationRoot, 'previews') };
 };
 const assertStatePaths = (projectRoot, paths) => {
   const canonicalProject = canonicalPath(projectRoot);
   assertContainedPath(paths.inspirationRoot, canonicalProject);
-  for (const candidate of [paths.state, paths.workbench, paths.workbenchArchive, paths.previews]) assertContainedPath(candidate, paths.inspirationRoot);
+  for (const candidate of [paths.state, paths.designReview, paths.workbench, paths.workbenchArchive, paths.previews]) assertContainedPath(candidate, paths.inspirationRoot);
 };
 const previewPath = (paths, generationId) => resolve(paths.previews, generationId, 'index.html');
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -600,6 +601,32 @@ const atomicWriteJson = async (path, value, hooks = {}) => {
   }
 };
 
+const atomicWriteText = async (path, value) => {
+  const temporary = `${path}.writing-${process.pid}-${Date.now()}`;
+  const backup = `${path}.backup-${process.pid}-${Date.now()}`;
+  await writeFile(temporary, value, 'utf8');
+  try {
+    await rename(temporary, path);
+  } catch (error) {
+    if (!existsSync(path)) { await rm(temporary, { force: true }); throw error; }
+    await rename(path, backup);
+    try { await rename(temporary, path); await rm(backup, { force: true }); }
+    catch (replacementError) { if (existsSync(backup)) await rename(backup, path); await rm(temporary, { force: true }); throw replacementError; }
+  }
+};
+
+const syncDesignReview = async (state, paths) => {
+  const entries = [];
+  for (const generation of state.generations) {
+    const path = previewPath(paths, generation.id);
+    if (!existsSync(path) || !(await stat(path)).isFile()) throw new Error(`Design Review preview is missing: ${path}`);
+    entries.push({ id: generation.id, name: generation.label || generation.id, path: `previews/${generation.id}/index.html` });
+  }
+  await mkdir(paths.inspirationRoot, { recursive: true });
+  await atomicWriteText(paths.designReview, await renderDesignReviewHtml(entries));
+  return paths.designReview;
+};
+
 const ensureWorkbench = async (state, paths) => {
   const template = await readFile(templatePath, 'utf8');
   if (!existsSync(paths.workbench)) { await mkdir(dirname(paths.workbench), { recursive: true }); await cp(templatePath, paths.workbench); state.workbenchVersion = currentWorkbenchVersion; return null; }
@@ -648,6 +675,7 @@ const loadState = async (projectRoot, paths) => {
   const errors = validateState(state, projectRoot, catalog);
   if (errors.length) throw new Error(errors.join('; '));
   if (migrated) await atomicWriteJson(paths.state, state);
+  await syncDesignReview(state, paths);
   return state;
 };
 
@@ -666,7 +694,8 @@ const init = async (rawRoot) => {
   const errors = validateState(state, projectRoot, catalog);
   if (errors.length) throw new Error(errors.join('; '));
   if (migrated) await atomicWriteJson(paths.state, state);
-  console.log(JSON.stringify({ projectRoot, state: paths.state, workbench: paths.workbench, resumed: state.generations.length > 0, schemaVersion: state.schemaVersion }, null, 2));
+  await syncDesignReview(state, paths);
+  console.log(JSON.stringify({ projectRoot, state: paths.state, designReview: paths.designReview, workbench: paths.workbench, resumed: state.generations.length > 0, schemaVersion: state.schemaVersion }, null, 2));
 };
 
 const normalizeDecision = (record, stage) => {
@@ -787,6 +816,7 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
   const errors = validateState(state, projectRoot, catalog);
   if (errors.length) throw new Error(errors.join('; '));
   await atomicWriteJson(paths.state, state);
+  await syncDesignReview(state, paths);
   if (!options.quiet) console.log(`Applied state event: ${event.type}`);
 };
 
@@ -935,4 +965,4 @@ const main = async () => {
 const isDirectExecution = () => Boolean(process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)));
 if (isDirectExecution()) main().catch((error) => fail(error.message));
 
-export { applyEvent, assertProjectRoot, atomicWriteJson, emptyState, migrateState, parseCliArgs, readProjectState, saveReferenceBatch, saveReferenceSession, statePaths, validateState };
+export { applyEvent, assertProjectRoot, atomicWriteJson, emptyState, migrateState, parseCliArgs, readProjectState, saveReferenceBatch, saveReferenceSession, statePaths, syncDesignReview, validateState };

@@ -111,6 +111,8 @@ export const buildDirectionsPrompt = (selected: readonly ReferenceEntry[]) => [
   '',
   `Create ${selected.length} version${selected.length === 1 ? '' : 's'} of this page, each in its own folder (v1/ ... v${selected.length}/), one per direction below. Do NOT blend directions. Each version must commit completely to its selected card.`,
   '',
+  `Also create a consolidated \`Design Review.html\` at the project root using the attached \`Design Review Template.html\`: edit only its \`design-review-entries\` JSON block to add one ordered entry for every generated version (\`V1\` → \`v1/index.html\` through \`V${selected.length}\` → \`v${selected.length}/index.html\`), preserve the template’s layout and comparison behavior unchanged, and keep every version and all of its assets in its existing folder rather than copying or inlining them into the review file; if the template is missing, ask me to attach it instead of recreating it.`,
+  '',
   'IMPORTANT — hero images come later. Do NOT generate or source imagery yet. Reserve the hero slot at the specified geometry and use a flat, visually quiet stand-in. Size the typography and negative space for the future image so it can be inserted without redesigning the page.',
   '',
   selected.map(directionBlock).join('\n\n'),
@@ -130,6 +132,8 @@ export const buildVariantsPrompt = (
     'Preserve the selected direction’s hero geometry, typography logic, palette, texture, spacing grammar, and visual relationships. Keep the future-image stand-in correctly reserved. Do not introduce visual influence from any other direction or inspiration card.',
     '',
     `Write the three variants to ${version}a/, ${version}b/, and ${version}c/. Build each as a complete responsive landing page so I can compare how the aesthetic performs beyond the hero.`,
+    '',
+    `Add ${version}a/, ${version}b/, and ${version}c/ to the existing \`design-review-entries\` block in \`Design Review.html\`; do not change any other template code or move assets out of their version folders.`,
   ].join('\n');
 };
 
