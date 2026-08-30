@@ -97,6 +97,9 @@ const directionBlock = (reference: ReferenceEntry, index: number) => {
 };
 
 export const buildDirectionsPrompt = (selected: readonly ReferenceEntry[]) => [
+  'MULTI-CARD, CONTEXT-SHARED — NOT SEALED',
+  'This combined manual prompt keeps each direction visually independent, but every direction is visible within one shared model context.',
+  '',
   'Build a landing page for “[PRODUCT]” — [ONE-SENTENCE DESCRIPTION].',
   '',
   'Intent: [DESIRED FEELING, POSITIONING, AND THREE-SECOND IMPRESSION].',

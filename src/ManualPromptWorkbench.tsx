@@ -263,7 +263,10 @@ export function ManualPromptModal({
         onKeyDown={handleKeys}
       >
         <header className="manual-prompt-dialog-head">
-          <h2 id="manual-prompts-title">Manual prompts</h2>
+          <div>
+            <h2 id="manual-prompts-title">Manual prompts</h2>
+            <p>MULTI-CARD, CONTEXT-SHARED — NOT SEALED</p>
+          </div>
           <button ref={closeRef} className="manual-prompt-close" type="button" aria-label="Close manual prompts" onClick={onClose}>
             <span aria-hidden="true">×</span>
           </button>

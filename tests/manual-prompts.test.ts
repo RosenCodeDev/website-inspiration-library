@@ -54,9 +54,27 @@ describe('manual prompt workflow', () => {
     expect(prompt).toContain(`stable card ID ${selected[0].id}`);
     expect(prompt).toContain('Inspect still imagery only; do not inspect motion media.');
     expect(prompt).toContain('Do NOT blend directions.');
+    expect(prompt).toContain('MULTI-CARD, CONTEXT-SHARED — NOT SEALED');
     expect(prompt).toContain(selected[0].imageRecipe.kind === 'none'
       ? selected[0].imageRecipe.reason
       : selected[0].imageRecipe.prompt);
+  });
+
+  it('preserves arbitrary ordered manual selections and one folder per direction', () => {
+    const cases = [
+      [references[0]],
+      primaryCategoryReferences(references, manualCategories[0]).slice(0, 4),
+      references.slice(0, 23),
+    ];
+    for (const selected of cases) {
+      const prompt = buildDirectionsPrompt(selected);
+      expect(prompt).toContain(`Create ${selected.length} version${selected.length === 1 ? '' : 's'} of this page, each in its own folder (v1/ ... v${selected.length}/)`);
+      expect(prompt).toContain('Do NOT blend directions.');
+      const positions = selected.map((reference) => prompt.indexOf(`stable card ID ${reference.id}`));
+      expect(positions.every((position) => position >= 0)).toBe(true);
+      expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    }
+    expect(cases[1].every((reference) => reference.primaryCategory === cases[1][0].primaryCategory)).toBe(true);
   });
 
   it('keeps selection inside the three-variant prompt', () => {

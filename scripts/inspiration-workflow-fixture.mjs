@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadCatalog } from './export-workflow-catalog.mjs';
-import { applyAction, createSession, preflightCategoryCoverage } from '../skills/design-taste-injection/scripts/reference-selection.mjs';
+import { applyBatchActions, createAutomaticBatch, preflightCategoryCoverage } from '../skills/design-taste-injection/scripts/reference-selection.mjs';
 import { applyEvent, emptyState, statePaths, validateState } from '../skills/design-taste-injection/scripts/project-state.mjs';
 import { buildSealedRequest } from '../skills/design-taste-injection/scripts/isolation-runner.mjs';
 import { assertNoConstitution, buildLeakSignals, buildSealedPayload, fingerprintProtectedLayout, importPreview, renderVisualPrompt, resolveEvidence, scanExactSignals } from '../skills/design-taste-injection/scripts/visual-contract.mjs';
@@ -43,16 +43,20 @@ const runFixture = async (options = {}) => {
     await apply({ type: 'architecture.updated', payload: { status: 'approved', pages: ['Home', 'Reports'], sections: ['Hero', 'Evidence', 'Workflow', 'CTA'], primaryJourney: 'Understand the platform and book a demo' } });
     await apply({ type: 'workflow.status-changed', payload: { status: 'directions' } });
 
-    for (const [index, entry] of coverage.coverage.entries()) {
-      const id = `D${String(index + 1).padStart(2, '0')}-H0`; const anchor = catalog.cards.find((item) => item.id === entry.eligibleIds[0]);
+    let batch = createAutomaticBatch(catalog, { pageUse: 'marketing', seed: 'tutorial-fixture', excluded: [] });
+    const firstSlot = batch.items.find((item) => item.category === card.primaryCategory);
+    const customized = applyBatchActions(catalog, batch, [{ type: 'SWAP', slotId: firstSlot.slotId, replacementId: card.id }, { type: 'ACCEPT ALL' }]);
+    if (customized.issues.length) throw new Error(customized.issues.map((issue) => issue.message).join('; '));
+    batch = customized.batch;
+    await apply({ type: 'references.batch-saved', payload: batch });
+
+    for (const [index, item] of batch.items.entries()) {
+      const id = `D${String(index + 1).padStart(2, '0')}-H0`; const anchor = catalog.cards.find((candidate) => candidate.id === item.session.currentSet.anchor.id);
       if (id !== 'D01-H0') await writePreview(paths, id, fixtureHtml);
-      await apply({ type: 'generation.appended', payload: { id, directionId: id, parent: null, stage: 'direction', status: id === 'D01-H0' ? 'selected' : 'candidate', executionHost: 'sealed-runner', label: `${entry.category} direction`, category: entry.category, thesis: 'One-card focused direction.', references: [{ id: anchor.id, role: 'anchor' }], preview: `../previews/${id}/index.html`, previewScope: focusedScope, createdAt: new Date().toISOString() } });
+      await apply({ type: 'generation.appended', payload: { id, directionId: id, parent: null, stage: 'direction', status: id === 'D01-H0' ? 'selected' : 'candidate', executionHost: 'sealed-runner', label: `${item.category} direction`, category: item.category, thesis: 'One-card focused direction.', references: [{ id: anchor.id, role: 'anchor' }], preview: `../previews/${id}/index.html`, previewScope: focusedScope, createdAt: new Date().toISOString() } });
       await apply({ type: 'visual.isolation-recorded', payload: { generationId: id, mode: 'subscription-ephemeral', isolated: false, contextLimited: true, authenticatedWith: 'chatgpt', runner: 'codex-cli', outputMode: 'structured-manifest', workspaceFingerprint: fingerprint({ id, card: anchor.id }) } });
     }
     await apply({ type: 'workflow.status-changed', payload: { status: 'references' } });
-    let session = createSession(catalog, { category: card.primaryCategory, pageUse: 'marketing', seed: 'tutorial-fixture', pinned: [{ id: card.id, role: 'anchor' }], excluded: [] });
-    session = applyAction(catalog, session, { type: 'ACCEPT ALL' });
-    await apply({ type: 'references.session-saved', payload: session });
     const tweakableDecisions = { typography: ['approved-display', 'approved-compact'], lineLength: { min: 42, max: 72 }, spacing: { min: 4, max: 12 }, bodyDensity: ['quiet', 'compact'], accent: ['sage', 'ink'], motion: ['reduced', 'measured'] };
     const contractFingerprint = fingerprint({ cardId: card.id, tweakableDecisions });
     await apply({ type: 'visual.anchor-contract-frozen', payload: { cardId: card.id, fingerprint: contractFingerprint, tweakableDecisions } });

@@ -150,7 +150,7 @@ const validateEnvelope = (value, guards = {}) => {
   if (intakeMatches.length) throw new Error(`Sealed API envelope contains intake leak signal: ${intakeMatches[0].value}`);
   assertNoPathLeak(value, [guards.projectRoot, guards.libraryRoot]);
   const serialized = JSON.stringify(value);
-  for (const forbidden of ['motionClip', 'motionNotes', 'categoryProfile', 'categoryConstitution', 'catalogFingerprint', 'siblingCards', 'rejectedCards']) if (serialized.includes(`"${forbidden}"`)) throw new Error(`Sealed API envelope contains forbidden data: ${forbidden}`);
+  for (const forbidden of ['motionClip', 'motionNotes', 'categoryProfile', 'categoryConstitution', 'catalogFingerprint', 'siblingCards', 'rejectedCards', 'activeBatch', 'selectionBatch', 'batchFeedback', 'siblingSelections', 'priorDirections', 'projectPath']) if (serialized.includes(`"${forbidden}"`)) throw new Error(`Sealed API envelope contains forbidden data: ${forbidden}`);
   return true;
 };
 const validateIdentityPlacement = (payload, prompt) => {

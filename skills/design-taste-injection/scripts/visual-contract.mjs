@@ -34,7 +34,7 @@ const assertSealedPayload = (payload, options = {}) => {
   for (const key of ['id', 'name', 'category', 'descriptor', 'styleDescriptor']) if (typeof payload.card[key] !== 'string') throw new Error(`sealed payload card.${key} must be a string.`);
   assertStringArray(payload.card.tags, 'sealed payload card.tags'); if (!payload.card.observedBrief || Object.values(payload.card.observedBrief).some((value) => typeof value !== 'string')) throw new Error('sealed payload observedBrief must contain only strings.');
   assertExactKeys(payload.reference, ['stillPath', 'sha256', 'width', 'height', 'qualityTier', 'reliableFor'], 'sealed payload reference');
-  if (typeof payload.reference.stillPath !== 'string' || !/^(?:input\/)?reference\.(?:png|jpe?g|webp)$/i.test(payload.reference.stillPath) || !Number.isFinite(payload.reference.width) || !Number.isFinite(payload.reference.height) || payload.reference.width <= 0 || payload.reference.height <= 0 || !['canonical', 'usable'].includes(payload.reference.qualityTier)) throw new Error('Sealed payload reference is invalid.');
+  if (typeof payload.reference.stillPath !== 'string' || !/^(?:input\/)?reference\.(?:png|jpe?g|webp)$/i.test(payload.reference.stillPath) || !Number.isFinite(payload.reference.width) || !Number.isFinite(payload.reference.height) || payload.reference.width <= 0 || payload.reference.height <= 0 || !['canonical', 'usable', 'limited'].includes(payload.reference.qualityTier)) throw new Error('Sealed payload reference is invalid.');
   if (options.requireChecksum && !/^[a-f0-9]{64}$/.test(payload.reference.sha256 ?? '')) throw new Error('Sealed payload requires a still checksum.');
   assertStringArray(payload.reference.reliableFor, 'sealed payload reference.reliableFor');
   const futureKeys = payload.futureHero.kind === 'none' ? ['kind', 'noneMode', 'permittedMethod', 'reason'] : ['kind', 'prompt']; assertExactKeys(payload.futureHero, futureKeys, 'sealed payload futureHero');
@@ -65,6 +65,25 @@ const assertReviewedIdentity = (card) => {
   if (card?.sourceIdentity?.review?.reviewStatus !== 'reviewed' || !['codex-drafted', 'human-reviewed'].includes(card.sourceIdentity.review.reviewOrigin)) throw new Error(`Card identity inventory is not curated: ${card?.id ?? '(missing)'}`);
   if (card.identityReviewFresh !== true || card.sourceIdentity.review.reviewFingerprint !== card.identityReviewFingerprint) throw new Error(`Card identity inventory is stale: ${card.id}`);
 };
+const identityReviewCurrent = (card) => card?.sourceIdentity?.review?.reviewStatus === 'reviewed'
+  && ['codex-drafted', 'human-reviewed'].includes(card.sourceIdentity.review.reviewOrigin)
+  && card.identityReviewFresh === true
+  && card.sourceIdentity.review.reviewFingerprint === card.identityReviewFingerprint;
+const identityInventory = (card) => {
+  const identity = card?.sourceIdentity ?? {};
+  const derived = identity.derived ?? {};
+  const reviewed = identity.reviewed ?? {};
+  const fallbackFingerprint = hashBytes(Buffer.from(JSON.stringify({ cardId: card?.id, derived, reviewed }), 'utf8'));
+  return {
+    identity,
+    exactSignals: sourceIdentitySignals(identity),
+    derivedSignals: unique([...(derived.sourceNames ?? []), ...(derived.aliases ?? []), ...(derived.domains ?? [])]),
+    reviewedSignals: sourceIdentityReviewedSignals(identity),
+    knownMarkAssetIds: [...(reviewed.knownMarkAssetIds ?? [])],
+    knownAssetHashes: unique([...(derived.assetHashes ?? []), ...(reviewed.knownMarkAssetHashes ?? [])]),
+    reviewFingerprint: /^[a-f0-9]{64}$/.test(card?.identityReviewFingerprint ?? '') ? card.identityReviewFingerprint : fallbackFingerprint,
+  };
+};
 const geometryFromCard = (card, futureHero) => {
   const guidance = `${futureHero.prompt ?? futureHero.reason ?? ''} ${card.brief ?? ''}`.toLowerCase();
   const ratioMatch = guidance.match(/\b(\d{1,2})\s*:\s*(\d{1,2})\b/);
@@ -78,7 +97,9 @@ const geometryFromCard = (card, futureHero) => {
 
 const buildSealedPayload = (card, options = {}) => {
   if (!card || typeof card !== 'object') throw new Error('A selected card record is required.');
-  assertReviewedIdentity(card);
+  if (options.allowIdentityWarning !== true) assertReviewedIdentity(card);
+  if (!card.imageRecipe || !['none', 'primary', 'supporting'].includes(card.imageRecipe.kind)) throw new Error(`Card has no executable image recipe or method: ${card.id ?? '(missing)'}`);
+  const identity = identityInventory(card);
   const directionId = safeId(options.directionId ?? 'D01', 'directionId');
   const generationId = safeId(options.generationId ?? `${directionId}-H0`, 'generationId');
   const observedBrief = parseBrief(card.brief);
@@ -94,13 +115,13 @@ const buildSealedPayload = (card, options = {}) => {
     placement: { composition: observedBrief.Composition ?? '', spacing: observedBrief.Spacing ?? '', protectedRegions: futureHero.kind === 'none' ? futureHero.reason : futureHero.prompt },
     copyEnvelopes: { label: { min: 0, max: 24 }, headline: { min: 18, max: 56 }, body: { min: 60, max: 180 }, primaryAction: { min: 4, max: 20 } },
     identityExclusions: {
-      exactSignals: sourceIdentitySignals(card.sourceIdentity), derivedSignals: unique([...card.sourceIdentity.derived.sourceNames, ...card.sourceIdentity.derived.aliases, ...card.sourceIdentity.derived.domains]), reviewedSignals: sourceIdentityReviewedSignals(card.sourceIdentity), knownMarkAssetIds: [...card.sourceIdentity.reviewed.knownMarkAssetIds],
-      knownAssetHashes: unique([...card.sourceIdentity.derived.assetHashes, ...card.sourceIdentity.reviewed.knownMarkAssetHashes]), reviewFingerprint: card.identityReviewFingerprint,
+      exactSignals: identity.exactSignals, derivedSignals: identity.derivedSignals, reviewedSignals: identity.reviewedSignals, knownMarkAssetIds: identity.knownMarkAssetIds,
+      knownAssetHashes: identity.knownAssetHashes, reviewFingerprint: identity.reviewFingerprint,
     },
     output: { scope: 'hero-and-opening-module', viewport: options.viewport ?? { width: 1440, height: 1000 }, directory: 'output', entry: 'index.html', h0, geometry: h0 === 'code-native' ? null : geometryFromCard(card, futureHero), permittedFiles: ['index.html', 'styles.css', 'script.js', 'assets/*'] },
   };
   const serialized = JSON.stringify(payload);
-  for (const forbidden of ['categoryProfile', 'categoryConstitution', 'projectName', 'productName', 'industry', 'audience', 'brandColors', 'motionClip', 'motionNotes']) if (serialized.includes(`"${forbidden}"`)) throw new Error(`Sealed payload contains forbidden field: ${forbidden}`);
+  for (const forbidden of ['categoryProfile', 'categoryConstitution', 'projectName', 'productName', 'industry', 'audience', 'brandColors', 'motionClip', 'motionNotes', 'activeBatch', 'selectionBatch', 'batchFeedback', 'siblingSelections', 'priorDirections', 'projectPath', 'catalogFingerprint']) if (serialized.includes(`"${forbidden}"`)) throw new Error(`Sealed payload contains forbidden field: ${forbidden}`);
   assertSealedPayload(payload); return payload;
 };
 const renderVisualPrompt = (payload) => {
@@ -140,23 +161,30 @@ const scanExactSignals = (value, signalDocument) => {
 };
 const scanSourceIdentity = (value, identity) => scanExactSignals(value, { signals: sourceIdentityScanSignals(identity).map((signal) => ({ group: 'sourceIdentity', value: signal, normalized: normalizeText(signal) })) });
 
-const resolveEvidence = async (catalog, projectRoot, cardId) => {
+const resolveEvidence = async (catalog, projectRoot, cardId, options = {}) => {
   const card = catalog.cards.find((item) => item.id === cardId);
   if (!card) throw new Error(`Unknown card: ${cardId}`);
-  assertReviewedIdentity(card);
+  const warnings = [];
+  if (options.allowIdentityWarning === true) {
+    if (!identityReviewCurrent(card)) warnings.push(`Identity metadata for ${card.id} is stale or not fully curated; identity QA is required before this direction advances.`);
+  } else assertReviewedIdentity(card);
+  if (!card.imageRecipe || !['none', 'primary', 'supporting'].includes(card.imageRecipe.kind)) throw new Error(`Card has no executable image recipe or method: ${cardId}`);
   if (!card.media?.detailImage || card.quality?.width <= 0 || card.quality?.height <= 0) throw new Error(`Card has no usable canonical still: ${cardId}`);
   const project = await assertProjectRootPath(projectRoot, skillRoot, catalog.libraryRoot);
   const source = resolve(catalog.publicAssetRoot, card.media.detailImage.replace(/^[/\\]+/, ''));
   assertContainedPath(source, catalog.publicAssetRoot);
   if (!existsSync(source) || !(await stat(source)).isFile()) throw new Error(`Canonical still is missing: ${card.media.detailImage}`);
   const bytes = await readFile(source); const sha256 = hashBytes(bytes);
-  if (!card.sourceIdentity.derived.assetHashes.includes(sha256)) throw new Error(`Canonical still hash is not represented in curated identity metadata: ${cardId}`);
+  if (!(card.sourceIdentity?.derived?.assetHashes ?? []).includes(sha256)) {
+    if (options.allowIdentityWarning === true) warnings.push(`Canonical still hash for ${card.id} is not represented in the current identity inventory; identity QA is required.`);
+    else throw new Error(`Canonical still hash is not represented in curated identity metadata: ${cardId}`);
+  }
   const evidenceRoot = resolve(project, '.inspiration', 'evidence'); assertContainedPath(evidenceRoot, project); await mkdir(evidenceRoot, { recursive: true });
   const extension = extname(source).toLowerCase() || '.png'; const destination = resolve(evidenceRoot, `${card.id}-${sha256.slice(0, 16)}${extension}`); assertContainedPath(destination, evidenceRoot);
   if (!existsSync(destination)) await writeFile(destination, bytes);
   const record = { schemaVersion: 2, cardId: card.id, cardName: card.title, file: basename(destination), sha256, width: card.quality.width, height: card.quality.height, qualityTier: card.quality.tier, identityReviewFingerprint: card.identityReviewFingerprint, inspected: false, resolvedAt: new Date().toISOString() };
   await writeFile(resolve(evidenceRoot, `${card.id}-${sha256.slice(0, 16)}.json`), `${JSON.stringify(record, null, 2)}\n`, 'utf8');
-  return { card, source, destination, record };
+  return { card, source, destination, record, warnings, requiresIdentityQa: warnings.length > 0 };
 };
 const walk = async (root, directory = root, output = []) => {
   for (const entry of await readdir(directory, { withFileTypes: true })) { const path = resolve(directory, entry.name); if (entry.isDirectory()) await walk(root, path, output); else if (entry.isFile()) output.push({ path, relativePath: relative(root, path).replaceAll('\\', '/') }); }

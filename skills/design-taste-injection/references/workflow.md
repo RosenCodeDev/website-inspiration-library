@@ -8,7 +8,7 @@ Inspect the project and collect Introduction, Intent, Audience, Materials, and R
 
 Intake is sealed away from steps 1–3. It cannot choose cards, alter their recipe, or influence the first-pass visual agent.
 
-## 1. Select one anchor per category
+## 1. Select and review anchors as one parent batch
 
 Before generating any direction, run `reference-selection.mjs preflight <page-use>`. It must report eligible exact-category anchors for every current catalog category. If coverage is incomplete, stop before consuming subscription usage and choose a fully covered page role or repair the catalog; never silently omit a category.
 
@@ -23,7 +23,7 @@ Let the selection service read the catalog internally, but pass it only the requ
 }
 ```
 
-Run `reference-selection.mjs propose-and-save`. The selector:
+Run `reference-selection.mjs propose-batch-and-save <project-root> <request.json>`. It creates one numbered slot per current category in catalog order. The selector:
 
 - Requires exact primary category and anchor page-role eligibility.
 - Rejects limited or missing still evidence and unusable recipes/reasons.
@@ -36,13 +36,19 @@ Automatic rotation stays inside the ten-point band. An explicit `PIN THIS CARD` 
 
 Project keywords, semantic fit, industry, audience, brand compatibility, constitutions, supporting-card logic, and project usage are not accepted selection inputs.
 
-After selection, use `library.mjs card <stable-id> --json` or `library.mjs stage <stable-id> <project-root>`. The coordinator receives only the chosen record and evidence request; it does not receive or log the complete catalog.
+After selection, run `reference-review.mjs render <project-root>` and return its stdout as one complete Markdown response. Do not rewrite, split, or code-fence the output. Every slot must show its number, category, card name and stable ID, quality, direction, tradeoff, status, and actual staged still through absolute inline-image Markdown. A plain path, missing still, or non-inline fallback fails review.
 
-Use `SHOW ANOTHER CARD`, `PIN THIS CARD`, `DO NOT USE THIS CARD`, `SWAP`, and `ACCEPT ALL`. The legacy `SHOW ANOTHER SET` spelling is accepted only as a compatibility alias.
+Accept one reply containing any combination of `ACCEPT ALL`, `RNN ACCEPT`, `RNN SHOW ANOTHER CARD`, `RNN PIN THIS CARD`, `RNN DO NOT USE THIS CARD`, and `RNN SWAP <stable-id, exact title, or canonical URL>`. Apply valid operations in order and leave only ambiguous slots unchanged. A replacement returns to pending review. Pins and exclusions do not imply acceptance. The legacy `SHOW ANOTHER SET` spelling is accepted only as a compatibility alias.
+
+`SHOW ANOTHER CARD` rotates to the next eligible automatic card for that slot's category; the user does not name the replacement. `SWAP` is a targeted replacement and requires an exactly resolvable card identifier. For an automatic slot, the replacement must still satisfy that slot's automatic exact-category rules. For a custom slot, a targeted swap may select any resolvable custom-eligible card.
+
+`USE CUSTOM CARDS: <stable IDs, exact titles, or canonical URLs>` replaces the automatic batch in the supplied order and creates one slot per unique resolved card, with no artificial count cap. Never guess an ambiguous partial match. Explicit custom selection bypasses category, page-role, score-band, and limited-quality gates. It still hard-blocks unreadable or missing evidence and a missing executable recipe/method. Stale or uncurated identity metadata is allowed only with a prominent warning and a required identity-QA checkpoint before that direction advances.
+
+The batch is coordinator state, not generation context. For every accepted slot, fetch and stage only that card, then create one unique child run and one new temporary workspace. Never reuse a child conversation, prompt file, workspace, or output directory. Parallel execution is allowed only across independently scoped one-card runs. Never pass `activeBatch`, sibling selections, batch feedback, catalog data, prior directions, intake, project paths, motion, or category profiles to any child.
 
 ## 2. Resolve and inspect the still
 
-Resolve the selected stable card ID with `visual-contract.mjs`. Copy the canonical still into `.inspiration/evidence`, record its checksum and dimensions through `visual.evidence-recorded`, inspect it, then record `visual.evidence-inspected` with the matching checksum.
+Resolve each selected stable card ID independently with `visual-contract.mjs`. Copy its canonical still into `.inspiration/evidence`, record its checksum and dimensions through `visual.evidence-recorded`, inspect it, then record `visual.evidence-inspected` with the matching checksum. A custom slot carrying `requiresIdentityQa` must also pass the identity-QA checkpoint before generation can advance.
 
 Never provide motion clips or frames to the visual agent. Never provide the catalog, other cards, prior directions, intake, project paths, or category profiles.
 
@@ -64,7 +70,7 @@ Create `.inspiration/leak-signals.json` from exact intake-derived names, phrases
 
 ## 4. Generate through the Codex subscription
 
-Use `isolation-runner.mjs run-subscription` by default. It creates a temporary workspace containing only the sealed payload, rendered prompt, strict output schema, and one selected still, then launches an ephemeral read-only Codex CLI task authenticated with ChatGPT. The prompt travels through stdin and the still is the final `-i` argument. The child returns an allowlisted UTF-8 file manifest; it does not write the preview. The trusted coordinator enforces the 2 MiB limit, paths, uniqueness, text-only content, still checksum, identity and intake scans, and rendered H0 contract before materializing the preview.
+Use `isolation-runner.mjs run-subscription` once per direction by default. Every invocation creates a new temporary workspace containing only that direction's sealed payload, rendered prompt, strict output schema, and one selected still, then launches a new ephemeral read-only Codex CLI task authenticated with ChatGPT. The prompt travels through stdin and the still is the final `-i` argument. The child returns an allowlisted UTF-8 file manifest; it does not write the preview. The trusted coordinator enforces the 2 MiB limit, paths, uniqueness, text-only content, still checksum, identity and intake scans, and rendered H0 contract before materializing the preview.
 
 Require active ChatGPT authentication and remove `OPENAI_API_KEY` from the child environment. Authentication is the billing-safety check; a successful H0 is the page capability check. Built-in image generation is checked only when first requested, so no usage is spent on a probe. Record each run by generation ID as `subscription-ephemeral` with `isolated:false` and `contextLimited:true`. It limits accidental context bleed but is not a filesystem-confidentiality or API-grade boundary. The workbench label is `CODEX SUBSCRIPTION — STRUCTURED, CONTEXT-LIMITED`.
 

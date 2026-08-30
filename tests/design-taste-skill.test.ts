@@ -39,7 +39,7 @@ describe('inspiration-controlled design workflow', () => {
       'scripts/skill-integrity.mjs', 'scripts/export-workflow-catalog.mjs', 'scripts/validate-skill.mjs',
       'scripts/verify-temp-install.mjs', 'scripts/controlled-clone-fixture.mjs', 'scripts/clone-plumbing-smoke.mjs',
       'skills/design-taste-injection/scripts/library.mjs', 'skills/design-taste-injection/scripts/project-state.mjs',
-      'skills/design-taste-injection/scripts/reference-selection.mjs', 'skills/design-taste-injection/scripts/rotation-ledger.mjs',
+      'skills/design-taste-injection/scripts/reference-selection.mjs', 'skills/design-taste-injection/scripts/reference-review.mjs', 'skills/design-taste-injection/scripts/rotation-ledger.mjs',
       'skills/design-taste-injection/scripts/visual-contract.mjs', 'skills/design-taste-injection/scripts/isolation-runner.mjs',
       'skills/design-taste-injection/scripts/clone-runtime.mjs', 'skills/design-taste-injection/scripts/serve-workbench.mjs',
     ].map((file) => pathToFileURL(resolve(root, file)).href);
@@ -117,6 +117,76 @@ describe('inspiration-controlled design workflow', () => {
     const session = selection.createSession(extended, { ...request, pinned: [{ id: synthetic.id, role: 'anchor' }] });
     expect(session.currentSet.anchor.id).toBe(synthetic.id);
     expect(session.currentSet.supporting).toEqual([]);
+  });
+
+  it('creates one seven-slot review batch and applies mixed per-slot actions without cross-slot mutation', async () => {
+    const catalog = loadCatalog();
+    const selection = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'reference-selection.mjs')).href}?batch=${Date.now()}`);
+    const batch = selection.createAutomaticBatch(catalog, { pageUse: 'marketing', seed: 'all-categories', excluded: [] });
+    expect(batch.items).toHaveLength(catalog.categories.length);
+    expect(batch.items.map((item: any) => item.category)).toEqual(catalog.categories);
+    expect(batch.items.map((item: any) => item.slotId)).toEqual(['R01', 'R02', 'R03', 'R04', 'R05', 'R06', 'R07']);
+    expect(batch.items.every((item: any) => item.session.currentSet.supporting.length === 0)).toBe(true);
+    const before = batch.items.map((item: any) => item.session.currentSet.anchor.id);
+    const result = selection.applyBatchActions(catalog, batch, [
+      { type: 'ACCEPT', slotId: 'R01' },
+      { type: 'SHOW ANOTHER CARD', slotId: 'R02' },
+      { type: 'PIN THIS CARD', slotId: 'R03' },
+      { type: 'ACCEPT', slotId: 'R99' },
+    ]);
+    expect(result.issues).toHaveLength(1);
+    expect(result.batch.items[0].reviewStatus).toBe('accepted');
+    expect(result.batch.items[1].session.currentSet.anchor.id).not.toBe(before[1]);
+    expect(result.batch.items[1].reviewStatus).toBe('pending');
+    expect(result.batch.items[2].session.pinned).toEqual([{ id: before[2], role: 'anchor' }]);
+    expect(result.batch.items.slice(3).map((item: any) => item.session.currentSet.anchor.id)).toEqual(before.slice(3));
+    expect(result.batch.accepted).toBe(false);
+  });
+
+  it('supports ordered uncapped custom batches, same-category cards, soft overrides, and hard evidence gates', async () => {
+    const catalog = loadCatalog();
+    const selection = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'reference-selection.mjs')).href}?custom=${Date.now()}`);
+    const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?custom=${Date.now()}`);
+    const eligible = catalog.cards.filter((card: any) => selection.customCardEligible(card));
+    const overTwenty = eligible.slice(0, 23);
+    const large = selection.createCustomBatch(catalog, { pageUse: 'marketing', identifiers: overTwenty.map((card: any) => card.id) });
+    expect(large.items).toHaveLength(23);
+    expect(large.items.map((item: any) => item.session.currentSet.anchor.id)).toEqual(overTwenty.map((card: any) => card.id));
+    const one = selection.createCustomBatch(catalog, { pageUse: 'marketing', identifiers: [eligible[0].title] });
+    expect(one.items).toHaveLength(1);
+    const urlEligible = eligible.filter((card: any) => typeof card.source?.url === 'string');
+    const urlCategory = urlEligible.find((card: any) => urlEligible.filter((candidate: any) => candidate.primaryCategory === card.primaryCategory).length >= 3).primaryCategory;
+    const sameCategory = urlEligible.filter((card: any) => card.primaryCategory === urlCategory).slice(0, 3);
+    const same = selection.createCustomBatch(catalog, { pageUse: 'marketing', identifiers: sameCategory.map((card: any) => card.source.url) });
+    expect(same.items.map((item: any) => item.session.currentSet.anchor.id)).toEqual(sameCategory.map((card: any) => card.id));
+
+    const source = structuredClone(eligible[0]);
+    const staleLimited = { ...source, id: 'custom-stale-limited', title: 'Custom Stale Limited', identityReviewFresh: false, quality: { ...source.quality, tier: 'limited' } };
+    const extended = { ...catalog, cards: [...catalog.cards, staleLimited] };
+    const custom = selection.createCustomBatch(extended, { pageUse: 'marketing', identifiers: [staleLimited.id] });
+    expect(custom.items[0]).toEqual(expect.objectContaining({ requiresIdentityQa: true, identityQaStatus: 'required' }));
+    expect(custom.items[0].warnings.join(' ')).toMatch(/limited.*identity qa|required/i);
+    expect(() => visual.buildSealedPayload(staleLimited)).toThrow(/stale/i);
+    expect(() => visual.buildSealedPayload(staleLimited, { allowIdentityWarning: true })).not.toThrow();
+    const noRecipe = { ...source, id: 'custom-no-recipe', imageRecipe: null };
+    expect(() => selection.createCustomBatch({ ...catalog, cards: [...catalog.cards, noRecipe] }, { pageUse: 'marketing', identifiers: [noRecipe.id] })).toThrow(/recipe|method/i);
+    expect(() => selection.resolveCardIdentifier(catalog, `${eligible[0].title.slice(0, 5)}`)).toThrow(/resolve exactly/i);
+  });
+
+  it('renders every batch slot as deterministic inline image Markdown', async () => {
+    const catalog = loadCatalog();
+    const selection = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'reference-selection.mjs')).href}?reviewBatch=${Date.now()}`);
+    const review = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'reference-review.mjs')).href}?review=${Date.now()}`);
+    const batch = selection.createAutomaticBatch(catalog, { pageUse: 'marketing', seed: 'review-images', excluded: [] });
+    const evidence = Object.fromEntries(batch.items.map((item: any) => {
+      const card = catalog.cards.find((candidate: any) => candidate.id === item.session.currentSet.anchor.id);
+      return [item.slotId, { destination: resolve(catalog.publicAssetRoot, card.media.detailImage.replace(/^[/\\]+/, '')), warnings: [] }];
+    }));
+    const markdown = review.renderReviewMarkdown(catalog, batch, evidence);
+    expect([...markdown.matchAll(/!\[(?:\\.|[^\]])*\]\(<[^>]+>\)/g)]).toHaveLength(7);
+    expect(markdown).not.toContain('```');
+    expect(() => review.assertReviewMarkdown(markdown, batch, evidence)).not.toThrow();
+    expect(() => review.assertReviewMarkdown(markdown.replace(/!\[(?:\\.|[^\]])*\]\(<[^>]+>\)/, 'C:/plain/path.png'), batch, evidence)).toThrow(/exactly 7 inline images/i);
   });
 
   it('uses a seeded exhaustion-before-repeat shuffle with refresh, pins, and exclusions', async () => {
@@ -344,6 +414,48 @@ describe('inspiration-controlled design workflow', () => {
     expect(source).toContain('DEGRADED — NOT ISOLATED');
   }, 20_000);
 
+  it('creates unique one-card workspaces and excludes sibling, feedback, intake, and prior-output sentinels', async () => {
+    const catalog = loadCatalog();
+    const visual = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'visual-contract.mjs')).href}?sentinel=${Date.now()}`);
+    const isolation = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'isolation-runner.mjs')).href}?sentinel=${Date.now()}`);
+    const selected = catalog.cards.find((card: any) => card.id === 'site-spade');
+    const sibling = { ...catalog.cards.find((card: any) => card.id !== selected.id), title: 'SIBLING_SENTINEL_4B17' };
+    const evidence = await visual.resolveEvidence(catalog, resolve(scratch, 'sentinel-project'), selected.id);
+    const payload = visual.buildSealedPayload(selected, { sha256: evidence.record.sha256 });
+    const protectedSentinels = ['SIBLING_SENTINEL_4B17', 'BATCH_FEEDBACK_SENTINEL_8C22', 'INTAKE_SENTINEL_A91F', 'PRIOR_OUTPUT_SENTINEL_F733'];
+    expect(sibling.title).toBe(protectedSentinels[0]);
+    const first = await isolation.createSubscriptionWorkspace(evidence.destination, payload);
+    const second = await isolation.createSubscriptionWorkspace(evidence.destination, payload);
+    try {
+      expect(first.workspace).not.toBe(second.workspace);
+      for (const workspace of [first, second]) {
+        expect(readdirSync(workspace.workspace).sort()).toEqual(['PROMPT.md', 'input', 'output', 'output-schema.json', 'payload.json']);
+        const serialized = [readFileSync(resolve(workspace.workspace, 'payload.json'), 'utf8'), readFileSync(resolve(workspace.workspace, 'PROMPT.md'), 'utf8'), readFileSync(resolve(workspace.workspace, 'output-schema.json'), 'utf8')].join('\n');
+        for (const sentinel of protectedSentinels) expect(serialized).not.toContain(sentinel);
+        expect(readdirSync(workspace.input)).toHaveLength(1);
+        expect(readdirSync(workspace.output)).toHaveLength(0);
+      }
+    } finally {
+      rmSync(first.workspace, { recursive: true, force: true });
+      rmSync(second.workspace, { recursive: true, force: true });
+    }
+    const manifest = {
+      files: [
+        { path: 'index.html', content: '<!doctype html><link rel="stylesheet" href="styles.css"><main><section data-inspiration-hero><div data-protected-copy-region>Neutral heading</div><div data-future-image-slot></div></section><section data-opening-module>Opening module</section></main>' },
+        { path: 'styles.css', content: 'body{margin:0}[data-inspiration-hero]{display:grid;grid-template-columns:1fr 1fr;min-height:600px}[data-future-image-slot]{width:620px;aspect-ratio:4/3;background:#d8d4ca}[data-opening-module]{min-height:200px}' },
+      ],
+      inspection: { stillSha256: evidence.record.sha256 },
+    };
+    expect(JSON.stringify(manifest)).not.toMatch(new RegExp(protectedSentinels.join('|')));
+    const output = resolve(scratch, 'sentinel-output');
+    await isolation.materializeOutput(manifest, output, evidence.record.sha256);
+    const imported = await visual.importPreview(output, resolve(scratch, 'sentinel-project'), 'D-SENTINEL', { leakSignals: { schemaVersion: 1, signals: protectedSentinels.map((value: string) => ({ group: 'sentinel', value, normalized: value.toLowerCase() })) }, sourceIdentity: selected.sourceIdentity, anchorCardId: selected.id, expectedH0: 'reserved-image-hole-with-flat-stand-in', expectedGeometry: { aspectRatio: 4 / 3, aspectTolerance: 0.18, alignment: 'right', minWidthRatio: 0.28, minHeightRatio: 0.2 }, sourceStillInspected: true });
+    const importedRoot = resolve(scratch, 'sentinel-project', '.inspiration', 'previews', 'D-SENTINEL');
+    const importedText = ['index.html', 'styles.css', 'output-contract.json'].map((file) => readFileSync(resolve(importedRoot, file), 'utf8')).join('\n');
+    for (const sentinel of protectedSentinels) expect(importedText).not.toContain(sentinel);
+    expect(imported.preview).toBe('../previews/D-SENTINEL/index.html');
+  }, 40_000);
+
   it('round-trips large structured manifests and rejects malformed or unsafe output', async () => {
     const isolation = await import(`${pathToFileURL(resolve(skillRoot, 'scripts', 'isolation-runner.mjs')).href}?manifest=${Date.now()}`);
     const destination = resolve(scratch, 'manifest-stress'); const stillSha256 = 'a'.repeat(64);
@@ -367,11 +479,18 @@ describe('inspiration-controlled design workflow', () => {
     await expect(isolation.materializeOutput({ ...manifest, files: [{ path: 'assets/too-large.js', content: 'x'.repeat(isolation.MAX_STRUCTURED_OUTPUT_BYTES) }] }, destination, stillSha256)).rejects.toThrow(/2 MiB/i);
   }, 20_000);
 
-  it('initializes schema 10 state, records direction-only subscription provenance, and persists visual controls through events', () => {
+  it('initializes schema 11 state, records direction-only subscription provenance, and persists visual controls through events', () => {
     const project = resolve(scratch, 'state-project');
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
     expect(runNode(script, ['init', project]).status).toBe(0);
-    const card = loadCatalog().cards.find((item: any) => item.primaryCategory === 'Print-Tech Paper');
+    const requestPath = resolve(scratch, 'state-batch-request.json');
+    const actionsPath = resolve(scratch, 'state-batch-actions.json');
+    writeFileSync(requestPath, JSON.stringify({ pageUse: 'marketing', seed: 'state-batch', excluded: [] }));
+    writeFileSync(actionsPath, JSON.stringify([{ type: 'ACCEPT ALL' }]));
+    expect(runNode(resolve(skillRoot, 'scripts', 'reference-selection.mjs'), ['propose-batch-and-save', project, requestPath]).status).toBe(0);
+    expect(runNode(resolve(skillRoot, 'scripts', 'reference-selection.mjs'), ['batch-action-and-save', project, actionsPath]).status).toBe(0);
+    const selectedState = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
+    const card = loadCatalog().cards.find((item: any) => item.id === selectedState.references.activeBatch.items[0].session.currentSet.anchor.id);
     const preview = resolve(project, '.inspiration', 'previews', 'D01');
     mkdirSync(preview, { recursive: true });
     writeFileSync(resolve(preview, 'index.html'), '<!doctype html><html><body><main>Direction preview D01</main></body></html>');
@@ -389,19 +508,53 @@ describe('inspiration-controlled design workflow', () => {
     writeFileSync(eventPath, JSON.stringify({ type: 'visual.route-conformance-recorded', payload: { route: '/pricing', status: 'passed', checks: ['type', 'palette', 'spacing'] } }));
     expect(runNode(script, ['apply-event', project, eventPath]).status).toBe(0);
     const state = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(10);
+    expect(state.schemaVersion).toBe(11);
     expect(state.workbenchVersion).toBe(8);
     expect(state.generations[0].references).toEqual([{ id: card.id, role: 'anchor' }]);
     expect(state.visualControl.isolation.mode).toBe('subscription-ephemeral');
     expect(state.visualControl.isolationRuns.D01).toEqual(expect.objectContaining({ generationId: 'D01', mode: 'subscription-ephemeral', outputMode: 'structured-manifest' }));
     expect(state.visualControl.routeConformance[0].route).toBe('/pricing');
     expect(readFileSync(resolve(project, '.inspiration', 'workbench', 'index.html'), 'utf8')).toContain('SHOW ANOTHER CARD');
-    state.schemaVersion = 9; state.workbenchVersion = 7; delete state.visualControl.isolationRuns; delete state.visualControl.tweakBar; state.visualControl.isolation = { mode: 'sealed-api', model: 'gpt-5.6-sol', requestFingerprint: 'b'.repeat(64), recordedAt: new Date().toISOString() };
+    const priorBatch = state.references.activeBatch;
+    state.decisions.push({ action: 'PRESERVE MIGRATION DECISION', summary: 'Schema-v10 decisions survive batch migration.', stage: 'intake', createdAt: new Date().toISOString() });
+    state.schemaVersion = 10; state.workbenchVersion = 7; state.references.activeSession = priorBatch.items[0].session; delete state.references.activeBatch; state.references.pinned = state.references.activeSession.pinned;
     writeFileSync(resolve(project, '.inspiration', 'state.json'), JSON.stringify(state));
     expect(runNode(script, ['init', project]).status).toBe(0);
     const migrated = JSON.parse(readFileSync(resolve(project, '.inspiration', 'state.json'), 'utf8'));
-    expect(migrated.schemaVersion).toBe(10); expect(migrated.visualControl.isolation.mode).toBe('sealed-api'); expect(migrated.visualControl.isolationRuns.D01.mode).toBe('sealed-api'); expect(migrated.visualControl.tweakBar.status).toBe('pending');
+    expect(migrated.schemaVersion).toBe(11); expect(migrated.references.activeBatch.items).toHaveLength(1); expect(migrated.references.activeBatch.items[0].session.currentSet.anchor.id).toBe(card.id); expect(migrated.generations[0].id).toBe('D01'); expect(migrated.decisions.some((decision: any) => decision.action === 'PRESERVE MIGRATION DECISION')).toBe(true); expect(migrated.visualControl.isolation.mode).toBe('subscription-ephemeral'); expect(migrated.visualControl.isolationRuns.D01.mode).toBe('subscription-ephemeral'); expect(migrated.visualControl.tweakBar.status).toBe('pending');
   }, 60_000);
+
+  it('blocks a stale custom direction until its identity-QA checkpoint passes', () => {
+    const project = resolve(scratch, 'custom-identity-qa');
+    const stateScript = resolve(skillRoot, 'scripts', 'project-state.mjs');
+    const selectionScript = resolve(skillRoot, 'scripts', 'reference-selection.mjs');
+    expect(runNode(stateScript, ['init', project]).status).toBe(0);
+    const catalog = loadCatalog();
+    const card = catalog.cards.find((candidate: any) => candidate.identityReviewFresh !== true && candidate.media?.detailImage && candidate.media?.original && candidate.quality?.width > 0 && candidate.quality?.height > 0 && (candidate.imageRecipe?.kind === 'none'
+      ? candidate.imageRecipe.reason?.trim().length >= 60 && candidate.imageRecipe.permittedMethod?.trim().length >= 3
+      : candidate.imageRecipe?.prompt?.trim().length >= 80));
+    expect(card).toBeTruthy();
+    const requestPath = resolve(scratch, 'custom-qa-request.json');
+    const actionsPath = resolve(scratch, 'custom-qa-actions.json');
+    writeFileSync(requestPath, JSON.stringify({ mode: 'custom', pageUse: 'marketing', identifiers: [card.id], excluded: [] }));
+    writeFileSync(actionsPath, JSON.stringify([{ type: 'ACCEPT ALL' }]));
+    expect(runNode(selectionScript, ['propose-batch-and-save', project, requestPath]).status).toBe(0);
+    expect(runNode(selectionScript, ['batch-action-and-save', project, actionsPath]).status).toBe(0);
+    const preview = resolve(project, '.inspiration', 'previews', 'D-CUSTOM');
+    mkdirSync(preview, { recursive: true });
+    writeFileSync(resolve(preview, 'index.html'), '<!doctype html><html><body><main>Custom direction</main></body></html>');
+    const generationPath = resolve(scratch, 'custom-qa-direction.json');
+    writeFileSync(generationPath, JSON.stringify({
+      id: 'D-CUSTOM', directionId: 'D-CUSTOM', parent: null, stage: 'direction', status: 'selected', executionHost: 'sealed-runner', label: 'Custom direction', category: card.primaryCategory,
+      thesis: 'Explicit custom-card direction.', references: [{ id: card.id, role: 'anchor' }], preview: '../previews/D-CUSTOM/index.html', previewScope: focusedDirectionScope(), createdAt: new Date().toISOString(),
+    }));
+    const blocked = runNode(stateScript, ['append-generation', project, generationPath]);
+    expect(blocked.status).not.toBe(0); expect(blocked.stderr).toMatch(/identity QA passes/i);
+    const eventPath = resolve(scratch, 'custom-qa-event.json');
+    writeFileSync(eventPath, JSON.stringify({ type: 'references.identity-qa-recorded', payload: { slotId: 'R01', status: 'passed', reviewer: 'Project reviewer', summary: 'Reviewed source identity exclusions and still resemblance.' } }));
+    expect(runNode(stateScript, ['apply-event', project, eventPath]).status).toBe(0);
+    expect(runNode(stateScript, ['append-generation', project, generationPath]).status).toBe(0);
+  }, 30_000);
 
   it('enforces parent-owned variants, complete batches, protected hero lineage, and clean tweak-bar exclusion', async () => {
     const catalog = loadCatalog(); const card = catalog.cards.find((item: any) => item.id === 'site-spade');
@@ -448,7 +601,7 @@ describe('inspiration-controlled design workflow', () => {
     const script = resolve(skillRoot, 'scripts', 'project-state.mjs');
     expect(runNode(script, ['init', project]).status).toBe(0);
     const state = JSON.parse(readFileSync(resolve(inspiration, 'state.json'), 'utf8'));
-    expect(state.schemaVersion).toBe(10);
+    expect(state.schemaVersion).toBe(11);
     expect(state.generations[0].previewScope).toEqual({ kind: 'legacy-unverified' });
     expect(state.visualControl).toBeTruthy();
     expect(state.visualControl.isolation).toEqual(expect.objectContaining({ mode: 'legacy-unverified', legacyMode: 'payload-only' }));

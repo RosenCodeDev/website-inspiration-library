@@ -16,7 +16,7 @@ Explicit invocation: `$design-taste-injection`.
 3. Confirm the current workspace is the target website project, not the library or skill source. Never place website output in a protected location.
 4. Resolve every skill-relative script and reference from the directory containing this `SKILL.md`.
 5. Initialize or resume `.inspiration` with `node <installed-skill-root>/scripts/project-state.mjs init <website-project-root>`. The project root is a positional argument; never use `--project-root`. It must exactly match `config/library.json` so state stays at the installed website-project root.
-6. Persist changes only through `project-state.mjs apply-event`, `reference-selection.mjs propose-and-save`, and `reference-selection.mjs action-and-save`.
+6. Persist changes only through `project-state.mjs apply-event`, `reference-selection.mjs propose-batch-and-save`, and `reference-selection.mjs batch-action-and-save`. The legacy single-session commands are compatibility-only.
 7. Inspect the project and supplied materials for content, structure, and functionality. Do not expose that intake to visual-direction generation.
 
 ## Intake
@@ -35,17 +35,20 @@ At each important checkpoint offer exactly:
 For anchor review also support:
 
 - `ACCEPT ALL`
+- Per-slot `ACCEPT`
 - `SWAP`
 - `SHOW ANOTHER CARD`
 - `PIN THIS CARD`
 - `DO NOT USE THIS CARD`
+- `USE CUSTOM CARDS`
 
 Pins and exclusions never imply approval to advance.
 
 ## Invariants
 
-- Preflight the intended page role, then present one first-pass direction for every current catalog category. Do not begin generation if any category lacks an eligible exact-category anchor.
+- Preflight the intended page role, then present one first-pass direction for every current catalog category in one deterministic parent-facing review. Do not begin generation if any category lacks an eligible exact-category anchor.
 - Each direction has exactly one anchor and no supporting cards.
+- Review batching exists only in the trusted parent. Each accepted direction gets a new child run and unique temporary workspace containing exactly one sealed card payload, one staged still, the strict output schema, and its direction prompt. Never serialize the active batch, siblings, feedback, intake, prior outputs, catalog, or project paths into a child request.
 - Automatic selection uses primary category, page-role eligibility, anchor strength, source/still quality, and verified usability only.
 - Never use project semantics, industry, audience, brand palette, category constitution, prior project usage, or cross-card complementarity to choose an anchor.
 - Inspect the selected still before writing first-pass HTML. Never inspect motion for visual-direction generation.
@@ -58,7 +61,7 @@ Pins and exclusions never imply approval to advance.
 - After hero selection, add the contract-constrained development tweak bar, apply accepted values to source, build one representative dense page, and prove the tweak bar is absent from production.
 - Inner pages inherit the frozen system while using page-appropriate structures; they do not repeat the landing-page hero.
 - Render every generation at `.inspiration/previews/<generation-id>/index.html` before recording it.
-- Record schema-v10 typed lineage through `project-state.mjs`: direction, three-variant batch, build-path shell, hero batch, tweak lifecycle, implementation, and final. IDs are readable labels; typed fields are authoritative.
+- Record schema-v11 typed lineage through `project-state.mjs`: batched reference review, direction, three-variant batch, build-path shell, hero batch, tweak lifecycle, implementation, and final. IDs are readable labels; typed fields are authoritative.
 - Preserve source identity safely: automatic generation requires a current fingerprinted identity inventory. Record whether it is Codex-drafted or human-reviewed; current Codex-drafted inventories remain generation guardrails, not legal or independent QA review. Ambiguous resemblance receives human review and is never automatically deleted.
 
 ## Conditional Routes

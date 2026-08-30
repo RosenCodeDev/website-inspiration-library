@@ -10,7 +10,7 @@ import { assertContainedPath, assertProjectRootPath, canonicalPath } from './pat
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
 const templatePath = resolve(skillRoot, 'assets', 'workbench-template.html');
-const currentSchemaVersion = 10;
+const currentSchemaVersion = 11;
 const currentWorkbenchVersion = 8;
 const legacyWorkbenchHashes = new Set([
   '90d7b70ac826a8955583e5f09d5ccb198e1d2a85e27e49b07391e23255d91b5d',
@@ -68,7 +68,7 @@ const emptyState = (projectRoot) => {
     references: {
       catalogFingerprint: null,
       selectionStatus: 'none',
-      activeSession: null,
+      activeBatch: null,
       acceptedSets: [],
       historicalCards: {},
       pinned: [],
@@ -220,7 +220,7 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
   else {
     if (state.references.catalogFingerprint !== null && typeof state.references.catalogFingerprint !== 'string') errors.push('references.catalogFingerprint must be a string or null');
     if (!['none', 'current', 'needs-revalidation'].includes(state.references.selectionStatus)) errors.push('references.selectionStatus is invalid');
-    if (state.references.activeSession !== null && !isRecord(state.references.activeSession)) errors.push('references.activeSession must be an object or null');
+    if (state.references.activeBatch !== null) errors.push(...validateReferenceBatch(state.references.activeBatch, 'references.activeBatch', catalog));
     if (!Array.isArray(state.references.acceptedSets)) errors.push('references.acceptedSets must be an array');
     else state.references.acceptedSets.forEach((set, index) => errors.push(...validateReferenceSet(set, `references.acceptedSets[${index}]`, catalog)));
     if (!isRecord(state.references.historicalCards)) errors.push('references.historicalCards must be an object');
@@ -229,15 +229,14 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
     }
     if (!Array.isArray(state.references.pinned)) errors.push('references.pinned must be an array');
     else {
-      const ids = state.references.pinned.map((pin) => pin?.id);
-      if (new Set(ids).size !== ids.length) errors.push('references.pinned contains duplicates');
-      if (state.references.pinned.some((pin) => !isRecord(pin) || typeof pin.id !== 'string' || typeof pin.role !== 'string')) errors.push('references.pinned records need id and role');
-      if (state.references.pinned.length > 1) errors.push('references.pinned supports at most one anchor');
-      if (state.references.pinned.filter((pin) => pin.role === 'anchor').length > 1) errors.push('references.pinned contains multiple anchors');
+      const keys = state.references.pinned.map((pin) => `${pin?.slotId}\0${pin?.id}`);
+      if (new Set(keys).size !== keys.length) errors.push('references.pinned contains duplicates');
+      if (state.references.pinned.some((pin) => !isRecord(pin) || typeof pin.slotId !== 'string' || typeof pin.id !== 'string' || pin.role !== 'anchor')) errors.push('references.pinned records need slotId, id, and anchor role');
       if (catalog && state.references.selectionStatus === 'current') for (const pin of state.references.pinned) {
         if (!catalogIds.has(pin.id)) errors.push(`references.pinned contains unknown card: ${pin.id}`);
         if (pin.role !== 'anchor') errors.push(`references.pinned contains unsupported role: ${pin.role}`);
       }
+      if (state.references.activeBatch && JSON.stringify(state.references.pinned) !== JSON.stringify(batchPins(state.references.activeBatch))) errors.push('references.pinned must mirror active batch pins');
     }
     if (!Array.isArray(state.references.excluded) || state.references.excluded.some((id) => typeof id !== 'string') || new Set(state.references.excluded).size !== state.references.excluded.length) errors.push('references.excluded must contain unique strings');
     if (Array.isArray(state.references.excluded) && Array.isArray(state.references.pinned)) {
@@ -246,14 +245,12 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
     }
     if (catalog && state.references.selectionStatus === 'current') {
       if (state.references.catalogFingerprint !== catalog.fingerprint) errors.push('active references require revalidation against the current catalog');
-      if (!state.references.activeSession) errors.push('current references require an active session');
-      else {
-        errors.push(...validateReferenceSet(state.references.activeSession.currentSet, 'references.activeSession.currentSet', catalog));
-        if (state.references.activeSession.catalogFingerprint !== catalog.fingerprint) errors.push('active session catalog fingerprint is stale');
-      }
-      const activeIds = state.references.activeSession ? [state.references.activeSession.currentSet?.anchor?.id, ...(state.references.activeSession.currentSet?.supporting ?? []).map((item) => item.id)] : [];
+      if (!state.references.activeBatch) errors.push('current references require an active batch');
+      else if (state.references.activeBatch.catalogFingerprint !== catalog.fingerprint) errors.push('active batch catalog fingerprint is stale');
+      const activeIds = state.references.activeBatch ? state.references.activeBatch.items.flatMap((item) => [item.session.currentSet?.anchor?.id, ...(item.session.currentSet?.supporting ?? []).map((entry) => entry.id)]) : [];
       for (const id of activeIds.filter(Boolean)) if (!catalogIds.has(id)) errors.push(`active session contains unknown card: ${id}`);
       for (const id of state.references.excluded ?? []) if (!catalogIds.has(id)) errors.push(`references.excluded contains unknown card: ${id}`);
+      if (state.references.activeBatch && batchExcluded(state.references.activeBatch).some((id) => !state.references.excluded.includes(id))) errors.push('references.excluded must include active batch exclusions');
     }
     if (catalog) for (const set of state.references.acceptedSets ?? []) for (const item of [set.anchor, ...set.supporting]) {
       if (!catalogIds.has(item.id) && !state.references.historicalCards?.[item.id]) errors.push(`accepted reference lacks a current card or historical snapshot: ${item.id}`);
@@ -379,7 +376,8 @@ const validateState = (state, expectedProjectRoot, catalog = null) => {
     const direction = selectedGeneration('direction');
     if (direction?.lineageStatus !== 'legacy-unverified' && !state.visualControl?.isolationRuns?.[direction?.id]) errors.push('direction execution provenance is required before references');
   }
-  if (atOrAfter('variants') && (!(state.references?.acceptedSets?.length > 0) || state.references?.selectionStatus !== 'current')) errors.push('a current accepted reference set is required before variants');
+  if (atOrAfter('variants') && (!(state.references?.acceptedSets?.length > 0) || state.references?.selectionStatus !== 'current' || state.references?.activeBatch?.accepted !== true)) errors.push('a current fully accepted reference batch is required before variants');
+  if (atOrAfter('variants') && state.references?.activeBatch?.items.some((item) => item.identityQaStatus === 'required')) errors.push('all required custom-card identity QA checkpoints must pass before variants');
   if (atOrAfter('variants') && !state.visualControl?.anchorContract) errors.push('a frozen anchor contract is required before variants');
   if (atOrAfter('build-path') && (!selectedAt('variant') || !completeVariantBatch(selectedGeneration('variant')))) errors.push('a selected variant from a complete three-variant batch is required before build path');
   if (atOrAfter('hero') && !selectedAt('build-path')) errors.push('a selected build path is required before hero work');
@@ -405,11 +403,11 @@ const legacyPreview = (generation) => `<!doctype html>\n<html lang="en"><meta ch
 
 const normalizeStatus = (status) => ({ direction: 'directions', reference: 'references', variant: 'variants', build: 'implementation' })[status] ?? (workflowStatuses.has(status) ? status : 'intake');
 const migrateState = async (state, paths, projectRoot, catalog) => {
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(state.schemaVersion)) throw new Error(`Unsupported state schema: ${state.schemaVersion}`);
   if (state.schemaVersion === currentSchemaVersion) {
     if (state.references?.selectionStatus === 'current' && state.references.catalogFingerprint !== catalog.fingerprint) {
       state.references.historicalCards ??= {};
-      const priorSets = [...(state.references.acceptedSets ?? []), state.references.activeSession?.currentSet].filter(Boolean);
+      const priorSets = [...(state.references.acceptedSets ?? []), ...(state.references.activeBatch?.items ?? []).map((item) => item.session?.currentSet)].filter(Boolean);
       for (const set of priorSets) for (const entry of [set.anchor, ...(set.supporting ?? [])]) {
         if (!entry?.id || state.references.historicalCards[entry.id]) continue;
         const current = catalog.cards.find((card) => card.id === entry.id);
@@ -424,6 +422,23 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
       return true;
     }
     return state.workbenchVersion !== currentWorkbenchVersion;
+  }
+  if (state.schemaVersion === 10) {
+    const priorSession = state.references?.activeSession;
+    state.schemaVersion = currentSchemaVersion;
+    state.migrationWarnings = Array.isArray(state.migrationWarnings) ? state.migrationWarnings : [];
+    state.references = isRecord(state.references) ? state.references : {};
+    state.references.activeBatch = priorSession ? batchFromSession(priorSession, state) : null;
+    delete state.references.activeSession;
+    state.references.pinned = state.references.activeBatch ? batchPins(state.references.activeBatch) : [];
+    state.references.excluded = [...new Set([...(state.references.excluded ?? []), ...batchExcluded(state.references.activeBatch)])];
+    if (priorSession) state.migrationWarnings.push('The schema-v10 active reference session was preserved as a one-item review batch.');
+    if (state.references.selectionStatus === 'current' && state.references.catalogFingerprint !== catalog.fingerprint) {
+      state.references.selectionStatus = 'needs-revalidation';
+      state.migrationWarnings.push('The library catalog changed. Historical selections remain visible, but the active batch must be revalidated before reuse.');
+    }
+    state.updatedAt = new Date().toISOString();
+    return true;
   }
   if (state.schemaVersion === 9) {
     const previousSchemaVersion = state.schemaVersion;
@@ -443,6 +458,12 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
     }
     state.generations = Array.isArray(state.generations) ? state.generations : [];
     for (const generation of state.generations) generation.lineageStatus ??= 'legacy-unverified';
+    const priorSession = state.references?.activeSession;
+    state.references = isRecord(state.references) ? state.references : {};
+    state.references.activeBatch = priorSession ? batchFromSession(priorSession, state) : null;
+    delete state.references.activeSession;
+    state.references.pinned = state.references.activeBatch ? batchPins(state.references.activeBatch) : [];
+    state.references.excluded = [...new Set([...(state.references.excluded ?? []), ...batchExcluded(state.references.activeBatch)])];
     if (state.references?.selectionStatus === 'current' && state.references.catalogFingerprint !== catalog.fingerprint) {
       state.references.selectionStatus = 'needs-revalidation';
       state.migrationWarnings.push('The library catalog changed. Historical selections remain visible, but the active set must be revalidated before reuse.');
@@ -457,7 +478,7 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
       if (!semanticErrors.length) break;
     }
     if (state.status !== originalStatus) {
-      state.migrationWarnings.push(`Schema ${previousSchemaVersion} project stage was adjusted from ${originalStatus} to ${state.status} because required schema-v10 artifacts were missing.`);
+      state.migrationWarnings.push(`Schema ${previousSchemaVersion} project stage was adjusted from ${originalStatus} to ${state.status} because required current artifacts were missing.`);
       state.decisions.push({ action: 'MIGRATION STAGE ADJUSTMENT', summary: `Preserved project history and resumed at ${state.status}.`, stage: state.status, createdAt: state.updatedAt });
     }
     state.updatedAt = new Date().toISOString();
@@ -493,10 +514,10 @@ const migrateState = async (state, paths, projectRoot, catalog) => {
   state.references = {
     catalogFingerprint: catalog.fingerprint,
     selectionStatus: legacyReferences.activeSession ? 'needs-revalidation' : 'none',
-    activeSession: null,
+    activeBatch: null,
     acceptedSets,
     historicalCards,
-    pinned: Array.isArray(legacyReferences.pinned) ? legacyReferences.pinned.filter((pin) => pin?.role === 'anchor').slice(0, 1) : [],
+    pinned: [],
     excluded: Array.isArray(legacyReferences.excluded) ? legacyReferences.excluded : [],
   };
   const priorIsolation = isRecord(state.visualControl?.isolation) ? state.visualControl.isolation : { mode: null, recordedAt: null };
@@ -663,26 +684,21 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
     if (!isRecord(payload)) throw new Error('architecture.updated requires an object payload');
     state.informationArchitecture = { ...state.informationArchitecture, ...payload };
   } else if (event.type === 'references.updated') {
-    throw new Error('references.updated is retired; use the validated references.session-saved action');
+    throw new Error('references.updated is retired; use the validated references.batch-saved action');
   } else if (event.type === 'references.session-saved') {
     const { normalizeSession } = await import('./reference-selection.mjs');
     const session = normalizeSession(catalog, structuredClone(payload));
-    state.references = {
-      ...state.references,
-      catalogFingerprint: catalog.fingerprint,
-      selectionStatus: 'current',
-      activeSession: session,
-      pinned: structuredClone(session.pinned),
-      excluded: [...new Set([...state.references.excluded, ...session.excluded])],
-    };
-    if (session.accepted && !state.references.acceptedSets.some((set) => set.signature === session.currentSet.signature)) {
-      state.references.acceptedSets.push(structuredClone(session.currentSet));
-    }
-    const sessionSets = [session.currentSet, ...session.acceptedSets, ...session.history];
-    for (const set of sessionSets) for (const entry of [set.anchor, ...set.supporting]) {
-      const card = catalog.cards.find((item) => item.id === entry.id);
-      if (card) state.references.historicalCards[card.id] = { id: card.id, title: card.title, primaryCategory: card.primaryCategory, fingerprint: card.fingerprint, retired: false };
-    }
+    applyReferenceBatchState(state, batchFromSession(session, state), catalog);
+  } else if (event.type === 'references.batch-saved') {
+    const { normalizeBatch } = await import('./reference-selection.mjs');
+    const batch = normalizeBatch(catalog, structuredClone(payload));
+    applyReferenceBatchState(state, batch, catalog);
+  } else if (event.type === 'references.identity-qa-recorded') {
+    if (!isRecord(payload) || typeof payload.slotId !== 'string' || payload.status !== 'passed' || typeof payload.summary !== 'string' || !payload.summary.trim() || typeof payload.reviewer !== 'string' || !payload.reviewer.trim()) throw new Error('references.identity-qa-recorded requires slotId, passed status, reviewer, and summary');
+    const item = state.references.activeBatch?.items.find((candidate) => candidate.slotId === payload.slotId);
+    if (!item || item.requiresIdentityQa !== true) throw new Error(`Identity QA is not required for ${payload.slotId}`);
+    item.identityQaStatus = 'passed';
+    item.identityQa = { status: 'passed', reviewer: payload.reviewer, summary: payload.summary, recordedAt: new Date().toISOString() };
   } else if (event.type === 'workflow.status-changed') state.status = payload?.status;
   else if (event.type === 'hero.provider-selected') state.heroProvider = payload?.provider;
   else if (event.type === 'visual.evidence-recorded') {
@@ -754,6 +770,10 @@ const applyEvent = async (projectRoot, paths, state, event, options = {}) => {
     if (payload?.stage === 'direction') {
       const scopeErrors = validateDirectionPreviewScope(payload.previewScope, `direction ${payload.id ?? '(missing)'}`, false);
       if (scopeErrors.length) throw new Error(scopeErrors.join('; '));
+      const anchorId = payload.references?.find((entry) => entry.role === 'anchor')?.id;
+      const item = state.references.activeBatch?.items.find((candidate) => candidate.session.currentSet.anchor.id === anchorId);
+      if (!item || item.reviewStatus !== 'accepted') throw new Error(`Direction ${payload.id ?? '(missing)'} requires an accepted active-batch slot for its anchor`);
+      if (item.identityQaStatus === 'required') throw new Error(`Direction ${payload.id ?? '(missing)'} cannot advance until identity QA passes for ${item.slotId}`);
     }
     await assertGenerationPreview(paths, payload);
     state.generations.push(payload);
@@ -801,6 +821,12 @@ const saveReferenceSession = async (rawRoot, session) => {
   const state = await loadState(projectRoot, paths);
   await applyEvent(projectRoot, paths, state, { type: 'references.session-saved', payload: session }, { quiet: true });
 };
+const saveReferenceBatch = async (rawRoot, batch) => {
+  const projectRoot = await assertProjectRoot(rawRoot);
+  const paths = statePaths(projectRoot);
+  const state = await loadState(projectRoot, paths);
+  await applyEvent(projectRoot, paths, state, { type: 'references.batch-saved', payload: batch }, { quiet: true });
+};
 const usage = 'Usage: project-state.mjs init|validate|get <project-root> | apply-event|append-generation|append-decision <project-root> <record.json>';
 const parseCliArgs = (args) => {
   const [command, ...operands] = args;
@@ -810,6 +836,92 @@ const parseCliArgs = (args) => {
   if (typeof operands[0] === 'string' && operands[0].startsWith('-')) throw new Error(`project-root is positional; do not use --project-root. ${usage}`);
   if (operands.length !== requiredOperands) throw new Error(usage);
   return { command, rawRoot: operands[0], recordPath: operands[1] };
+};
+const batchFromSession = (session, state, options = {}) => {
+  if (!isRecord(session)) return null;
+  const accepted = session.accepted === true;
+  const now = state?.updatedAt ?? new Date().toISOString();
+  return {
+    schemaVersion: 1,
+    catalogFingerprint: session.catalogFingerprint,
+    mode: options.mode ?? 'legacy-single',
+    pageUse: session.request?.pageUse,
+    accepted,
+    items: [{
+      slotId: 'R01',
+      origin: options.origin ?? 'legacy',
+      category: session.currentSet?.category ?? session.request?.category,
+      reviewStatus: accepted ? 'accepted' : 'pending',
+      warnings: [],
+      requiresIdentityQa: false,
+      identityQaStatus: 'not-required',
+      session: structuredClone(session),
+    }],
+    notices: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+};
+const batchPins = (batch) => (batch?.items ?? []).flatMap((item) => (
+  (item.session?.pinned ?? []).map((pin) => ({ slotId: item.slotId, id: pin.id, role: pin.role }))
+));
+const batchExcluded = (batch) => [...new Set((batch?.items ?? []).flatMap((item) => item.session?.excluded ?? []))];
+const applyReferenceBatchState = (state, batch, catalog) => {
+  state.references = {
+    ...state.references,
+    catalogFingerprint: catalog.fingerprint,
+    selectionStatus: 'current',
+    activeBatch: structuredClone(batch),
+    pinned: batchPins(batch),
+    excluded: [...new Set([...(state.references.excluded ?? []), ...batchExcluded(batch)])],
+  };
+  for (const item of batch.items) {
+    const session = item.session;
+    if (item.reviewStatus === 'accepted' && !state.references.acceptedSets.some((set) => set.signature === session.currentSet.signature)) {
+      state.references.acceptedSets.push(structuredClone(session.currentSet));
+    }
+    const sessionSets = [session.currentSet, ...(session.acceptedSets ?? []), ...(session.history ?? [])];
+    for (const set of sessionSets) for (const entry of [set.anchor, ...(set.supporting ?? [])]) {
+      const card = catalog.cards.find((candidate) => candidate.id === entry.id);
+      if (card) state.references.historicalCards[card.id] = { id: card.id, title: card.title, primaryCategory: card.primaryCategory, fingerprint: card.fingerprint, retired: false };
+    }
+  }
+};
+const validateReferenceBatch = (batch, label, catalog = null) => {
+  const errors = [];
+  if (!isRecord(batch)) return [`${label} must be an object`];
+  if (batch.schemaVersion !== 1) errors.push(`${label}.schemaVersion must be 1`);
+  if (typeof batch.catalogFingerprint !== 'string') errors.push(`${label}.catalogFingerprint must be a string`);
+  if (!['automatic-categories', 'user-custom', 'legacy-single'].includes(batch.mode)) errors.push(`${label}.mode is invalid`);
+  if (typeof batch.pageUse !== 'string' || !batch.pageUse.trim()) errors.push(`${label}.pageUse is required`);
+  if (!Array.isArray(batch.items) || !batch.items.length) errors.push(`${label}.items must contain at least one item`);
+  else {
+    batch.items.forEach((item, index) => {
+      const itemLabel = `${label}.items[${index}]`;
+      const expectedSlot = `R${String(index + 1).padStart(2, '0')}`;
+      if (!isRecord(item) || item.slotId !== expectedSlot) { errors.push(`${itemLabel}.slotId must be ${expectedSlot}`); return; }
+      if (!['automatic', 'user-custom', 'legacy'].includes(item.origin)) errors.push(`${itemLabel}.origin is invalid`);
+      if (!['pending', 'accepted'].includes(item.reviewStatus)) errors.push(`${itemLabel}.reviewStatus is invalid`);
+      if (typeof item.category !== 'string') errors.push(`${itemLabel}.category is required`);
+      if (!Array.isArray(item.warnings) || item.warnings.some((warning) => typeof warning !== 'string')) errors.push(`${itemLabel}.warnings must be strings`);
+      if (typeof item.requiresIdentityQa !== 'boolean') errors.push(`${itemLabel}.requiresIdentityQa must be boolean`);
+      if (!['not-required', 'required', 'passed'].includes(item.identityQaStatus)) errors.push(`${itemLabel}.identityQaStatus is invalid`);
+      if (item.requiresIdentityQa !== (item.identityQaStatus !== 'not-required')) errors.push(`${itemLabel} identity QA fields do not match`);
+      if (!isRecord(item.session)) errors.push(`${itemLabel}.session must be an object`);
+      else {
+        if (item.session.catalogFingerprint !== batch.catalogFingerprint) errors.push(`${itemLabel}.session catalog fingerprint does not match the batch`);
+        if (item.session.request?.pageUse !== batch.pageUse) errors.push(`${itemLabel}.session pageUse does not match the batch`);
+        errors.push(...validateReferenceSet(item.session.currentSet, `${itemLabel}.session.currentSet`, catalog));
+        if (item.session.currentSet?.category !== item.category) errors.push(`${itemLabel}.category does not match its current set`);
+        if (!Array.isArray(item.session.pinned) || !Array.isArray(item.session.excluded)) errors.push(`${itemLabel}.session requires pinned and excluded arrays`);
+      }
+    });
+  }
+  const accepted = Array.isArray(batch.items) && batch.items.length > 0 && batch.items.every((item) => item?.reviewStatus === 'accepted');
+  if (batch.accepted !== accepted) errors.push(`${label}.accepted does not match item review status`);
+  if (!Array.isArray(batch.notices ?? []) || (batch.notices ?? []).some((notice) => typeof notice !== 'string')) errors.push(`${label}.notices must be strings`);
+  if (!validDate(batch.createdAt) || !validDate(batch.updatedAt)) errors.push(`${label} timestamps are invalid`);
+  return errors;
 };
 const main = async () => {
   const { command, rawRoot, recordPath } = parseCliArgs(process.argv.slice(2));
@@ -823,4 +935,4 @@ const main = async () => {
 const isDirectExecution = () => Boolean(process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)));
 if (isDirectExecution()) main().catch((error) => fail(error.message));
 
-export { applyEvent, assertProjectRoot, atomicWriteJson, emptyState, migrateState, parseCliArgs, readProjectState, saveReferenceSession, statePaths, validateState };
+export { applyEvent, assertProjectRoot, atomicWriteJson, emptyState, migrateState, parseCliArgs, readProjectState, saveReferenceBatch, saveReferenceSession, statePaths, validateState };

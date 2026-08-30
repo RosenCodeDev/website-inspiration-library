@@ -933,6 +933,13 @@ button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
   letter-spacing: -.03em;
 }
 
+.manual-prompt-dialog-head p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font: 9px/1.2 var(--mono);
+  letter-spacing: .12em;
+}
+
 .manual-prompt-close {
   width: 42px;
   min-width: 42px;
